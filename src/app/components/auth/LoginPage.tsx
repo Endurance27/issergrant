@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, ArrowRight, CheckCircle2, TrendingUp, Clock, Award } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, CheckCircle2, TrendingUp, Clock, Award, X } from "lucide-react";
 import type { Role } from "../../data/mockData";
 import { IsserLogo } from "../ui/IsserLogo";
 
@@ -44,6 +44,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
 
   const handleLogin = () => {
     const account = demoAccounts.find(a => a.email === email);
@@ -276,7 +279,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               {loading ? 'Signing in...' : <><span>Sign In</span><ArrowRight size={16} /></>}
             </button>
             <div className="text-center">
-              <button className="text-[13px] font-semibold text-primary hover:opacity-75 transition-opacity">Forgot password?</button>
+              <button onClick={() => { setShowForgot(true); setForgotSent(false); setForgotEmail(''); }} className="text-[13px] font-semibold text-primary hover:opacity-75 transition-opacity">Forgot password?</button>
             </div>
           </div>
 
@@ -285,6 +288,31 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <span className="text-xs text-muted-foreground">or quick demo access</span>
             <div className="flex-1 h-px bg-border" />
           </div>
+
+          {/* Forgot Password modal */}
+          {showForgot && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowForgot(false)}>
+              <div className="absolute inset-0 bg-black/40" />
+              <div className="relative w-full max-w-sm rounded-2xl bg-card border border-border shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setShowForgot(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"><X size={16} /></button>
+                {!forgotSent ? (
+                  <>
+                    <h3 className="font-extrabold text-[18px] text-foreground mb-1">Reset Password</h3>
+                    <p className="text-[13px] text-muted-foreground mb-4">Enter your institutional email and we'll send a reset link.</p>
+                    <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="you@iser.edu" className="w-full px-4 py-3 rounded-xl outline-none bg-muted border border-border text-sm text-foreground mb-3" />
+                    <button onClick={() => { if (forgotEmail) setForgotSent(true); }} className="w-full py-3 rounded-xl text-white font-bold text-sm" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>Send Reset Link</button>
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <CheckCircle2 size={40} className="mx-auto mb-3 text-green-500" />
+                    <h3 className="font-extrabold text-[18px] text-foreground mb-2">Email Sent!</h3>
+                    <p className="text-[13px] text-muted-foreground">Check <strong>{forgotEmail}</strong> for the password reset link.</p>
+                    <button onClick={() => setShowForgot(false)} className="mt-4 text-[13px] font-semibold text-primary hover:opacity-75 transition-opacity">Back to Login</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             {demoAccounts.map(acc => (

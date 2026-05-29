@@ -37,7 +37,7 @@ export function Milestones({ role }: MilestonesProps) {
         subtitle="Track project progress checkpoints"
         action={
           (role === 'Researcher' || role === 'Assistant Researcher') ? (
-            <button className="btn-primary flex items-center gap-2">
+            <button onClick={() => toast('Report submission coming soon', 'info')} className="btn-primary flex items-center gap-2">
               <Plus size={16} /> Submit Report
             </button>
           ) : undefined
@@ -139,7 +139,7 @@ export function Milestones({ role }: MilestonesProps) {
               <div className="flex items-center gap-3 p-3 rounded-xl bg-muted border border-border">
                 <FileText size={16} className="text-primary" />
                 <span className="text-[13px] text-foreground">milestone_report_{selected.id}.pdf</span>
-                <button className="ml-auto text-xs font-semibold text-primary hover:opacity-75 transition-opacity">Download</button>
+                <button onClick={() => toast(`Downloading milestone_report_${selected.id}.pdf`, 'info')} className="ml-auto text-xs font-semibold text-primary hover:opacity-75 transition-opacity">Download</button>
               </div>
             </div>
           </div>

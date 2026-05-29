@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import { analyticsData, proposals, grantCalls, awards } from "../../data/mockData";
-import { Download } from "lucide-react";
+import { Download, FileText, CheckCircle2, BarChart3, DollarSign } from "lucide-react";
 import { PageHeader } from "../ui/PageHeader";
 import { StatCard } from "../ui/StatCard";
-import { FileText, CheckCircle2, BarChart3, DollarSign } from "lucide-react";
+import { useToast } from "../ui/Toast";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 
@@ -24,6 +24,7 @@ function ChartCard({ title, subtitle, children }: { title: string; subtitle?: st
 }
 
 export function Analytics() {
+  const { toast } = useToast();
   const { approvalRate, totalFunding, byStatus } = useMemo(() => {
     const byStatus = proposals.reduce((acc, p) => {
       acc[p.status] = (acc[p.status] || 0) + 1;
@@ -40,7 +41,7 @@ export function Analytics() {
         title="Analytics & Reports"
         subtitle="System-wide performance and funding insights"
         action={
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-[13px] bg-card border border-border hover:bg-muted transition-colors">
+          <button onClick={() => toast('Exporting analytics report...', 'info')} className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-[13px] bg-card border border-border hover:bg-muted transition-colors">
             <Download size={15} /> Export Report
           </button>
         }

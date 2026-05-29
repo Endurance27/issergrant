@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Search, Shield, Download } from "lucide-react";
-import { auditLogs } from "../../data/mockData";
+import { useAppContext } from "../../context/AppContext";
 import { Badge } from "../ui/Badge";
 import { ScrollTable } from "../ui/ScrollTable";
 import { PageHeader } from "../ui/PageHeader";
+import { useToast } from "../ui/Toast";
 
 const moduleColors: Record<string, string> = {
   'Proposals': '#1A3363',
@@ -17,8 +18,10 @@ const moduleColors: Record<string, string> = {
 };
 
 export function AuditLogs() {
+  const { auditLogs } = useAppContext();
   const [search, setSearch] = useState('');
   const [moduleFilter, setModuleFilter] = useState('All');
+  const { toast } = useToast();
 
   const modules = ['All', ...Array.from(new Set(auditLogs.map(l => l.module)))];
   const filtered = auditLogs.filter(l => {
@@ -33,7 +36,7 @@ export function AuditLogs() {
         title="Audit Logs"
         subtitle={`Complete system activity trail — ${auditLogs.length} events recorded`}
         action={
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border font-semibold text-[13px] text-foreground hover:bg-muted transition-colors">
+          <button onClick={() => toast('Exporting audit logs...', 'info')} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border font-semibold text-[13px] text-foreground hover:bg-muted transition-colors">
             <Download size={15} /> Export Logs
           </button>
         }

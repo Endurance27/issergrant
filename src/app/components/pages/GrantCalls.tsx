@@ -16,9 +16,9 @@ const STATUS_BORDER: Record<string, string> = {
   Locked: '#64748B',
 };
 
-interface GrantCallsProps { role: Role; }
+interface GrantCallsProps { role: Role; onNavigate: (page: string, state?: { grantCallId?: string; grantCallTitle?: string }) => void; }
 
-export function GrantCalls({ role }: GrantCallsProps) {
+export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'All' | 'Open' | 'Closed' | 'Draft'>('All');
   const [selected, setSelected] = useState<GrantCall | null>(null);
@@ -139,7 +139,7 @@ export function GrantCalls({ role }: GrantCallsProps) {
               <div className="text-[13px] text-foreground">{selected.eligibility}</div>
             </div>
             {(role === 'Researcher' || role === 'Assistant Researcher') && selected.status === 'Open' && (
-              <button onClick={() => { toast('Application submitted successfully'); setSelected(null); }} className="w-full py-2.5 rounded-xl text-white font-bold text-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>
+              <button onClick={() => { setSelected(null); onNavigate('proposals', { grantCallId: selected.id, grantCallTitle: selected.title }); }} className="w-full py-2.5 rounded-xl text-white font-bold text-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>
                 Apply for This Grant
               </button>
             )}

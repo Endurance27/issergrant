@@ -1,23 +1,92 @@
-import { Award, DollarSign, Calendar, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { Award, DollarSign, Calendar, TrendingUp, Plus, Send } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { PageHeader } from "../ui/PageHeader";
-import { awards } from "../../data/mockData";
-import type { Role } from "../../data/mockData";
+import { Modal } from "../ui/Modal";
+import { useToast } from "../ui/Toast";
+import { useAppContext } from "../../context/AppContext";
+import { currentUsers } from "../../data/mockData";
+import type { Role, Award as AwardType, Transaction } from "../../data/mockData";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 
-interface AwardsProps { role: Role; }
+interface AwardsProps { role: Role; onNavigate: (page: string) => void; }
 
-export function Awards({ role: _role }: AwardsProps) {
+export function Awards({ role, onNavigate }: AwardsProps) {
+  const { awards, addAward, transactions, addTransaction, addNotification, addAuditLog } = useAppContext();
   const totalAwarded = awards.reduce((s, a) => s + a.awardedAmount, 0);
   const totalDisbursed = awards.reduce((s, a) => s + a.disbursed, 0);
+
+  // Disbursement request state
+  const [showDisburse, setShowDisburse] = useState<AwardType | null>(null);
+  const [disburseAmount, setDisburseAmount] = useState('');
+  const [disburseDesc, setDisburseDesc] = useState('');
+
+  // Create award manually (Admin)
+  const [showCreate, setShowCreate] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newResearcher, setNewResearcher] = useState('');
+  const [newAmount, setNewAmount] = useState('');
+  const [newStart, setNewStart] = useState('');
+  const [newEnd, setNewEnd] = useState('');
+  const { toast } = useToast();
+
+  const requestDisbursement = () => {
+    if (!showDisburse || !disburseAmount || !disburseDesc) { toast('Fill in all fields', 'error'); return; }
+    const amt = Number(disburseAmount);
+    if (amt <= 0 || amt > showDisburse.remaining) { toast(`Amount must be between 1 and ${fmtCurrency(showDisburse.remaining)}`, 'error'); return; }
+    const tx: Transaction = {
+      id: `TX-${Date.now()}`,
+      projectId: showDisburse.id,
+      projectTitle: showDisburse.title,
+      type: 'Disbursement',
+      amount: amt,
+      date: new Date().toISOString().slice(0, 10),
+      status: 'Pending',
+      description: disburseDesc,
+      requestedBy: currentUsers[role].name,
+    };
+    addTransaction(tx);
+    addNotification({ title: 'Disbursement Requested', message: `${fmtCurrency(amt)} disbursement request for "${showDisburse.title}" is pending approval.`, time: 'Just now', type: 'payment' });
+    addAuditLog({ action: 'Disbursement Requested', user: currentUsers[role].name, role, module: 'Financial', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${fmtCurrency(amt)} — ${disburseDesc}` });
+    toast('Disbursement request submitted');
+    setShowDisburse(null); setDisburseAmount(''); setDisburseDesc('');
+    onNavigate('financial');
+  };
+
+  const createAward = () => {
+    if (!newTitle || !newResearcher || !newAmount || !newStart || !newEnd) { toast('Fill in all fields', 'error'); return; }
+    const amt = Number(newAmount);
+    const award: AwardType = {
+      id: `AW-${Date.now()}`,
+      proposalId: '',
+      title: newTitle,
+      researcher: newResearcher,
+      awardedAmount: amt,
+      awardDate: new Date().toISOString().slice(0, 10),
+      startDate: newStart,
+      endDate: newEnd,
+      status: 'Active',
+      disbursed: 0,
+      remaining: amt,
+    };
+    addAward(award);
+    addAuditLog({ action: 'Award Created', user: currentUsers[role].name, role, module: 'Financial', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${award.id}: ${newTitle}` });
+    toast('Award created successfully');
+    setShowCreate(false); setNewTitle(''); setNewResearcher(''); setNewAmount(''); setNewStart(''); setNewEnd('');
+  };
 
   return (
     <div>
       <PageHeader
         title="Awards & Funding"
         subtitle={`${awards.filter(a => a.status === 'Active').length} active awarded projects`}
+        action={role === 'Admin' ? (
+          <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
+            <Plus size={16} /> New Award
+          </button>
+        ) : undefined}
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -31,6 +100,7 @@ export function Awards({ role: _role }: AwardsProps) {
         {awards.map(award => {
           const pct = Math.round((award.disbursed / award.awardedAmount) * 100);
           const isActive = award.status === 'Active';
+          const myAward = role === 'Researcher' || role === 'Assistant Researcher';
           return (
             <div key={award.id} className="rounded-2xl bg-card border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
               style={{ borderLeftWidth: 4, borderLeftColor: isActive ? '#22C55E' : '#94A3B8' }}>
@@ -46,9 +116,23 @@ export function Awards({ role: _role }: AwardsProps) {
                       PI: <span className="text-foreground font-semibold">{award.researcher}</span> &nbsp;·&nbsp; {award.startDate} → {award.endDate}
                     </p>
                   </div>
-                  <div className="sm:text-right flex-shrink-0 bg-muted rounded-xl px-4 py-2">
-                    <div className="font-mono font-black text-[18px] text-foreground">{fmtCurrency(award.awardedAmount)}</div>
-                    <div className="text-[11px] text-muted-foreground">Total Award</div>
+                  <div className="sm:text-right flex-shrink-0 flex flex-col items-end gap-2">
+                    <div className="bg-muted rounded-xl px-4 py-2 text-right">
+                      <div className="font-mono font-black text-[18px] text-foreground">{fmtCurrency(award.awardedAmount)}</div>
+                      <div className="text-[11px] text-muted-foreground">Total Award</div>
+                    </div>
+                    {/* Request Disbursement for researcher */}
+                    {myAward && isActive && (
+                      <button onClick={() => { setShowDisburse(award); setDisburseAmount(''); setDisburseDesc(''); }} className="btn-primary text-xs flex items-center gap-1.5">
+                        <Send size={12} /> Request Disbursement
+                      </button>
+                    )}
+                    {/* Finance/Admin: view transactions */}
+                    {(role === 'Finance Officer' || role === 'Admin') && (
+                      <button onClick={() => onNavigate('financial')} className="btn-secondary text-xs flex items-center gap-1.5">
+                        <DollarSign size={12} /> View Transactions
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -86,6 +170,62 @@ export function Awards({ role: _role }: AwardsProps) {
           );
         })}
       </div>
+
+      {/* Disbursement request modal */}
+      <Modal open={!!showDisburse} onClose={() => setShowDisburse(null)} title="Request Disbursement" width={480}>
+        {showDisburse && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl bg-secondary border-l-4 border-primary">
+              <div className="font-bold text-[13px] text-foreground">{showDisburse.title}</div>
+              <div className="text-xs text-muted-foreground">Available: <span className="font-semibold text-foreground">{fmtCurrency(showDisburse.remaining)}</span></div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">Amount (GHS)</label>
+              <input type="number" value={disburseAmount} onChange={e => setDisburseAmount(e.target.value)} placeholder="0" max={showDisburse.remaining} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">Purpose / Description</label>
+              <textarea rows={3} value={disburseDesc} onChange={e => setDisburseDesc(e.target.value)} placeholder="What will these funds be used for?" className="w-full px-3 py-2 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDisburse(null)} className="btn-secondary flex-1 py-2.5">Cancel</button>
+              <button onClick={requestDisbursement} className="btn-primary flex-1 py-2.5 flex items-center justify-center gap-2"><Send size={14} /> Submit Request</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Create Award modal (Admin) */}
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create New Award" width={520}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Project Title</label>
+            <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Award title" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Principal Investigator</label>
+            <input type="text" value={newResearcher} onChange={e => setNewResearcher(e.target.value)} placeholder="Researcher name" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Award Amount (GHS)</label>
+            <input type="number" value={newAmount} onChange={e => setNewAmount(e.target.value)} placeholder="0" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">Start Date</label>
+              <input type="date" value={newStart} onChange={e => setNewStart(e.target.value)} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">End Date</label>
+              <input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => setShowCreate(false)} className="btn-secondary flex-1 py-2.5">Cancel</button>
+            <button onClick={createAward} className="btn-primary flex-1 py-2.5 flex items-center justify-center gap-2"><Award size={15} /> Create Award</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

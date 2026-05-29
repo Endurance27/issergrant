@@ -5,7 +5,11 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { useToast } from "../ui/Toast";
 import { ScrollTable } from "../ui/ScrollTable";
 import { PageHeader } from "../ui/PageHeader";
-import { transactions, awards } from "../../data/mockData";
+import { Pagination } from "../ui/Pagination";
+import { usePagination } from "../../hooks/usePagination";
+import { useSortable } from "../../hooks/useSortable";
+import { useAppContext } from "../../context/AppContext";
+import { currentUsers } from "../../data/mockData";
 import type { Role } from "../../data/mockData";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
@@ -13,24 +17,39 @@ const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 interface FinancialProps { role: Role; }
 
 export function Financial({ role }: FinancialProps) {
+  const { awards, transactions, updateTransaction, addNotification, addAuditLog } = useAppContext();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [txList, setTxList] = useState(transactions);
   const [confirmAction, setConfirmAction] = useState<{ id: string; type: 'approve' | 'reject' } | null>(null);
 
-  const filtered = txList.filter(t => {
+  const filtered = transactions.filter(t => {
     const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || t.projectTitle.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'All' || t.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
+  const { sorted, sortKey, dir, toggle } = useSortable(filtered as unknown as Record<string, unknown>[]);
+  const { paginated, page, totalPages, setPage } = usePagination(sorted as unknown as typeof filtered, 10);
+
   const { toast } = useToast();
-  const approve = (id: string) => { setTxList(prev => prev.map(t => t.id === id ? { ...t, status: 'Paid' as const } : t)); toast('Disbursement approved'); };
-  const reject = (id: string) => { setTxList(prev => prev.map(t => t.id === id ? { ...t, status: 'Rejected' as const } : t)); toast('Disbursement rejected', 'error'); };
+  const approve = (id: string) => {
+    updateTransaction(id, { status: 'Paid' });
+    const tx = transactions.find(t => t.id === id);
+    if (tx) {
+      addNotification({ title: 'Payment Processed', message: `Disbursement of ${fmtCurrency(tx.amount)} for "${tx.projectTitle}" has been approved.`, time: 'Just now', type: 'payment' });
+      addAuditLog({ action: 'Disbursement Approved', user: currentUsers[role].name, role, module: 'Financial', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${fmtCurrency(tx.amount)} — ${tx.description}` });
+    }
+    toast('Disbursement approved');
+  };
+  const reject = (id: string) => {
+    updateTransaction(id, { status: 'Rejected' });
+    addAuditLog({ action: 'Disbursement Rejected', user: currentUsers[role].name, role, module: 'Financial', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: id });
+    toast('Disbursement rejected', 'error');
+  };
 
   const totalAwarded = awards.reduce((s, a) => s + a.awardedAmount, 0);
   const totalDisbursed = awards.reduce((s, a) => s + a.disbursed, 0);
-  const pendingAmt = txList.filter(t => t.status === 'Pending').reduce((s, t) => s + t.amount, 0);
+  const pendingAmt = transactions.filter(t => t.status === 'Pending').reduce((s, t) => s + t.amount, 0);
 
   const typeIcon = (type: string) => {
     if (type === 'Disbursement') return <TrendingUp size={14} className="text-primary" />;
@@ -115,7 +134,7 @@ export function Financial({ role }: FinancialProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map(t => (
+                {paginated.map(t => (
                   <tr key={t.id} className="bg-card hover:bg-muted transition-colors">
                     <td className="px-4 py-3"><span className="font-mono text-[10px] text-muted-foreground">{t.id}</span></td>
                     <td className="px-4 py-3">
@@ -146,9 +165,7 @@ export function Financial({ role }: FinancialProps) {
               </tbody>
             </table>
           </ScrollTable>
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted">
-            <span className="text-xs text-muted-foreground">Showing {filtered.length} of {txList.length} transactions</span>
-          </div>
+          <Pagination page={page} totalPages={totalPages} total={filtered.length} pageSize={10} onPage={setPage} />
         </div>
       </div>
 

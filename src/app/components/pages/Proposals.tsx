@@ -1,12 +1,17 @@
-import { useState } from "react";
-import { Search, Plus, FileText, CheckCircle2, XCircle, Eye, RotateCcw, MessageSquare, Clock } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, Plus, FileText, CheckCircle2, XCircle, Eye, RotateCcw, MessageSquare, Clock, Award, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { useToast } from "../ui/Toast";
 import { ScrollTable } from "../ui/ScrollTable";
 import { PageHeader } from "../ui/PageHeader";
-import { proposals as initialProposals, grantCalls } from "../../data/mockData";
-import type { Role, Proposal, StatusBadge } from "../../data/mockData";
+import { Pagination } from "../ui/Pagination";
+import { usePagination } from "../../hooks/usePagination";
+import { useSortable } from "../../hooks/useSortable";
+import { useAppContext } from "../../context/AppContext";
+import { proposals as initialProposals, grantCalls, currentUsers } from "../../data/mockData";
+import type { Role, Proposal, StatusBadge, Award as AwardType } from "../../data/mockData";
+import type { NavState } from "../../App";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 
@@ -19,29 +24,56 @@ interface ReviewEntry {
 
 type ProposalWithHistory = Proposal & { reviewHistory?: ReviewEntry[] };
 
-interface ProposalsProps { role: Role; }
+interface ProposalsProps { role: Role; navState?: NavState | null; }
 
-export function Proposals({ role }: ProposalsProps) {
+const TH = ({ label, sortKey, active, dir, onToggle }: { label: string; sortKey?: string; active?: boolean; dir?: 'asc' | 'desc'; onToggle?: () => void }) => (
+  <th
+    onClick={onToggle}
+    className={`text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground whitespace-nowrap uppercase tracking-[0.05em] select-none ${onToggle ? 'cursor-pointer hover:text-foreground' : ''}`}
+  >
+    <span className="flex items-center gap-1">
+      {label}
+      {onToggle && (active ? (dir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />) : <ChevronUp size={11} className="opacity-20" />)}
+    </span>
+  </th>
+);
+
+export function Proposals({ role, navState }: ProposalsProps) {
+  const { addAward, addNotification, addAuditLog } = useAppContext();
   const [proposals, setProposals] = useState<ProposalWithHistory[]>(initialProposals);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selected, setSelected] = useState<ProposalWithHistory | null>(null);
-  const [showNew, setShowNew] = useState(false);
-
+  const [showNew, setShowNew] = useState(navState?.grantCallId ? true : false);
+  const [selectedGrant, setSelectedGrant] = useState(navState?.grantCallId || '');
+  const [newTitle, setNewTitle] = useState('');
+  const [newAbstract, setNewAbstract] = useState('');
+  const [newAmount, setNewAmount] = useState('');
   const [reviewAction, setReviewAction] = useState<{ proposal: ProposalWithHistory; type: 'Approved' | 'Rejected' | 'Revised' } | null>(null);
   const [reviewComment, setReviewComment] = useState('');
   const [commentError, setCommentError] = useState('');
+  const [showAwardModal, setShowAwardModal] = useState<ProposalWithHistory | null>(null);
+  const [awardAmount, setAwardAmount] = useState('');
+  const [awardStart, setAwardStart] = useState('');
+  const [awardEnd, setAwardEnd] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
 
   const myId = role === 'Researcher' ? 2 : role === 'Assistant Researcher' ? 4 : null;
   const visibleProposals = myId ? proposals.filter(p => p.researcherId === myId) : proposals;
 
-  const filtered = visibleProposals.filter(p => {
+  const filtered = useMemo(() => visibleProposals.filter(p => {
     const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.researcher.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'All' || p.status === statusFilter;
     return matchSearch && matchStatus;
-  });
+  }), [visibleProposals, search, statusFilter]);
+
+  const { sorted, sortKey, dir, toggle } = useSortable(filtered as unknown as Record<string, unknown>[], 'submitted' as any);
+  const { paginated, page, totalPages, setPage } = usePagination(sorted as unknown as ProposalWithHistory[], 8);
 
   const statuses = ['All', 'Draft', 'Submitted', 'Under Review', 'Approved', 'Rejected', 'Revised'];
+  const actionColors = { Approved: '#22C55E', Rejected: '#EF4444', Revised: '#A855F7' };
+  const actionLabels = { Approved: 'Approve Proposal', Rejected: 'Reject Proposal', Revised: 'Request Revision' };
 
   const openReview = (proposal: ProposalWithHistory, type: 'Approved' | 'Rejected' | 'Revised') => {
     setReviewAction({ proposal, type });
@@ -52,26 +84,93 @@ export function Proposals({ role }: ProposalsProps) {
   const submitReview = () => {
     if (!reviewComment.trim()) { setCommentError('A comment is required.'); return; }
     if (!reviewAction) return;
-
     const statusMap: Record<string, StatusBadge> = { Approved: 'Approved', Rejected: 'Rejected', Revised: 'Revised' };
     const entry: ReviewEntry = { action: reviewAction.type, comment: reviewComment.trim(), reviewer: role, date: new Date().toISOString().slice(0, 10) };
-
-    setProposals(prev => prev.map(p =>
+    const updated = proposals.map(p =>
       p.id === reviewAction.proposal.id
         ? { ...p, status: statusMap[reviewAction.type], reviewHistory: [...(p.reviewHistory || []), entry] }
         : p
-    ));
+    );
+    setProposals(updated);
     if (selected?.id === reviewAction.proposal.id) {
       setSelected(prev => prev ? { ...prev, status: statusMap[reviewAction.type], reviewHistory: [...(prev.reviewHistory || []), entry] } : prev);
     }
+    // Auto-notification
+    const notifMsg = reviewAction.type === 'Approved'
+      ? `Your proposal "${reviewAction.proposal.title}" has been approved!`
+      : reviewAction.type === 'Rejected'
+      ? `Your proposal "${reviewAction.proposal.title}" was not approved.`
+      : `Revision requested for "${reviewAction.proposal.title}".`;
+    addNotification({ title: `Proposal ${reviewAction.type}`, message: notifMsg, time: 'Just now', type: reviewAction.type === 'Approved' ? 'approval' : 'rejection' });
+    addAuditLog({ action: `Proposal ${reviewAction.type}`, user: currentUsers[role].name, role, module: 'Proposals', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${reviewAction.proposal.id}: ${reviewComment.trim()}` });
     toast(`Proposal ${reviewAction.type.toLowerCase()}`);
     setReviewAction(null);
     setReviewComment('');
   };
 
-  const { toast } = useToast();
-  const actionColors = { Approved: '#22C55E', Rejected: '#EF4444', Revised: '#A855F7' };
-  const actionLabels = { Approved: 'Approve Proposal', Rejected: 'Reject Proposal', Revised: 'Request Revision' };
+  const handleBulkApprove = () => {
+    setProposals(p => p.map(q => selectedIds.has(q.id) && (q.status === 'Under Review' || q.status === 'Submitted') ? { ...q, status: 'Approved' } : q));
+    toast(`${selectedIds.size} proposals approved`);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkReject = () => {
+    setProposals(p => p.map(q => selectedIds.has(q.id) && (q.status === 'Under Review' || q.status === 'Submitted') ? { ...q, status: 'Rejected' } : q));
+    toast(`${selectedIds.size} proposals rejected`, 'warning');
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  };
+
+  const createAward = () => {
+    if (!showAwardModal || !awardAmount || !awardStart || !awardEnd) { toast('Fill in all award fields', 'error'); return; }
+    const amt = Number(awardAmount);
+    const award: AwardType = {
+      id: `AW-${Date.now()}`,
+      proposalId: showAwardModal.id,
+      title: showAwardModal.title,
+      researcher: showAwardModal.researcher,
+      awardedAmount: amt,
+      awardDate: new Date().toISOString().slice(0, 10),
+      startDate: awardStart,
+      endDate: awardEnd,
+      status: 'Active',
+      disbursed: 0,
+      remaining: amt,
+    };
+    addAward(award);
+    addNotification({ title: 'Award Created', message: `Award for "${showAwardModal.title}" has been created (${fmtCurrency(amt)}).`, time: 'Just now', type: 'approval' });
+    addAuditLog({ action: 'Award Created', user: currentUsers[role].name, role, module: 'Proposals', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${award.id} from ${showAwardModal.id}` });
+    toast('Award created successfully');
+    setShowAwardModal(null);
+    setAwardAmount(''); setAwardStart(''); setAwardEnd('');
+  };
+
+  const submitNewProposal = () => {
+    if (!newTitle.trim()) { toast('Enter a research title', 'error'); return; }
+    if (!selectedGrant) { toast('Select a grant call', 'error'); return; }
+    const gc = grantCalls.find(g => g.id === selectedGrant);
+    const newP: ProposalWithHistory = {
+      id: `PR-${Date.now()}`,
+      title: newTitle,
+      researcher: currentUsers[role].name,
+      researcherId: currentUsers[role].id,
+      grantCallId: selectedGrant,
+      grantCallTitle: gc?.title || '',
+      submitted: new Date().toISOString().slice(0, 10),
+      status: 'Submitted',
+      requestedAmount: Number(newAmount) || 0,
+      department: currentUsers[role].department,
+      abstract: newAbstract,
+    };
+    setProposals(p => [newP, ...p]);
+    addAuditLog({ action: 'Proposal Submitted', user: currentUsers[role].name, role, module: 'Proposals', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `New proposal: ${newTitle}` });
+    toast('Proposal submitted successfully');
+    setShowNew(false);
+    setNewTitle(''); setNewAbstract(''); setNewAmount(''); setSelectedGrant('');
+  };
 
   return (
     <div>
@@ -79,12 +178,13 @@ export function Proposals({ role }: ProposalsProps) {
         title="Proposals"
         subtitle={`${proposals.filter(p => p.status === 'Under Review').length} proposals pending review`}
         action={(role === 'Researcher' || role === 'Assistant Researcher') ? (
-          <button onClick={() => setShowNew(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-semibold text-[13px] hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>
+          <button onClick={() => setShowNew(true)} className="btn-primary flex items-center gap-2">
             <Plus size={16} /> New Proposal
           </button>
         ) : undefined}
       />
 
+      {/* Stats bar */}
       <div className="flex flex-wrap gap-3 mb-5">
         {[
           { label: 'Total', count: proposals.length, color: 'var(--primary)' },
@@ -93,7 +193,7 @@ export function Proposals({ role }: ProposalsProps) {
           { label: 'Rejected', count: proposals.filter(p => p.status === 'Rejected').length, color: '#EF4444' },
           { label: 'Revised', count: proposals.filter(p => p.status === 'Revised').length, color: '#A855F7' },
         ].map(item => (
-          <div key={item.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
+          <div key={item.label} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border">
             <span className="rounded-full inline-block w-2 h-2" style={{ background: item.color }} />
             <span className="text-xs text-muted-foreground">{item.label}</span>
             <span className="font-mono font-bold text-[13px] text-foreground">{item.count}</span>
@@ -101,33 +201,53 @@ export function Proposals({ role }: ProposalsProps) {
         ))}
       </div>
 
+      {/* Search + filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 bg-card border border-border">
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2 flex-1 bg-card border border-border focus-within:border-primary/50 transition-colors">
           <Search size={15} className="text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search proposals..." className="bg-transparent outline-none flex-1 text-[13px] text-foreground" />
+          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search proposals..." className="bg-transparent outline-none flex-1 text-[13px] text-foreground" />
         </div>
         <div className="flex gap-2 flex-wrap">
           {statuses.map(s => (
-            <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-2 rounded-lg transition-all text-xs border whitespace-nowrap ${statusFilter === s ? 'border-primary bg-primary text-white font-semibold shadow-sm' : 'border-border bg-card text-muted-foreground font-medium hover:bg-muted'}`}>
+            <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }} className={`px-3 py-2 rounded-xl transition-all text-xs border whitespace-nowrap ${statusFilter === s ? 'border-primary bg-primary text-white font-semibold shadow-sm' : 'border-border bg-card text-muted-foreground font-medium hover:bg-muted'}`}>
               {s}
             </button>
           ))}
         </div>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 mb-3 rounded-xl bg-secondary border border-primary/20 animate-in slide-in-from-top-2 duration-200">
+          <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
+          <div className="flex gap-2 ml-auto">
+            <button onClick={handleBulkApprove} className="px-3 py-1.5 rounded-xl text-white text-xs font-semibold hover:opacity-90" style={{ background: '#22C55E' }}>Approve All</button>
+            <button onClick={handleBulkReject} className="btn-destructive text-xs px-3 py-1.5">Reject All</button>
+            <button onClick={() => setSelectedIds(new Set())} className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"><Trash2 size={11} /> Clear</button>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl overflow-hidden border border-border">
         <ScrollTable>
           <table className="w-full">
             <thead>
               <tr className="bg-muted border-b border-border">
-                {['ID', 'Title', 'Researcher', 'Grant Call', 'Amount', 'Submitted', 'Status', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground whitespace-nowrap uppercase tracking-[0.05em]">{h}</th>
-                ))}
+                {role === 'Admin' && <th className="px-4 py-3 w-8"><input type="checkbox" className="rounded" onChange={e => setSelectedIds(e.target.checked ? new Set(paginated.map(p => p.id)) : new Set())} checked={selectedIds.size === paginated.length && paginated.length > 0} /></th>}
+                <TH label="ID" sortKey="id" active={sortKey === 'id'} dir={dir} onToggle={() => toggle('id')} />
+                <TH label="Title" sortKey="title" active={sortKey === 'title'} dir={dir} onToggle={() => toggle('title')} />
+                <TH label="Researcher" sortKey="researcher" active={sortKey === 'researcher'} dir={dir} onToggle={() => toggle('researcher')} />
+                <TH label="Grant Call" />
+                <TH label="Amount" sortKey="requestedAmount" active={sortKey === 'requestedAmount'} dir={dir} onToggle={() => toggle('requestedAmount')} />
+                <TH label="Submitted" sortKey="submitted" active={sortKey === 'submitted'} dir={dir} onToggle={() => toggle('submitted')} />
+                <TH label="Status" sortKey="status" active={sortKey === 'status'} dir={dir} onToggle={() => toggle('status')} />
+                <TH label="" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map(p => (
+              {paginated.map(p => (
                 <tr key={p.id} className="bg-card hover:bg-muted transition-colors">
+                  {role === 'Admin' && <td className="px-4 py-3"><input type="checkbox" className="rounded" checked={selectedIds.has(p.id)} onChange={() => toggleSelect(p.id)} onClick={e => e.stopPropagation()} /></td>}
                   <td className="px-4 py-3"><span className="font-mono text-[11px] text-muted-foreground">{p.id}</span></td>
                   <td className="px-4 py-3 max-w-[220px]">
                     <div className="font-semibold text-[13px] text-foreground truncate">{p.title}</div>
@@ -140,28 +260,21 @@ export function Proposals({ role }: ProposalsProps) {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <Badge status={p.status} size="sm" />
-                      {p.reviewHistory && p.reviewHistory.length > 0 && (
-                        <span title={`${p.reviewHistory.length} review note(s)`}><MessageSquare size={12} className="text-muted-foreground" /></span>
-                      )}
+                      {(p.reviewHistory?.length ?? 0) > 0 && <MessageSquare size={12} className="text-muted-foreground" />}
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setSelected(p)} className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors" title="View details">
-                        <Eye size={14} />
-                      </button>
+                      <button onClick={() => setSelected(p)} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted" title="View details"><Eye size={14} /></button>
                       {role === 'Admin' && (p.status === 'Under Review' || p.status === 'Revised') && (
                         <>
-                          <button onClick={() => openReview(p, 'Approved')} className="flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-green-50" style={{ color: '#22C55E' }} title="Approve">
-                            <CheckCircle2 size={14} />
-                          </button>
-                          <button onClick={() => openReview(p, 'Revised')} className="flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-purple-50" style={{ color: '#A855F7' }} title="Request revision">
-                            <RotateCcw size={14} />
-                          </button>
-                          <button onClick={() => openReview(p, 'Rejected')} className="flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-red-50" style={{ color: '#EF4444' }} title="Reject">
-                            <XCircle size={14} />
-                          </button>
+                          <button onClick={() => openReview(p, 'Approved')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#22C55E' }} title="Approve"><CheckCircle2 size={14} /></button>
+                          <button onClick={() => openReview(p, 'Revised')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#A855F7' }} title="Request revision"><RotateCcw size={14} /></button>
+                          <button onClick={() => openReview(p, 'Rejected')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#EF4444' }} title="Reject"><XCircle size={14} /></button>
                         </>
+                      )}
+                      {role === 'Admin' && p.status === 'Approved' && (
+                        <button onClick={() => setShowAwardModal(p)} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-yellow-600 hover:bg-yellow-50" title="Create Award"><Award size={14} /></button>
                       )}
                     </div>
                   </td>
@@ -171,23 +284,18 @@ export function Proposals({ role }: ProposalsProps) {
           </table>
         </ScrollTable>
 
-        {filtered.length === 0 && (
+        {paginated.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <FileText size={24} className="text-muted-foreground opacity-50" />
-            </div>
-            <div className="font-bold text-sm text-foreground mb-1">No proposals found</div>
-            <div className="text-[13px] text-muted-foreground">
-              {search ? `No results for "${search}"` : 'Try changing your filters'}
-            </div>
+            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4"><FileText size={24} className="opacity-40 text-muted-foreground" /></div>
+            <div className="font-bold text-sm text-foreground">No proposals found</div>
+            <div className="text-xs text-muted-foreground mt-1">{search ? `No results for "${search}"` : 'Try changing your filters'}</div>
           </div>
         )}
 
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted">
-          <span className="text-xs text-muted-foreground">Showing {filtered.length} of {visibleProposals.length} proposals</span>
-        </div>
+        <Pagination page={page} totalPages={totalPages} total={filtered.length} pageSize={8} onPage={setPage} />
       </div>
 
+      {/* View details modal */}
       <Modal open={!!selected} onClose={() => setSelected(null)} title="Proposal Details" width={640}>
         {selected && (
           <div className="space-y-4">
@@ -196,8 +304,8 @@ export function Proposals({ role }: ProposalsProps) {
               <Badge status={selected.status} />
             </div>
             <h2 className="font-extrabold text-[17px] text-foreground leading-snug">{selected.title}</h2>
-            <div className="p-4 rounded-lg bg-muted border-l-[3px] border-primary">
-              <div className="text-[11px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-[0.05em]">Abstract</div>
+            <div className="p-4 rounded-xl bg-muted border-l-4 border-primary">
+              <div className="font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.05em] mb-2">Abstract</div>
               <p className="text-[13px] text-foreground leading-relaxed">{selected.abstract}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -209,25 +317,22 @@ export function Proposals({ role }: ProposalsProps) {
                 { label: 'Submission Date', value: selected.submitted },
                 { label: 'Status', value: selected.status },
               ].map(item => (
-                <div key={item.label} className="p-3 rounded-lg bg-muted">
+                <div key={item.label} className="p-3 rounded-xl bg-muted">
                   <div className="text-[11px] text-muted-foreground mb-0.5">{item.label}</div>
                   <div className="font-bold text-[13px] text-foreground">{item.value}</div>
                 </div>
               ))}
             </div>
-
-            {selected.reviewHistory && selected.reviewHistory.length > 0 && (
+            {(selected.reviewHistory?.length ?? 0) > 0 && (
               <div>
-                <div className="font-bold text-[13px] text-foreground mb-2.5">Review History</div>
+                <div className="font-bold text-[13px] text-foreground mb-2">Review History</div>
                 <div className="space-y-3">
-                  {selected.reviewHistory.map((entry, idx) => (
+                  {selected.reviewHistory!.map((entry, idx) => (
                     <div key={idx} className="flex gap-3">
                       <div className="flex items-center justify-center rounded-full flex-shrink-0 mt-0.5" style={{ width: 28, height: 28, background: (actionColors as any)[entry.action] + '18' }}>
-                        {entry.action === 'Approved' && <CheckCircle2 size={13} style={{ color: '#22C55E' }} />}
-                        {entry.action === 'Rejected' && <XCircle size={13} style={{ color: '#EF4444' }} />}
-                        {entry.action === 'Revised' && <RotateCcw size={13} style={{ color: '#A855F7' }} />}
+                        {entry.action === 'Approved' ? <CheckCircle2 size={13} style={{ color: '#22C55E' }} /> : entry.action === 'Rejected' ? <XCircle size={13} style={{ color: '#EF4444' }} /> : <RotateCcw size={13} style={{ color: '#A855F7' }} />}
                       </div>
-                      <div className="flex-1 p-3 rounded-lg bg-muted">
+                      <div className="flex-1 p-3 rounded-xl bg-muted">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-bold text-xs" style={{ color: (actionColors as any)[entry.action] }}>{entry.action}</span>
                           <div className="flex items-center gap-1.5">
@@ -243,93 +348,111 @@ export function Proposals({ role }: ProposalsProps) {
                 </div>
               </div>
             )}
-
             {role === 'Admin' && (selected.status === 'Under Review' || selected.status === 'Revised') && (
               <div className="flex gap-3 pt-2">
-                <button onClick={() => { openReview(selected, 'Approved'); setSelected(null); }} className="flex-1 py-2.5 rounded-lg text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }}>Approve</button>
-                <button onClick={() => { openReview(selected, 'Revised'); setSelected(null); }} className="flex-1 py-2.5 rounded-lg text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: '#A855F7' }}>Request Revision</button>
-                <button onClick={() => { openReview(selected, 'Rejected'); setSelected(null); }} className="flex-1 py-2.5 rounded-lg text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: '#EF4444' }}>Reject</button>
+                <button onClick={() => { openReview(selected, 'Approved'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }}>Approve</button>
+                <button onClick={() => { openReview(selected, 'Revised'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: '#A855F7' }}>Request Revision</button>
+                <button onClick={() => { openReview(selected, 'Rejected'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: '#EF4444' }}>Reject</button>
               </div>
+            )}
+            {role === 'Admin' && selected.status === 'Approved' && (
+              <button onClick={() => { setShowAwardModal(selected); setSelected(null); }} className="btn-primary w-full py-2.5 flex items-center justify-center gap-2">
+                <Award size={15} /> Create Award from This Proposal
+              </button>
             )}
           </div>
         )}
       </Modal>
 
+      {/* Review action dialog */}
       {reviewAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setReviewAction(null)}>
           <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.4)' }} />
-          <div className="relative rounded-xl shadow-2xl w-full max-w-md bg-card border border-border" onClick={e => e.stopPropagation()}>
+          <div className="relative rounded-2xl shadow-2xl w-full max-w-md bg-card border border-border" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex items-center justify-center rounded-full" style={{ width: 40, height: 40, background: actionColors[reviewAction.type] + '18' }}>
-                  {reviewAction.type === 'Approved' && <CheckCircle2 size={20} style={{ color: '#22C55E' }} />}
-                  {reviewAction.type === 'Rejected' && <XCircle size={20} style={{ color: '#EF4444' }} />}
-                  {reviewAction.type === 'Revised' && <RotateCcw size={20} style={{ color: '#A855F7' }} />}
+                  {reviewAction.type === 'Approved' ? <CheckCircle2 size={20} style={{ color: '#22C55E' }} /> : reviewAction.type === 'Rejected' ? <XCircle size={20} style={{ color: '#EF4444' }} /> : <RotateCcw size={20} style={{ color: '#A855F7' }} />}
                 </div>
                 <div>
                   <div className="font-bold text-[15px] text-foreground">{actionLabels[reviewAction.type]}</div>
-                  <div className="text-xs text-muted-foreground">{reviewAction.proposal.title}</div>
+                  <div className="text-xs text-muted-foreground truncate max-w-[280px]">{reviewAction.proposal.title}</div>
                 </div>
               </div>
               <div className="mb-4">
-                <label className="block text-xs font-semibold text-foreground mb-1.5">
-                  Review Comment <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  rows={4}
-                  value={reviewComment}
-                  onChange={e => { setReviewComment(e.target.value); setCommentError(''); }}
+                <label className="block font-semibold text-xs text-foreground mb-1.5">Review Comment <span className="text-red-500">*</span></label>
+                <textarea rows={4} value={reviewComment} onChange={e => { setReviewComment(e.target.value); setCommentError(''); }}
                   placeholder={reviewAction.type === 'Revised' ? 'Describe what needs to be revised...' : reviewAction.type === 'Rejected' ? 'Provide reason for rejection...' : 'Add approval notes...'}
-                  className="w-full px-3 py-2 rounded-lg outline-none resize-none bg-muted text-[13px] text-foreground"
+                  className="w-full px-3 py-2 rounded-xl outline-none resize-none bg-muted text-[13px] text-foreground"
                   style={{ border: `1px solid ${commentError ? '#EF4444' : 'var(--border)'}` }}
                 />
                 {commentError && <div className="text-[11px] text-red-500 mt-1">{commentError}</div>}
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setReviewAction(null)} className="flex-1 py-2.5 rounded-lg border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors">
-                  Cancel
-                </button>
-                <button onClick={submitReview} className="flex-1 py-2.5 rounded-lg text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: actionColors[reviewAction.type] }}>
-                  {actionLabels[reviewAction.type]}
-                </button>
+                <button onClick={() => setReviewAction(null)} className="btn-secondary flex-1 py-2.5">Cancel</button>
+                <button onClick={submitReview} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90" style={{ background: actionColors[reviewAction.type] }}>{actionLabels[reviewAction.type]}</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Create Award modal */}
+      <Modal open={!!showAwardModal} onClose={() => setShowAwardModal(null)} title="Create Award" width={520}>
+        {showAwardModal && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl bg-secondary border-l-4 border-primary">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Proposal</div>
+              <div className="font-bold text-[13px] text-foreground">{showAwardModal.title}</div>
+              <div className="text-xs text-muted-foreground">{showAwardModal.researcher}</div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">Award Amount (GHS)</label>
+              <input type="number" value={awardAmount} onChange={e => setAwardAmount(e.target.value)} placeholder={String(showAwardModal.requestedAmount)} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Start Date</label>
+                <input type="date" value={awardStart} onChange={e => setAwardStart(e.target.value)} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">End Date</label>
+                <input type="date" value={awardEnd} onChange={e => setAwardEnd(e.target.value)} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowAwardModal(null)} className="btn-secondary flex-1 py-2.5">Cancel</button>
+              <button onClick={createAward} className="btn-primary flex-1 py-2.5 flex items-center justify-center gap-2"><Award size={15} /> Create Award</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* New proposal modal */}
       <Modal open={showNew} onClose={() => setShowNew(false)} title="Submit New Proposal" width={600}>
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Grant Call</label>
-            <select className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground">
+            <select value={selectedGrant} onChange={e => setSelectedGrant(e.target.value)} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground">
               <option value="">Select a grant call...</option>
               {grantCalls.filter(g => g.status === 'Open').map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Research Title</label>
-            <input type="text" placeholder="Full title of your research proposal" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Full title of your research proposal" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Abstract</label>
-            <textarea rows={4} placeholder="Brief summary of research objectives and methodology..." className="w-full px-3 py-2 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" />
+            <textarea rows={4} value={newAbstract} onChange={e => setNewAbstract(e.target.value)} placeholder="Brief summary of research objectives..." className="w-full px-3 py-2 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Requested Amount (GHS)</label>
-            <input type="number" placeholder="e.g. 150000" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-foreground mb-1.5">Supporting Documents</label>
-            <div className="flex flex-col items-center justify-center py-6 rounded-lg cursor-pointer border-2 border-dashed border-border bg-muted">
-              <FileText size={24} className="text-muted-foreground mb-2" />
-              <div className="font-semibold text-[13px] text-foreground">Drop files or click to upload</div>
-              <div className="text-[11px] text-muted-foreground mt-1">PDF, DOCX, XLSX · max 25MB</div>
-            </div>
+            <input type="number" value={newAmount} onChange={e => setNewAmount(e.target.value)} placeholder="e.g. 150000" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
           </div>
           <div className="flex gap-3">
-            <button onClick={() => { toast('Draft saved', 'info'); setShowNew(false); }} className="flex-1 py-2.5 rounded-lg border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors">Save as Draft</button>
-            <button onClick={() => { toast('Proposal submitted successfully'); setShowNew(false); }} className="flex-1 py-2.5 rounded-lg text-white font-semibold text-[13px] hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>Submit Proposal</button>
+            <button onClick={() => { toast('Draft saved', 'info'); setShowNew(false); }} className="btn-secondary flex-1 py-2.5">Save as Draft</button>
+            <button onClick={submitNewProposal} className="btn-primary flex-1 py-2.5">Submit Proposal</button>
           </div>
         </div>
       </Modal>

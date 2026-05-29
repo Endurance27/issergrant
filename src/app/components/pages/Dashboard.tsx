@@ -243,9 +243,67 @@ function FinanceDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
               </div>
               <span className="font-mono font-semibold text-[13px] text-foreground whitespace-nowrap">{fmtCurrency(t.amount)}</span>
               <div className="flex gap-2">
-                <button className="px-3 py-1 rounded-lg text-white text-[11px] font-semibold transition-opacity hover:opacity-90" style={{ background: '#22C55E' }}>Approve</button>
-                <button className="btn-secondary px-3 py-1 text-[11px]">Reject</button>
+                <button onClick={() => onNavigate('financial')} className="px-3 py-1 rounded-lg text-white text-[11px] font-semibold transition-opacity hover:opacity-90" style={{ background: '#22C55E' }}>Approve</button>
+                <button onClick={() => onNavigate('financial')} className="btn-secondary px-3 py-1 text-[11px]">Reject</button>
               </div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+    </div>
+  );
+}
+
+function AssistantDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const teamProposals = proposals.filter(p => p.status !== 'Draft');
+  const openCalls = grantCalls.filter(g => g.status === 'Open');
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Team Proposals" value={teamProposals.length} icon={<FileText size={20} />} iconColor="#1A3363" iconBg="#E5EBF5" subtitle="All active submissions" />
+        <StatCard label="Open Grant Calls" value={openCalls.length} icon={<Megaphone size={20} />} iconColor="#8B5CF6" iconBg="#F5F3FF" subtitle="Apply now" />
+        <StatCard label="Pending Milestones" value={milestones.filter(m => m.status === 'Draft').length} icon={<Clock size={20} />} iconColor="#F59E0B" iconBg="#FFFBEB" subtitle="Awaiting submission" />
+        <StatCard label="Approved Awards" value={awards.filter(a => a.status === 'Active').length} icon={<Award size={20} />} iconColor="#10B981" iconBg="#ECFDF5" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <SectionCard title="Team Proposals" subtitle="All active submissions" action={<ViewAllBtn onClick={() => onNavigate('proposals')} />}>
+          <div className="space-y-2">
+            {teamProposals.slice(0, 5).map(p => (
+              <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors">
+                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: p.status === 'Approved' ? '#22C55E' : p.status === 'Rejected' ? '#EF4444' : '#F97316' }} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-xs text-foreground truncate">{p.title}</div>
+                  <div className="text-[11px] text-muted-foreground">{p.researcher}</div>
+                </div>
+                <Badge status={p.status} size="sm" />
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Open Grant Calls" subtitle="Available for application" action={<ViewAllBtn onClick={() => onNavigate('grant-calls')} />}>
+          <div className="space-y-2">
+            {openCalls.slice(0, 4).map(g => (
+              <div key={g.id} className="p-3 rounded-xl bg-muted border border-border hover:border-primary/30 transition-colors">
+                <div className="font-semibold text-xs text-foreground">{g.title}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Deadline: {g.deadline} · {fmtCurrency(g.totalBudget)}</div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      </div>
+
+      <SectionCard title="Upcoming Milestones" action={<ViewAllBtn onClick={() => onNavigate('milestones')} />}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {milestones.filter(m => m.status === 'Draft' || m.status === 'Submitted').slice(0, 6).map(m => (
+            <div key={m.id} className="p-3 rounded-xl border border-border hover:border-primary/30 hover:shadow-sm transition-all">
+              <div className="flex items-center justify-between mb-2">
+                <Badge status={m.status} size="sm" />
+                <span className="font-mono text-[10px] text-muted-foreground">{m.dueDate}</span>
+              </div>
+              <div className="font-semibold text-xs text-foreground">{m.title}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">{m.researcher}</div>
             </div>
           ))}
         </div>
@@ -258,7 +316,7 @@ export function Dashboard({ role, onNavigate }: DashboardProps) {
   const pageTitle = {
     'Admin': 'System Overview',
     'Researcher': 'My Research Hub',
-    'Assistant Researcher': 'My Workspace',
+    'Assistant Researcher': 'Team Workspace',
     'Finance Officer': 'Financial Overview',
   }[role];
 
@@ -271,7 +329,7 @@ export function Dashboard({ role, onNavigate }: DashboardProps) {
       {role === 'Admin' && <AdminDashboard onNavigate={onNavigate} />}
       {role === 'Researcher' && <ResearcherDashboard onNavigate={onNavigate} />}
       {role === 'Finance Officer' && <FinanceDashboard onNavigate={onNavigate} />}
-      {role === 'Assistant Researcher' && <ResearcherDashboard onNavigate={onNavigate} />}
+      {role === 'Assistant Researcher' && <AssistantDashboard onNavigate={onNavigate} />}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AppProvider, useAppContext } from "./context/AppContext";
 import { LoginPage } from "./components/auth/LoginPage";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Header } from "./components/layout/Header";
@@ -17,13 +18,19 @@ import { CalendarPage } from "./components/pages/CalendarPage";
 import { Settings } from "./components/pages/Settings";
 import { SearchOverlay } from "./components/ui/SearchOverlay";
 import { ToastProvider } from "./components/ui/Toast";
-import { notifications } from "./data/mockData";
 import type { Role } from "./data/mockData";
 
-export default function App() {
+export interface NavState {
+  grantCallId?: string;
+  grantCallTitle?: string;
+}
+
+function AppShell() {
+  const { unreadCount } = useAppContext();
   const [loggedIn, setLoggedIn] = useState(false);
   const [currentRole, setCurrentRole] = useState<Role>('Admin');
   const [activePage, setActivePage] = useState('dashboard');
+  const [navState, setNavState] = useState<NavState | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,22 +62,21 @@ export default function App() {
     setActivePage('dashboard');
   };
 
-  const handleNavigate = (page: string) => {
+  const handleNavigate = (page: string, state?: NavState) => {
     setActivePage(page);
+    setNavState(state || null);
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   if (!loggedIn) {
-    return <ToastProvider><LoginPage onLogin={handleLogin} /></ToastProvider>;
+    return <LoginPage onLogin={handleLogin} />;
   }
 
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':     return <Dashboard role={currentRole} onNavigate={handleNavigate} />;
-      case 'grant-calls':   return <GrantCalls role={currentRole} />;
-      case 'proposals':     return <Proposals role={currentRole} />;
-      case 'awards':        return <Awards role={currentRole} />;
+      case 'grant-calls':   return <GrantCalls role={currentRole} onNavigate={handleNavigate} />;
+      case 'proposals':     return <Proposals role={currentRole} navState={navState} />;
+      case 'awards':        return <Awards role={currentRole} onNavigate={handleNavigate} />;
       case 'milestones':    return <Milestones role={currentRole} />;
       case 'financial':     return <Financial role={currentRole} />;
       case 'reports':       return <Reports role={currentRole} />;
@@ -85,47 +91,52 @@ export default function App() {
   };
 
   return (
-    <ToastProvider>
-      <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar
-          activePage={activePage}
-          onNavigate={handleNavigate}
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar
+        activePage={activePage}
+        onNavigate={handleNavigate}
+        currentRole={currentRole}
+        onLogout={handleLogout}
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(c => !c)}
+      />
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <Header
           currentRole={currentRole}
-          onLogout={handleLogout}
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(c => !c)}
+          onRoleChange={handleRoleChange}
+          darkMode={darkMode}
+          onToggleDark={() => setDarkMode(d => !d)}
+          onNavigate={handleNavigate}
+          unreadCount={unreadCount}
+          onSearch={setSearchQuery}
         />
-
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <Header
-            currentRole={currentRole}
-            onRoleChange={handleRoleChange}
-            darkMode={darkMode}
-            onToggleDark={() => setDarkMode(d => !d)}
-            onNavigate={handleNavigate}
-            unreadCount={unreadCount}
-            onSearch={setSearchQuery}
+        {searchQuery && (
+          <SearchOverlay
+            query={searchQuery}
+            onClose={() => setSearchQuery('')}
+            onNavigate={page => { handleNavigate(page); setSearchQuery(''); }}
           />
-
-          {searchQuery && (
-            <SearchOverlay
-              query={searchQuery}
-              onClose={() => setSearchQuery('')}
-              onNavigate={page => { handleNavigate(page); setSearchQuery(''); }}
-            />
-          )}
-
-          <main
-            key={activePage}
-            className="flex-1 overflow-y-auto animate-in fade-in duration-150"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}
-          >
-            <div className="p-6 max-w-7xl mx-auto">
-              {renderPage()}
-            </div>
-          </main>
-        </div>
+        )}
+        <main
+          key={activePage}
+          className="flex-1 overflow-y-auto animate-in fade-in duration-150"
+          style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}
+        >
+          <div className="p-6 max-w-7xl mx-auto">
+            {renderPage()}
+          </div>
+        </main>
       </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppProvider>
+        <AppShell />
+      </AppProvider>
     </ToastProvider>
   );
 }
