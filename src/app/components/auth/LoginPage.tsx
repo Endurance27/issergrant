@@ -17,12 +17,11 @@ const demoAccounts: { role: Role; email: string; hint: string }[] = [
   { role: 'Finance Officer', email: 'fatima.rashid@iser.edu', hint: 'Finance & Accounts' },
 ];
 
-// Drop photo1.jpg–photo4.jpg into /public/ to update these
 const PHOTOS = [
-  '/photo1.jpg',
-  '/photo2.jpg',
-  '/photo3.jpg',
-  '/photo4.jpg',
+  'https://picsum.photos/seed/labscience/800/600',
+  'https://picsum.photos/seed/university/800/600',
+  'https://picsum.photos/seed/research99/800/600',
+  'https://picsum.photos/seed/grantwork/800/600',
 ];
 
 const GLASS = {
