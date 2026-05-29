@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { db } from "../../../lib/firebase";
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { supabase } from "../../../lib/supabase";
 import { Plus, Search, MoreHorizontal, ShieldCheck, ShieldOff, Trash2, Users, ChevronUp, ChevronDown } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
@@ -42,17 +41,16 @@ export function UserManagement() {
   const { addNotification, addAuditLog } = useAppContext();
   const [users, setUsers] = useState<User[]>([]);
 
-  // Load users from Firebase on mount
+  // Load users from Supabase on mount
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "users"));
-        if (snapshot.empty) {
-          // Seed with mock data on first load
-          setUsers(initialUsers);
-        } else {
-          const data = snapshot.docs.map(d => ({ ...d.data(), firebaseId: d.id } as User & { firebaseId: string }));
+        const { data, error } = await supabase.from('users').select('*').order('joined', { ascending: false });
+        if (error) throw error;
+        if (data && data.length > 0) {
           setUsers(data as User[]);
+        } else {
+          setUsers(initialUsers);
         }
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -92,22 +90,18 @@ export function UserManagement() {
   const deptCount = new Set(users.map(u => u.department)).size;
 
   const toggleStatus = async (id: number, wasActive: boolean) => {
-    const u = users.find(u => u.id === id) as any;
+    const u = users.find(u => u.id === id);
     const newStatus = wasActive ? 'Suspended' : 'Active';
     setUsers(prev => prev.map(u => u.id === id ? { ...u, status: newStatus } : u));
-    if (u?.firebaseId) {
-      await updateDoc(doc(db, "users", u.firebaseId), { status: newStatus });
-    }
+    await supabase.from('users').update({ status: newStatus }).eq('id', id);
     addAuditLog({ action: wasActive ? 'Account Suspended' : 'Account Activated', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: u?.name || '' });
     toast(wasActive ? 'Account suspended' : 'Account activated', wasActive ? 'warning' : 'success');
   };
 
   const deleteUser = async (id: number) => {
-    const u = users.find(u => u.id === id) as any;
+    const u = users.find(u => u.id === id);
     setUsers(prev => prev.filter(u => u.id !== id));
-    if (u?.firebaseId) {
-      await deleteDoc(doc(db, "users", u.firebaseId));
-    }
+    await supabase.from('users').delete().eq('id', id);
     addAuditLog({ action: 'User Deleted', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: u?.name || '' });
     toast('User deleted', 'error');
   };
@@ -119,8 +113,7 @@ export function UserManagement() {
     if (users.find(u => u.email.toLowerCase() === newEmail.toLowerCase())) { setFormError('A user with this email already exists.'); return; }
 
     const initials = newName.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    const newUser: User = {
-      id: Date.now(),
+    const newUser = {
       name: newName.trim(),
       email: newEmail.trim().toLowerCase(),
       role: newRole,
@@ -130,14 +123,14 @@ export function UserManagement() {
       avatar: initials,
     };
 
-    try {
-      const docRef = await addDoc(collection(db, "users"), newUser);
-      setUsers(prev => [{ ...newUser, firebaseId: docRef.id } as any, ...prev]);
-    } catch (err) {
-      console.error("Error saving user:", err);
-      setUsers(prev => [newUser, ...prev]);
+    const { data, error } = await supabase.from('users').insert([newUser]).select().single();
+    if (error) {
+      console.error("Error saving user:", error);
+      setFormError('Failed to save user. Please try again.');
+      return;
     }
 
+    setUsers(prev => [data as User, ...prev]);
     addNotification({ title: 'New User Added', message: `${newUser.name} (${newRole}) has been added to the system.`, time: 'Just now', type: 'system' });
     addAuditLog({ action: 'User Created', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${newUser.name} — ${newRole} — ${newDept}` });
     toast(`${newUser.name} added successfully`);
