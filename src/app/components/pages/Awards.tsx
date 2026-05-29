@@ -132,8 +132,8 @@ export function Awards({ role, onNavigate }: AwardsProps) {
                   </div>
                   <div className="sm:text-right flex-shrink-0 flex flex-col items-end gap-2">
                     <div className="bg-muted rounded-xl px-4 py-2 text-right">
-                      <div className="font-mono font-black text-[18px] text-foreground">{fmtCurrency(award.awardedAmount)}</div>
-                      <div className="text-[11px] text-muted-foreground">Total Award</div>
+                      <div className="font-mono font-bold text-sm text-foreground">{fmtCurrency(award.awardedAmount)}</div>
+                      <div className="text-[10px] text-muted-foreground">Total Award</div>
                     </div>
                     {/* Request Disbursement for researcher */}
                     {myAward && isActive && (
