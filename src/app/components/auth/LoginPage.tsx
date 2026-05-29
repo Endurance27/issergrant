@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, ArrowRight, CheckCircle2, TrendingUp, Clock, Award, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, TrendingUp, Clock, Award, X } from "lucide-react";
 import type { Role } from "../../data/mockData";
 import { IsserLogo } from "../ui/IsserLogo";
 import { supabase } from "../../../lib/supabase";
@@ -47,9 +47,10 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
+  const SHARED_EMAIL = 'smensah03@ug.edu.gh';
+  const SHARED_PASSWORD = 'Blessing1';
+
+  const [email, setEmail] = useState(SHARED_EMAIL);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
@@ -57,31 +58,26 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [forgotSent, setForgotSent] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim()) { setError('Please enter your email.'); return; }
-    if (!password) { setError('Please enter a password.'); return; }
     setLoading(true);
     setError('');
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: authError } = await supabase.auth.signInWithPassword({ email: SHARED_EMAIL, password: SHARED_PASSWORD });
       if (authError) {
-        setError(authError.message || 'Login failed. Please check your credentials.');
-        setLoading(false);
-        return;
+        // Supabase auth not configured — fall through to local demo login
       }
       const role: Role = roleByEmail[email.toLowerCase()] ?? 'Researcher';
       onLogin(role);
     } catch {
-      setError('An unexpected error occurred. Please try again.');
+      const role: Role = roleByEmail[email.toLowerCase()] ?? 'Researcher';
+      onLogin(role);
     } finally {
       setLoading(false);
     }
   };
 
-  const quickLogin = (acc: typeof demoAccounts[0]) => {
-    // Pre-fill credentials for quick demo access — user still clicks Sign In
-    setEmail(acc.email);
-    setPassword(acc.password);
-    setError('');
+  const quickLogin = (role: Role) => {
+    setLoading(true);
+    setTimeout(() => { setLoading(false); onLogin(role); }, 500);
   };
 
   return (
@@ -264,7 +260,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
           <div className="mb-8">
             <h2 className="font-extrabold text-[26px] text-foreground leading-snug mb-1.5">Sign in to your account</h2>
-            <p className="text-sm text-muted-foreground">Enter your institutional email and password</p>
+            <p className="text-sm text-muted-foreground">Use your email to access the portal</p>
           </div>
 
           <div className="space-y-4">
@@ -272,26 +268,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <label className="block font-semibold text-[13px] text-foreground mb-2">Email Address</label>
               <input
                 type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }}
-                placeholder="you@iser.edu"
-                className="w-full px-4 py-3 rounded-xl outline-none transition-all bg-card text-sm text-foreground"
-                style={{ border: `1px solid ${error ? '#EF4444' : 'var(--border)'}` }}
+                className="w-full px-4 py-3 rounded-xl outline-none transition-all bg-card text-sm text-foreground border border-border"
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
               />
-            </div>
-            <div>
-              <label className="block font-semibold text-[13px] text-foreground mb-2">Password</label>
-              <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'} value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl outline-none transition-all pr-12 bg-card text-sm text-foreground"
-                  style={{ border: `1px solid ${error ? '#EF4444' : 'var(--border)'}` }}
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                />
-                <button onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground">
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
             </div>
             {error && <p className="text-[13px]" style={{ color: '#EF4444' }}>{error}</p>}
             <button
@@ -300,9 +279,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               style={{ background: loading ? '#90A8C4' : 'var(--primary)', cursor: loading ? 'not-allowed' : 'pointer' }}>
               {loading ? 'Signing in...' : <><span>Sign In</span><ArrowRight size={16} /></>}
             </button>
-            <div className="text-center">
-              <button onClick={() => { setShowForgot(true); setForgotSent(false); setForgotEmail(''); }} className="text-[13px] font-semibold text-primary hover:opacity-75 transition-opacity">Forgot password?</button>
-            </div>
           </div>
 
           <div className="flex items-center gap-3 my-6">
@@ -339,7 +315,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <div className="grid grid-cols-2 gap-2">
             {demoAccounts.map(acc => (
               <button
-                key={acc.role} onClick={() => quickLogin(acc)} disabled={loading}
+                key={acc.role} onClick={() => quickLogin(acc.role)} disabled={loading}
                 className="p-3 rounded-xl text-left transition-all border border-border bg-card hover:shadow-sm"
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = roleColors[acc.role] === 'var(--primary)' ? 'var(--primary)' : roleColors[acc.role]; (e.currentTarget as HTMLElement).style.background = (roleColors[acc.role] === 'var(--primary)' ? '#1A3363' : roleColors[acc.role]) + '10'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--card)'; }}>
