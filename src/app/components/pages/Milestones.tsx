@@ -44,11 +44,11 @@ export function Milestones({ role }: MilestonesProps) {
         }
       />
 
-      <div className="flex gap-2 flex-wrap mb-6">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1 flex-nowrap sm:flex-wrap">
         {statuses.map(s => {
           const count = s === 'All' ? allMilestones.length : allMilestones.filter(m => m.status === s).length;
           return (
-            <button key={s} onClick={() => setFilter(s)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs border ${filter === s ? 'border-primary bg-primary text-white font-semibold shadow-sm' : 'border-border bg-card text-muted-foreground font-medium hover:bg-muted'}`}>
+            <button key={s} onClick={() => setFilter(s)} className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs border ${filter === s ? 'border-primary bg-primary text-white font-semibold shadow-sm' : 'border-border bg-card text-muted-foreground font-medium hover:bg-muted'}`}>
               {s !== 'All' && filter !== s && <span className="w-1.5 h-1.5 rounded-full" style={{ background: STATUS_COLOR[s], display: 'inline-block' }} />}
               {s} <span className="opacity-70">({count})</span>
             </button>
@@ -75,15 +75,15 @@ export function Milestones({ role }: MilestonesProps) {
                 <div className="rounded-2xl bg-card border border-border overflow-hidden transition-all duration-150 group-hover:shadow-md group-hover:-translate-y-0.5"
                   style={{ borderLeftWidth: 3, borderLeftColor: color }}>
                   <div className="p-4">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{m.id}</span>
-                          <span className="text-[11px] text-muted-foreground">{m.projectTitle}</span>
+                          <span className="text-[11px] text-muted-foreground truncate">{m.projectTitle}</span>
                         </div>
-                        <h3 className="font-bold text-sm text-foreground mb-1">{m.title}</h3>
+                        <h3 className="font-bold text-sm text-foreground mb-1 break-words">{m.title}</h3>
                         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{m.description}</p>
-                        <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
                           <span className="text-[11px] text-muted-foreground">PI: <span className="text-foreground font-semibold">{m.researcher}</span></span>
                           <span className="font-mono text-[11px]" style={{ color: new Date(m.dueDate) < new Date() && m.status === 'Draft' ? '#EF4444' : 'var(--muted-foreground)' }}>Due: {m.dueDate}</span>
                           {m.submittedDate && <span className="font-mono text-[11px]" style={{ color: '#22C55E' }}>✓ {m.submittedDate}</span>}
@@ -92,7 +92,7 @@ export function Milestones({ role }: MilestonesProps) {
                       <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         <Badge status={m.status} />
                         {role === 'Admin' && m.status === 'Under Review' && (
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap justify-end">
                             <button className="px-3 py-1 rounded-lg text-white text-xs font-semibold hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }} onClick={e => { e.stopPropagation(); toast('Milestone approved'); }}>Approve</button>
                             <button className="btn-destructive px-3 py-1 text-xs" onClick={e => { e.stopPropagation(); toast('Revision requested', 'warning'); }}>Revise</button>
                           </div>

@@ -228,7 +228,8 @@ export function Proposals({ role, navState }: ProposalsProps) {
         </div>
       )}
 
-      <div className="rounded-2xl overflow-hidden border border-border">
+      {/* Desktop table */}
+      <div className="hidden md:block rounded-2xl overflow-hidden border border-border">
         <ScrollTable>
           <table className="w-full">
             <thead>
@@ -292,6 +293,58 @@ export function Proposals({ role, navState }: ProposalsProps) {
           </div>
         )}
 
+        <Pagination page={page} totalPages={totalPages} total={filtered.length} pageSize={8} onPage={setPage} />
+      </div>
+
+      {/* Mobile card list */}
+      <div className="md:hidden space-y-3">
+        {paginated.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4"><FileText size={24} className="opacity-40 text-muted-foreground" /></div>
+            <div className="font-bold text-sm text-foreground">No proposals found</div>
+            <div className="text-xs text-muted-foreground mt-1">{search ? `No results for "${search}"` : 'Try changing your filters'}</div>
+          </div>
+        ) : (
+          paginated.map(p => (
+            <div key={p.id} className="rounded-2xl bg-card border border-border p-4 space-y-2.5">
+              {/* Top row: ID + status */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{p.id}</span>
+                <div className="flex items-center gap-1.5">
+                  {(p.reviewHistory?.length ?? 0) > 0 && <MessageSquare size={12} className="text-muted-foreground" />}
+                  <Badge status={p.status} size="sm" />
+                </div>
+              </div>
+              {/* Title + department */}
+              <div>
+                <div className="font-bold text-[13px] text-foreground leading-snug">{p.title}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">{p.department}</div>
+              </div>
+              {/* Researcher + amount */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-foreground">{p.researcher}</span>
+                <span className="font-mono font-semibold text-xs text-foreground">{fmtCurrency(p.requestedAmount)}</span>
+              </div>
+              {/* Date + actions */}
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
+                <span className="font-mono text-[11px] text-muted-foreground">{p.submitted}</span>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setSelected(p)} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted" title="View details"><Eye size={14} /></button>
+                  {role === 'Admin' && (p.status === 'Under Review' || p.status === 'Revised') && (
+                    <>
+                      <button onClick={() => openReview(p, 'Approved')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#22C55E' }} title="Approve"><CheckCircle2 size={14} /></button>
+                      <button onClick={() => openReview(p, 'Revised')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#A855F7' }} title="Request revision"><RotateCcw size={14} /></button>
+                      <button onClick={() => openReview(p, 'Rejected')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#EF4444' }} title="Reject"><XCircle size={14} /></button>
+                    </>
+                  )}
+                  {role === 'Admin' && p.status === 'Approved' && (
+                    <button onClick={() => setShowAwardModal(p)} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-yellow-600 hover:bg-yellow-50" title="Create Award"><Award size={14} /></button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
         <Pagination page={page} totalPages={totalPages} total={filtered.length} pageSize={8} onPage={setPage} />
       </div>
 

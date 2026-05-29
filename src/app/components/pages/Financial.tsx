@@ -123,7 +123,8 @@ export function Financial({ role }: FinancialProps) {
           </div>
         </div>
 
-        <div className="rounded-2xl overflow-hidden border border-border">
+        {/* Desktop table */}
+        <div className="hidden md:block rounded-2xl overflow-hidden border border-border">
           <ScrollTable>
             <table className="w-full">
               <thead>
@@ -165,6 +166,43 @@ export function Financial({ role }: FinancialProps) {
               </tbody>
             </table>
           </ScrollTable>
+          <Pagination page={page} totalPages={totalPages} total={filtered.length} pageSize={10} onPage={setPage} />
+        </div>
+
+        {/* Mobile card list */}
+        <div className="md:hidden space-y-3">
+          {paginated.map(t => (
+            <div key={t.id} className="rounded-2xl bg-card border border-border p-4 space-y-2.5">
+              {/* Top row: type icon + type text + badge */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  {typeIcon(t.type)}
+                  <span className="text-xs text-foreground font-semibold">{t.type}</span>
+                </div>
+                <Badge status={t.status} size="sm" />
+              </div>
+              {/* Amount */}
+              <div className="font-mono font-black text-foreground text-lg leading-none">{fmtCurrency(t.amount)}</div>
+              {/* Project + description */}
+              <div>
+                <div className="text-[13px] font-semibold text-foreground truncate">{t.projectTitle}</div>
+                <div className="text-xs text-muted-foreground truncate mt-0.5">{t.description}</div>
+              </div>
+              {/* Bottom row: date + requestedBy + actions */}
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[11px] text-muted-foreground">{t.date}</span>
+                  <span className="text-[11px] text-muted-foreground">{t.requestedBy}</span>
+                </div>
+                {role === 'Finance Officer' && t.status === 'Pending' && (
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setConfirmAction({ id: t.id, type: 'approve' })} className="flex items-center gap-1 px-2 py-1 rounded-md text-white text-[11px] font-semibold hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }}><CheckCircle2 size={11} /> Approve</button>
+                    <button onClick={() => setConfirmAction({ id: t.id, type: 'reject' })} className="btn-destructive flex items-center gap-1 px-2 py-1 text-[11px]"><XCircle size={11} /> Reject</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
           <Pagination page={page} totalPages={totalPages} total={filtered.length} pageSize={10} onPage={setPage} />
         </div>
       </div>
