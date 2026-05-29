@@ -17,12 +17,12 @@ const demoAccounts: { role: Role; email: string; hint: string }[] = [
   { role: 'Finance Officer', email: 'fatima.rashid@iser.edu', hint: 'Finance & Accounts' },
 ];
 
-// Research-themed Unsplash photos
+// Drop photo1.jpg–photo4.jpg into /public/ to update these
 const PHOTOS = [
-  'https://images.unsplash.com/photo-1532094349884-32d803a5d0a8?w=600&h=500&fit=crop&auto=format&q=70',
-  'https://images.unsplash.com/photo-1576086213369-e9a2ca5b5df2?w=600&h=500&fit=crop&auto=format&q=70',
-  'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=500&fit=crop&auto=format&q=70',
-  'https://images.unsplash.com/photo-1434030216411-0b793f4b6f4a?w=600&h=500&fit=crop&auto=format&q=70',
+  '/photo1.jpg',
+  '/photo2.jpg',
+  '/photo3.jpg',
+  '/photo4.jpg',
 ];
 
 const GLASS = {
@@ -61,7 +61,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="h-screen flex bg-background overflow-hidden">
       <style>{`
         @keyframes float-a {
           0%, 100% { transform: translateY(0px) rotate(-1deg); }
@@ -99,17 +99,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       `}</style>
 
       {/* ── Left panel ── */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden h-full">
 
         {/* Layer 1 — photo mosaic */}
-        <div className="absolute inset-0 grid grid-cols-2" style={{ gap: 3 }}>
+        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2" style={{ gap: 2 }}>
           {PHOTOS.map((src, i) => (
-            <div key={i} className="overflow-hidden relative">
+            <div key={i} className="overflow-hidden relative min-h-0">
               <img
                 src={src}
                 alt=""
                 className="photo-zoom w-full h-full object-cover"
-                style={{ animationDelay: `${i * 0.15}s` }}
+                style={{ animationDelay: `${i * 0.15}s`, display: 'block' }}
               />
             </div>
           ))}
@@ -232,7 +232,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       </div>
 
       {/* ── Right panel (login form) ── */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-md">
           <div className="flex items-center mb-8 lg:hidden">
             <IsserLogo height={38} />
