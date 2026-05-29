@@ -1,0 +1,173 @@
+import { useState } from "react";
+import { Search, CheckCircle2, XCircle, Clock, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
+import { Badge } from "../ui/Badge";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { useToast } from "../ui/Toast";
+import { ScrollTable } from "../ui/ScrollTable";
+import { PageHeader } from "../ui/PageHeader";
+import { transactions, awards } from "../../data/mockData";
+import type { Role } from "../../data/mockData";
+
+const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
+
+interface FinancialProps { role: Role; }
+
+export function Financial({ role }: FinancialProps) {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [txList, setTxList] = useState(transactions);
+  const [confirmAction, setConfirmAction] = useState<{ id: string; type: 'approve' | 'reject' } | null>(null);
+
+  const filtered = txList.filter(t => {
+    const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || t.projectTitle.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'All' || t.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const { toast } = useToast();
+  const approve = (id: string) => { setTxList(prev => prev.map(t => t.id === id ? { ...t, status: 'Paid' as const } : t)); toast('Disbursement approved'); };
+  const reject = (id: string) => { setTxList(prev => prev.map(t => t.id === id ? { ...t, status: 'Rejected' as const } : t)); toast('Disbursement rejected', 'error'); };
+
+  const totalAwarded = awards.reduce((s, a) => s + a.awardedAmount, 0);
+  const totalDisbursed = awards.reduce((s, a) => s + a.disbursed, 0);
+  const pendingAmt = txList.filter(t => t.status === 'Pending').reduce((s, t) => s + t.amount, 0);
+
+  const typeIcon = (type: string) => {
+    if (type === 'Disbursement') return <TrendingUp size={14} className="text-primary" />;
+    if (type === 'Expense') return <DollarSign size={14} style={{ color: '#F59E0B' }} />;
+    return <AlertCircle size={14} style={{ color: '#10B981' }} />;
+  };
+
+  return (
+    <div>
+      <PageHeader
+        title="Financial Management"
+        subtitle="Review budgets, disbursements, and payment schedules"
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Total Awarded', value: fmtCurrency(totalAwarded), color: 'var(--primary)', bg: 'var(--secondary)', icon: <DollarSign size={18} /> },
+          { label: 'Disbursed', value: fmtCurrency(totalDisbursed), color: '#10B981', bg: '#ECFDF5', icon: <TrendingUp size={18} /> },
+          { label: 'Pending Approval', value: fmtCurrency(pendingAmt), color: '#F59E0B', bg: '#FFFBEB', icon: <Clock size={18} /> },
+          { label: 'Remaining', value: fmtCurrency(totalAwarded - totalDisbursed), color: '#8B5CF6', bg: '#F5F3FF', icon: <AlertCircle size={18} /> },
+        ].map(item => (
+          <div key={item.label} className="rounded-2xl p-4 bg-card border border-border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.05em]">{item.label}</span>
+              <div className="flex items-center justify-center rounded-lg" style={{ width: 30, height: 30, background: item.bg, color: item.color }}>{item.icon}</div>
+            </div>
+            <div className="font-mono font-extrabold text-base text-foreground">{item.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl p-5 mb-6 bg-card border border-border">
+        <h3 className="font-bold text-sm text-foreground mb-4">Project Funding Overview</h3>
+        <div className="space-y-4">
+          {awards.map(award => {
+            const pct = Math.round((award.disbursed / award.awardedAmount) * 100);
+            return (
+              <div key={award.id}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div>
+                    <span className="font-semibold text-[13px] text-foreground">{award.title}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{award.researcher}</span>
+                  </div>
+                  <div className="flex items-center gap-4 flex-shrink-0">
+                    <span className="font-mono text-xs text-muted-foreground">{fmtCurrency(award.disbursed)} / {fmtCurrency(award.awardedAmount)}</span>
+                    <span className="font-mono font-bold text-xs" style={{ color: pct >= 80 ? '#F59E0B' : 'var(--primary)' }}>{pct}%</span>
+                  </div>
+                </div>
+                <div className="rounded-full overflow-hidden bg-muted" style={{ height: 6 }}>
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct >= 100 ? '#22C55E' : pct >= 80 ? '#F59E0B' : 'linear-gradient(to right, var(--primary), #2D6EA8)' }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+          <h3 className="font-bold text-base text-foreground flex-1">Transaction History</h3>
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-card border border-border flex-1 max-w-[260px]">
+            <Search size={14} className="text-muted-foreground" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transactions..." className="bg-transparent outline-none flex-1 text-xs text-foreground" />
+          </div>
+          <div className="flex gap-2">
+            {(['All', 'Paid', 'Pending', 'Rejected'] as const).map(f => (
+              <button key={f} onClick={() => setStatusFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${statusFilter === f ? 'border-primary bg-primary text-white font-semibold shadow-sm' : 'border-border bg-card text-muted-foreground font-medium hover:bg-muted'}`}>
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl overflow-hidden border border-border">
+          <ScrollTable>
+            <table className="w-full">
+              <thead>
+                <tr className="bg-muted border-b border-border">
+                  {['ID', 'Type', 'Project', 'Description', 'Requested By', 'Date', 'Amount', 'Status', role === 'Finance Officer' ? 'Action' : ''].filter(Boolean).map(h => (
+                    <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground whitespace-nowrap uppercase tracking-[0.05em]">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map(t => (
+                  <tr key={t.id} className="bg-card hover:bg-muted transition-colors">
+                    <td className="px-4 py-3"><span className="font-mono text-[10px] text-muted-foreground">{t.id}</span></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        {typeIcon(t.type)}
+                        <span className="text-xs text-foreground whitespace-nowrap">{t.type}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 max-w-[160px]"><span className="text-xs text-muted-foreground truncate block">{t.projectTitle}</span></td>
+                    <td className="px-4 py-3 max-w-[200px]"><span className="text-xs text-foreground truncate block">{t.description}</span></td>
+                    <td className="px-4 py-3"><span className="text-xs text-muted-foreground whitespace-nowrap">{t.requestedBy}</span></td>
+                    <td className="px-4 py-3"><span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">{t.date}</span></td>
+                    <td className="px-4 py-3"><span className="font-mono font-bold text-[13px] text-foreground whitespace-nowrap">{fmtCurrency(t.amount)}</span></td>
+                    <td className="px-4 py-3"><Badge status={t.status} size="sm" /></td>
+                    {role === 'Finance Officer' && (
+                      <td className="px-4 py-3">
+                        {t.status === 'Pending' && (
+                          <div className="flex gap-1.5">
+                            <button onClick={() => setConfirmAction({ id: t.id, type: 'approve' })} className="flex items-center gap-1 px-2 py-1 rounded-md text-white text-[11px] font-semibold whitespace-nowrap hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }}><CheckCircle2 size={11} /> Approve</button>
+                            <button onClick={() => setConfirmAction({ id: t.id, type: 'reject' })} className="btn-destructive flex items-center gap-1 px-2 py-1 text-[11px] whitespace-nowrap"><XCircle size={11} /> Reject</button>
+                          </div>
+                        )}
+                        {t.status !== 'Pending' && <span className="text-[11px] text-muted-foreground">—</span>}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollTable>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted">
+            <span className="text-xs text-muted-foreground">Showing {filtered.length} of {txList.length} transactions</span>
+          </div>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmAction?.type === 'approve' ? 'Approve Disbursement' : 'Reject Disbursement'}
+        message={confirmAction?.type === 'approve'
+          ? 'This will mark the transaction as Paid and release the funds. This action cannot be undone.'
+          : 'This will reject the disbursement request. The researcher will be notified.'}
+        confirmLabel={confirmAction?.type === 'approve' ? 'Approve' : 'Reject'}
+        confirmColor={confirmAction?.type === 'approve' ? '#22C55E' : '#EF4444'}
+        onConfirm={() => {
+          if (!confirmAction) return;
+          if (confirmAction.type === 'approve') approve(confirmAction.id);
+          else reject(confirmAction.id);
+          setConfirmAction(null);
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
+    </div>
+  );
+}
