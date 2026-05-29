@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, Plus, FileText, CheckCircle2, XCircle, Eye, RotateCcw, MessageSquare, Clock, Award, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
@@ -9,7 +9,8 @@ import { Pagination } from "../ui/Pagination";
 import { usePagination } from "../../hooks/usePagination";
 import { useSortable } from "../../hooks/useSortable";
 import { useAppContext } from "../../context/AppContext";
-import { proposals as initialProposals, grantCalls, currentUsers } from "../../data/mockData";
+import { proposals as initialProposals, grantCalls as mockGrantCalls, currentUsers } from "../../data/mockData";
+import { supabase } from "../../../lib/supabase";
 import type { Role, Proposal, StatusBadge, Award as AwardType } from "../../data/mockData";
 import type { NavState } from "../../App";
 
@@ -41,6 +42,29 @@ const TH = ({ label, sortKey, active, dir, onToggle }: { label: string; sortKey?
 export function Proposals({ role, navState }: ProposalsProps) {
   const { addAward, addNotification, addAuditLog } = useAppContext();
   const [proposals, setProposals] = useState<ProposalWithHistory[]>(initialProposals);
+  const [grantCalls, setGrantCalls] = useState(mockGrantCalls);
+
+  useEffect(() => {
+    // Fetch proposals from Supabase
+    const fetchProposals = async () => {
+      const { data, error } = await supabase.from('proposals').select('*').order('submitted', { ascending: false });
+      if (!error && data && data.length > 0) {
+        setProposals(data as ProposalWithHistory[]);
+      } else if (!error && data && data.length === 0) {
+        await supabase.from('proposals').insert(initialProposals);
+        setProposals(initialProposals);
+      }
+    };
+    // Fetch grant calls for dropdown
+    const fetchGrantCalls = async () => {
+      const { data, error } = await supabase.from('grant_calls').select('*');
+      if (!error && data && data.length > 0) {
+        setGrantCalls(data as typeof mockGrantCalls);
+      }
+    };
+    fetchProposals();
+    fetchGrantCalls();
+  }, []);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selected, setSelected] = useState<ProposalWithHistory | null>(null);
@@ -95,6 +119,8 @@ export function Proposals({ role, navState }: ProposalsProps) {
     if (selected?.id === reviewAction.proposal.id) {
       setSelected(prev => prev ? { ...prev, status: statusMap[reviewAction.type], reviewHistory: [...(prev.reviewHistory || []), entry] } : prev);
     }
+    // Persist status update to Supabase
+    supabase.from('proposals').update({ status: statusMap[reviewAction.type] }).eq('id', reviewAction.proposal.id).then(() => {});
     // Auto-notification
     const notifMsg = reviewAction.type === 'Approved'
       ? `Your proposal "${reviewAction.proposal.title}" has been approved!`
@@ -166,6 +192,8 @@ export function Proposals({ role, navState }: ProposalsProps) {
       abstract: newAbstract,
     };
     setProposals(p => [newP, ...p]);
+    // Persist new proposal to Supabase
+    supabase.from('proposals').insert([newP]).then(() => {});
     addAuditLog({ action: 'Proposal Submitted', user: currentUsers[role].name, role, module: 'Proposals', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `New proposal: ${newTitle}` });
     toast('Proposal submitted successfully');
     setShowNew(false);

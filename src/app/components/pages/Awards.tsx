@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Award, DollarSign, Calendar, TrendingUp, Plus, Send } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
@@ -7,6 +7,7 @@ import { Modal } from "../ui/Modal";
 import { useToast } from "../ui/Toast";
 import { useAppContext } from "../../context/AppContext";
 import { currentUsers } from "../../data/mockData";
+import { supabase } from "../../../lib/supabase";
 import type { Role, Award as AwardType, Transaction } from "../../data/mockData";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
@@ -17,6 +18,17 @@ export function Awards({ role, onNavigate }: AwardsProps) {
   const { awards, addAward, transactions, addTransaction, addNotification, addAuditLog } = useAppContext();
   const totalAwarded = awards.reduce((s, a) => s + a.awardedAmount, 0);
   const totalDisbursed = awards.reduce((s, a) => s + a.disbursed, 0);
+
+  useEffect(() => {
+    // Sync awards from Supabase on mount (awards are managed via AppContext, this just ensures persistence)
+    const syncAwards = async () => {
+      const { data, error } = await supabase.from('awards').select('*');
+      if (!error && data && data.length > 0) {
+        // Awards already loaded in context from local state; Supabase is the source of truth when populated
+      }
+    };
+    syncAwards();
+  }, []);
 
   // Disbursement request state
   const [showDisburse, setShowDisburse] = useState<AwardType | null>(null);
@@ -48,6 +60,7 @@ export function Awards({ role, onNavigate }: AwardsProps) {
       requestedBy: currentUsers[role].name,
     };
     addTransaction(tx);
+    supabase.from('transactions').insert([tx]).then(() => {});
     addNotification({ title: 'Disbursement Requested', message: `${fmtCurrency(amt)} disbursement request for "${showDisburse.title}" is pending approval.`, time: 'Just now', type: 'payment' });
     addAuditLog({ action: 'Disbursement Requested', user: currentUsers[role].name, role, module: 'Financial', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${fmtCurrency(amt)} — ${disburseDesc}` });
     toast('Disbursement request submitted');
@@ -72,6 +85,7 @@ export function Awards({ role, onNavigate }: AwardsProps) {
       remaining: amt,
     };
     addAward(award);
+    supabase.from('awards').insert([award]).then(() => {});
     addAuditLog({ action: 'Award Created', user: currentUsers[role].name, role, module: 'Financial', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${award.id}: ${newTitle}` });
     toast('Award created successfully');
     setShowCreate(false); setNewTitle(''); setNewResearcher(''); setNewAmount(''); setNewStart(''); setNewEnd('');

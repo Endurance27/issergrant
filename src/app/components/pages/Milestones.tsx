@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, CheckCircle2, Clock, AlertCircle, FileText } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { PageHeader } from "../ui/PageHeader";
 import { useToast } from "../ui/Toast";
-import { milestones as allMilestones } from "../../data/mockData";
+import { milestones as mockMilestones } from "../../data/mockData";
+import { supabase } from "../../../lib/supabase";
 import type { Role, Milestone } from "../../data/mockData";
 
 interface MilestonesProps { role: Role; }
@@ -16,9 +17,28 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export function Milestones({ role }: MilestonesProps) {
+  const [allMilestones, setAllMilestones] = useState<Milestone[]>(mockMilestones);
   const [selected, setSelected] = useState<Milestone | null>(null);
   const [filter, setFilter] = useState('All');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchMilestones = async () => {
+      const { data, error } = await supabase.from('milestones').select('*').order('due_date');
+      if (!error && data && data.length > 0) {
+        setAllMilestones(data as Milestone[]);
+      } else if (!error && data && data.length === 0) {
+        await supabase.from('milestones').insert(mockMilestones);
+        setAllMilestones(mockMilestones);
+      }
+    };
+    fetchMilestones();
+  }, []);
+
+  const updateMilestoneStatus = async (id: string, status: string) => {
+    setAllMilestones(prev => prev.map(m => m.id === id ? { ...m, status: status as Milestone['status'] } : m));
+    await supabase.from('milestones').update({ status }).eq('id', id);
+  };
 
   const filtered = allMilestones.filter(m => filter === 'All' || m.status === filter);
   const statuses = ['All', 'Draft', 'Submitted', 'Under Review', 'Approved', 'Locked'];
@@ -93,12 +113,12 @@ export function Milestones({ role }: MilestonesProps) {
                         <Badge status={m.status} />
                         {role === 'Admin' && m.status === 'Under Review' && (
                           <div className="flex gap-2 flex-wrap justify-end">
-                            <button className="px-3 py-1 rounded-lg text-white text-xs font-semibold hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }} onClick={e => { e.stopPropagation(); toast('Milestone approved'); }}>Approve</button>
-                            <button className="btn-destructive px-3 py-1 text-xs" onClick={e => { e.stopPropagation(); toast('Revision requested', 'warning'); }}>Revise</button>
+                            <button className="px-3 py-1 rounded-lg text-white text-xs font-semibold hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }} onClick={e => { e.stopPropagation(); updateMilestoneStatus(m.id, 'Approved'); toast('Milestone approved'); }}>Approve</button>
+                            <button className="btn-destructive px-3 py-1 text-xs" onClick={e => { e.stopPropagation(); updateMilestoneStatus(m.id, 'Rejected'); toast('Revision requested', 'warning'); }}>Revise</button>
                           </div>
                         )}
                         {(role === 'Researcher' || role === 'Assistant Researcher') && m.status === 'Draft' && (
-                          <button className="btn-primary px-3 py-1 text-xs" onClick={e => { e.stopPropagation(); toast('Milestone submitted for review'); }}>Submit</button>
+                          <button className="btn-primary px-3 py-1 text-xs" onClick={e => { e.stopPropagation(); updateMilestoneStatus(m.id, 'Submitted'); toast('Milestone submitted for review'); }}>Submit</button>
                         )}
                       </div>
                     </div>

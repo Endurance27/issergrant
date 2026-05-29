@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Eye, EyeOff, ArrowRight, CheckCircle2, TrendingUp, Clock, Award, X } from "lucide-react";
 import type { Role } from "../../data/mockData";
 import { IsserLogo } from "../ui/IsserLogo";
+import { supabase } from "../../../lib/supabase";
 
 const roleColors: Record<Role, string> = {
   'Admin': 'var(--primary)',
@@ -10,12 +11,19 @@ const roleColors: Record<Role, string> = {
   'Finance Officer': '#403C3A',
 };
 
-const demoAccounts: { role: Role; email: string; hint: string }[] = [
-  { role: 'Admin', email: 'sarah.ahmad@iser.edu', hint: 'System administrator' },
-  { role: 'Researcher', email: 'james.okonkwo@iser.edu', hint: 'Principal Investigator' },
-  { role: 'Assistant Researcher', email: 'chen.wei@iser.edu', hint: 'Research assistant' },
-  { role: 'Finance Officer', email: 'fatima.rashid@iser.edu', hint: 'Finance & Accounts' },
+const demoAccounts: { role: Role; email: string; password: string; hint: string }[] = [
+  { role: 'Admin', email: 'sarah.ahmad@iser.edu', password: 'Admin1234!', hint: 'System administrator' },
+  { role: 'Researcher', email: 'james.okonkwo@iser.edu', password: 'Research1234!', hint: 'Principal Investigator' },
+  { role: 'Assistant Researcher', email: 'chen.wei@iser.edu', password: 'Assist1234!', hint: 'Research assistant' },
+  { role: 'Finance Officer', email: 'fatima.rashid@iser.edu', password: 'Finance1234!', hint: 'Finance & Accounts' },
 ];
+
+const roleByEmail: Record<string, Role> = {
+  'sarah.ahmad@iser.edu': 'Admin',
+  'james.okonkwo@iser.edu': 'Researcher',
+  'chen.wei@iser.edu': 'Assistant Researcher',
+  'fatima.rashid@iser.edu': 'Finance Officer',
+};
 
 const PHOTOS = [
   'https://picsum.photos/seed/labscience/800/600',
@@ -48,18 +56,32 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
 
-  const handleLogin = () => {
-    const account = demoAccounts.find(a => a.email === email);
-    if (!account) { setError('No account found with this email.'); return; }
+  const handleLogin = async () => {
+    if (!email.trim()) { setError('Please enter your email.'); return; }
     if (!password) { setError('Please enter a password.'); return; }
     setLoading(true);
     setError('');
-    setTimeout(() => { setLoading(false); onLogin(account.role); }, 900);
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) {
+        setError(authError.message || 'Login failed. Please check your credentials.');
+        setLoading(false);
+        return;
+      }
+      const role: Role = roleByEmail[email.toLowerCase()] ?? 'Researcher';
+      onLogin(role);
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const quickLogin = (role: Role) => {
-    setLoading(true);
-    setTimeout(() => { setLoading(false); onLogin(role); }, 600);
+  const quickLogin = (acc: typeof demoAccounts[0]) => {
+    // Pre-fill credentials for quick demo access — user still clicks Sign In
+    setEmail(acc.email);
+    setPassword(acc.password);
+    setError('');
   };
 
   return (
@@ -317,7 +339,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <div className="grid grid-cols-2 gap-2">
             {demoAccounts.map(acc => (
               <button
-                key={acc.role} onClick={() => quickLogin(acc.role)} disabled={loading}
+                key={acc.role} onClick={() => quickLogin(acc)} disabled={loading}
                 className="p-3 rounded-xl text-left transition-all border border-border bg-card hover:shadow-sm"
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = roleColors[acc.role] === 'var(--primary)' ? 'var(--primary)' : roleColors[acc.role]; (e.currentTarget as HTMLElement).style.background = (roleColors[acc.role] === 'var(--primary)' ? '#1A3363' : roleColors[acc.role]) + '10'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--card)'; }}>

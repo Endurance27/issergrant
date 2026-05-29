@@ -1,10 +1,11 @@
-import { useState, useRef } from "react";
-import { FileText, Download, Upload, Eye, CheckCircle2, RotateCcw } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { FileText, Download, Upload, Eye, CheckCircle2, RotateCcw, Loader2 } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { PageHeader } from "../ui/PageHeader";
 import { useToast } from "../ui/Toast";
+import { supabase } from "../../../lib/supabase";
 import type { Role } from "../../data/mockData";
 
 interface Report {
@@ -47,8 +48,27 @@ export function Reports({ role }: ReportsProps) {
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadProject, setUploadProject] = useState('AW-2025-002 — Nanoparticle Drug Delivery');
   const [uploadNotes, setUploadNotes] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; url: string; size: number }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Fetch already-uploaded files from Supabase Storage
+  useEffect(() => {
+    const fetchUploadedFiles = async () => {
+      const { data, error } = await supabase.storage.from('reports').list('', { limit: 50 });
+      if (!error && data) {
+        const files = data.map(f => ({
+          name: f.name,
+          size: f.metadata?.size ?? 0,
+          url: supabase.storage.from('reports').getPublicUrl(f.name).data.publicUrl,
+        }));
+        setUploadedFiles(files);
+      }
+    };
+    fetchUploadedFiles();
+  }, []);
 
   const types = ['All', 'Progress Report', 'Financial Report', 'Technical Report', 'Final Report'];
   const filtered = reports.filter(r => filter === 'All' || r.type === filter);
@@ -74,10 +94,24 @@ export function Reports({ role }: ReportsProps) {
 
   const handleExportAll = () => toast('Exporting all reports...', 'info');
 
-  const handleSubmitReport = () => {
+  const handleSubmitReport = async () => {
     if (!uploadTitle.trim()) { toast('Please enter a report title', 'error'); return; }
+    setUploading(true);
+    let fileSize = '—';
+    if (selectedFile) {
+      const filePath = `${Date.now()}_${selectedFile.name}`;
+      const { error: uploadError } = await supabase.storage.from('reports').upload(filePath, selectedFile, { upsert: false });
+      if (uploadError) {
+        toast(`Upload failed: ${uploadError.message}`, 'error');
+        setUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('reports').getPublicUrl(filePath);
+      fileSize = `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB`;
+      setUploadedFiles(prev => [...prev, { name: filePath, size: selectedFile.size, url: urlData.publicUrl }]);
+    }
     const newReport: Report = {
-      id: `RPT-00${reports.length + 1}`,
+      id: `RPT-${String(reports.length + 1).padStart(3, '0')}`,
       title: uploadTitle,
       type: uploadType as Report['type'],
       project: uploadProject.split(' — ')[0],
@@ -85,12 +119,14 @@ export function Reports({ role }: ReportsProps) {
       date: new Date().toISOString().slice(0, 10),
       status: 'Submitted',
       version: 1,
-      size: '—',
+      size: fileSize,
     };
     setReports(prev => [newReport, ...prev]);
     setShowUpload(false);
     setUploadTitle('');
     setUploadNotes('');
+    setSelectedFile(null);
+    setUploading(false);
     toast('Report submitted successfully');
   };
 
@@ -189,6 +225,27 @@ export function Reports({ role }: ReportsProps) {
         )}
       </div>
 
+      {/* Uploaded files from Supabase Storage */}
+      {uploadedFiles.length > 0 && (
+        <div className="mt-8">
+          <h3 className="font-bold text-sm text-foreground mb-3">Uploaded Files (Supabase Storage)</h3>
+          <div className="space-y-2">
+            {uploadedFiles.map(f => (
+              <div key={f.name} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border">
+                <FileText size={16} className="text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-[13px] text-foreground truncate">{f.name}</div>
+                  {f.size > 0 && <div className="text-[11px] text-muted-foreground">{(f.size / 1024 / 1024).toFixed(1)} MB</div>}
+                </div>
+                <a href={f.url} target="_blank" rel="noreferrer" className="btn-secondary text-xs flex items-center gap-1.5 px-3 py-1.5">
+                  <Download size={12} /> Download
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Report detail modal */}
       <Modal open={!!selected} onClose={() => setSelected(null)} title="Report Details" width={580}>
         {selected && (
@@ -261,14 +318,23 @@ export function Reports({ role }: ReportsProps) {
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Upload File</label>
-            <input ref={fileInputRef} type="file" accept=".pdf,.docx,.xlsx" className="hidden" onChange={() => toast('File selected', 'info')} />
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,.xlsx" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) { setSelectedFile(f); toast(`Selected: ${f.name}`, 'info'); } }} />
             <div
               className="flex flex-col items-center justify-center py-8 rounded-xl cursor-pointer border-2 border-dashed border-border bg-muted hover:border-primary/50 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload size={28} className="text-primary mb-2.5" />
-              <div className="font-bold text-[13px] text-foreground">Click to upload or drag & drop</div>
-              <div className="text-[11px] text-muted-foreground mt-1">PDF, DOCX, XLSX · max 50MB</div>
+              {selectedFile ? (
+                <>
+                  <div className="font-bold text-[13px] text-foreground">{selectedFile.name}</div>
+                  <div className="text-[11px] text-muted-foreground mt-1">{(selectedFile.size / 1024 / 1024).toFixed(1)} MB — click to change</div>
+                </>
+              ) : (
+                <>
+                  <div className="font-bold text-[13px] text-foreground">Click to upload or drag & drop</div>
+                  <div className="text-[11px] text-muted-foreground mt-1">PDF, DOCX, XLSX · max 50MB</div>
+                </>
+              )}
             </div>
           </div>
           <div>
@@ -276,8 +342,10 @@ export function Reports({ role }: ReportsProps) {
             <textarea rows={2} value={uploadNotes} onChange={e => setUploadNotes(e.target.value)} placeholder="Any additional notes for the reviewer..." className="w-full px-3 py-2 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" />
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowUpload(false)} className="btn-secondary flex-1 py-2.5">Cancel</button>
-            <button onClick={handleSubmitReport} className="btn-primary flex-1 py-2.5">Submit Report</button>
+            <button onClick={() => { setShowUpload(false); setSelectedFile(null); }} className="btn-secondary flex-1 py-2.5">Cancel</button>
+            <button onClick={handleSubmitReport} disabled={uploading} className="btn-primary flex-1 py-2.5 flex items-center justify-center gap-2">
+              {uploading ? <><Loader2 size={14} className="animate-spin" /> Uploading...</> : 'Submit Report'}
+            </button>
           </div>
         </div>
       </Modal>

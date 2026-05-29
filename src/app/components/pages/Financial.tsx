@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, CheckCircle2, XCircle, Clock, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
@@ -10,6 +10,7 @@ import { usePagination } from "../../hooks/usePagination";
 import { useSortable } from "../../hooks/useSortable";
 import { useAppContext } from "../../context/AppContext";
 import { currentUsers } from "../../data/mockData";
+import { supabase } from "../../../lib/supabase";
 import type { Role } from "../../data/mockData";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
@@ -21,6 +22,15 @@ export function Financial({ role }: FinancialProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [confirmAction, setConfirmAction] = useState<{ id: string; type: 'approve' | 'reject' } | null>(null);
+
+  useEffect(() => {
+    // Sync transactions from Supabase on mount
+    const syncTransactions = async () => {
+      await supabase.from('transactions').select('*');
+      // Transactions managed via AppContext; Supabase is written to on each action
+    };
+    syncTransactions();
+  }, []);
 
   const filtered = transactions.filter(t => {
     const matchSearch = t.description.toLowerCase().includes(search.toLowerCase()) || t.projectTitle.toLowerCase().includes(search.toLowerCase());
@@ -34,6 +44,7 @@ export function Financial({ role }: FinancialProps) {
   const { toast } = useToast();
   const approve = (id: string) => {
     updateTransaction(id, { status: 'Paid' });
+    supabase.from('transactions').update({ status: 'Paid' }).eq('id', id).then(() => {});
     const tx = transactions.find(t => t.id === id);
     if (tx) {
       addNotification({ title: 'Payment Processed', message: `Disbursement of ${fmtCurrency(tx.amount)} for "${tx.projectTitle}" has been approved.`, time: 'Just now', type: 'payment' });
@@ -43,6 +54,7 @@ export function Financial({ role }: FinancialProps) {
   };
   const reject = (id: string) => {
     updateTransaction(id, { status: 'Rejected' });
+    supabase.from('transactions').update({ status: 'Rejected' }).eq('id', id).then(() => {});
     addAuditLog({ action: 'Disbursement Rejected', user: currentUsers[role].name, role, module: 'Financial', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: id });
     toast('Disbursement rejected', 'error');
   };

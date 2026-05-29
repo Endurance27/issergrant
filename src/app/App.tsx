@@ -18,7 +18,15 @@ import { CalendarPage } from "./components/pages/CalendarPage";
 import { Settings } from "./components/pages/Settings";
 import { SearchOverlay } from "./components/ui/SearchOverlay";
 import { ToastProvider } from "./components/ui/Toast";
+import { supabase } from "../lib/supabase";
 import type { Role } from "./data/mockData";
+
+const roleByEmail: Record<string, Role> = {
+  'sarah.ahmad@iser.edu': 'Admin',
+  'james.okonkwo@iser.edu': 'Researcher',
+  'chen.wei@iser.edu': 'Assistant Researcher',
+  'fatima.rashid@iser.edu': 'Finance Officer',
+};
 
 export interface NavState {
   grantCallId?: string;
@@ -46,13 +54,38 @@ function AppShell() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  // Restore session on mount and listen for auth changes
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        const role: Role = roleByEmail[session.user.email.toLowerCase()] ?? 'Researcher';
+        setCurrentRole(role);
+        setLoggedIn(true);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.email) {
+        const role: Role = roleByEmail[session.user.email.toLowerCase()] ?? 'Researcher';
+        setCurrentRole(role);
+        setLoggedIn(true);
+      } else {
+        setLoggedIn(false);
+        setActivePage('dashboard');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const handleLogin = (role: Role) => {
     setCurrentRole(role);
     setLoggedIn(true);
     setActivePage('dashboard');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setLoggedIn(false);
     setActivePage('dashboard');
   };

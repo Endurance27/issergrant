@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, Calendar, Users, DollarSign, ChevronRight } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { PageHeader } from "../ui/PageHeader";
 import { useToast } from "../ui/Toast";
-import { grantCalls } from "../../data/mockData";
+import { grantCalls as mockGrantCalls } from "../../data/mockData";
+import { supabase } from "../../../lib/supabase";
 import type { Role, GrantCall } from "../../data/mockData";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
@@ -19,11 +20,63 @@ const STATUS_BORDER: Record<string, string> = {
 interface GrantCallsProps { role: Role; onNavigate: (page: string, state?: { grantCallId?: string; grantCallTitle?: string }) => void; }
 
 export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
+  const [grantCalls, setGrantCalls] = useState<GrantCall[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'All' | 'Open' | 'Closed' | 'Draft'>('All');
   const [selected, setSelected] = useState<GrantCall | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [newBudget, setNewBudget] = useState('');
+  const [newDeadline, setNewDeadline] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newEligibility, setNewEligibility] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchGrantCalls = async () => {
+      const { data, error } = await supabase.from('grant_calls').select('*').order('id');
+      if (!error && data && data.length > 0) {
+        setGrantCalls(data as GrantCall[]);
+      } else {
+        // Seed with mock data if table is empty
+        if (!error && data && data.length === 0) {
+          const { error: insertError } = await supabase.from('grant_calls').insert(mockGrantCalls);
+          if (!insertError) setGrantCalls(mockGrantCalls);
+          else setGrantCalls(mockGrantCalls);
+        } else {
+          setGrantCalls(mockGrantCalls);
+        }
+      }
+    };
+    fetchGrantCalls();
+  }, []);
+
+  const saveGrantCall = async (status: 'Draft' | 'Open') => {
+    if (!newTitle.trim()) { toast('Enter a grant call title', 'error'); return; }
+    const newGC: GrantCall = {
+      id: `GC-${Date.now()}`,
+      title: newTitle,
+      category: newCategory || 'General',
+      totalBudget: Number(newBudget) || 0,
+      deadline: newDeadline || new Date().toISOString().slice(0, 10),
+      applications: 0,
+      status,
+      description: newDescription,
+      eligibility: newEligibility,
+    };
+    const { error } = await supabase.from('grant_calls').insert([newGC]);
+    if (!error) {
+      setGrantCalls(prev => [...prev, newGC]);
+      toast(status === 'Draft' ? 'Saved as draft' : 'Grant call published');
+    } else {
+      setGrantCalls(prev => [...prev, newGC]);
+      toast(status === 'Draft' ? 'Saved as draft' : 'Grant call published');
+    }
+    setShowCreate(false);
+    setNewTitle(''); setNewCategory(''); setNewBudget(''); setNewDeadline('');
+    setNewDescription(''); setNewEligibility('');
+  };
 
   const filtered = grantCalls.filter(g => {
     const matchSearch = g.title.toLowerCase().includes(search.toLowerCase()) || g.category.toLowerCase().includes(search.toLowerCase());
@@ -155,28 +208,33 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create New Grant Call" width={600}>
         <div className="space-y-4">
-          {[
-            { label: 'Grant Call Title', placeholder: 'e.g. Sustainable Energy Innovation Grant', type: 'text' },
-            { label: 'Category', placeholder: 'e.g. Health & Technology', type: 'text' },
-            { label: 'Total Budget (GHS)', placeholder: '500000', type: 'number' },
-            { label: 'Application Deadline', placeholder: '', type: 'date' },
-          ].map(field => (
-            <div key={field.label}>
-              <label className="block text-xs font-semibold text-foreground mb-1.5">{field.label}</label>
-              <input type={field.type} placeholder={field.placeholder} className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
-            </div>
-          ))}
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Grant Call Title</label>
+            <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Sustainable Energy Innovation Grant" className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Category</label>
+            <input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="e.g. Health & Technology" className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Total Budget (GHS)</label>
+            <input type="number" value={newBudget} onChange={e => setNewBudget(e.target.value)} placeholder="500000" className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Application Deadline</label>
+            <input type="date" value={newDeadline} onChange={e => setNewDeadline(e.target.value)} className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+          </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Description</label>
-            <textarea rows={3} className="w-full px-3 py-2.5 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" placeholder="Describe the grant call objectives..." />
+            <textarea rows={3} value={newDescription} onChange={e => setNewDescription(e.target.value)} className="w-full px-3 py-2.5 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" placeholder="Describe the grant call objectives..." />
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Eligibility Criteria</label>
-            <textarea rows={2} className="w-full px-3 py-2.5 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" placeholder="Who can apply?" />
+            <textarea rows={2} value={newEligibility} onChange={e => setNewEligibility(e.target.value)} className="w-full px-3 py-2.5 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" placeholder="Who can apply?" />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => { toast('Saved as draft', 'info'); setShowCreate(false); }} className="flex-1 py-2.5 rounded-xl border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors">Save as Draft</button>
-            <button onClick={() => { toast('Grant call published'); setShowCreate(false); }} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>Publish Now</button>
+            <button onClick={() => saveGrantCall('Draft')} className="flex-1 py-2.5 rounded-xl border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors">Save as Draft</button>
+            <button onClick={() => saveGrantCall('Open')} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>Publish Now</button>
           </div>
         </div>
       </Modal>
