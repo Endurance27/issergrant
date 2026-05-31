@@ -161,7 +161,7 @@ export function UserManagement() {
             <button key={role} onClick={() => setRoleFilter(isActive ? 'All' : role)}
               className={`rounded-2xl p-4 flex items-center gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-left border ${isActive ? 'border-primary bg-secondary shadow-sm' : 'border-border bg-card'}`}>
               <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: ROLE_COLORS[role] + '20' }}>
-                <span className="font-black text-base" style={{ color: ROLE_COLORS[role] }}>{count}</span>
+                <span className="font-bold text-sm" style={{ color: ROLE_COLORS[role] }}>{count}</span>
               </div>
               <div className="min-w-0">
                 <div className="font-bold text-xs text-foreground leading-snug">{role}</div>

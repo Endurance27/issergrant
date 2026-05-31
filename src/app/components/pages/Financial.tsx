@@ -88,7 +88,7 @@ export function Financial({ role }: FinancialProps) {
               <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.05em]">{item.label}</span>
               <div className="flex items-center justify-center rounded-lg" style={{ width: 30, height: 30, background: item.bg, color: item.color }}>{item.icon}</div>
             </div>
-            <div className="font-mono font-extrabold text-base text-foreground">{item.value}</div>
+            <div className="font-mono font-semibold text-sm text-foreground">{item.value}</div>
           </div>
         ))}
       </div>
@@ -194,7 +194,7 @@ export function Financial({ role }: FinancialProps) {
                 <Badge status={t.status} size="sm" />
               </div>
               {/* Amount */}
-              <div className="font-mono font-black text-foreground text-lg leading-none">{fmtCurrency(t.amount)}</div>
+              <div className="font-mono font-semibold text-sm text-foreground">{fmtCurrency(t.amount)}</div>
               {/* Project + description */}
               <div>
                 <div className="text-[13px] font-semibold text-foreground truncate">{t.projectTitle}</div>

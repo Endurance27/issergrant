@@ -145,7 +145,7 @@ export function Analytics() {
           </div>
           <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Overall approval rate</span>
-            <span className="font-mono font-black text-xl" style={{ color: '#22C55E' }}>{approvalRate}%</span>
+            <span className="font-mono font-semibold text-sm" style={{ color: '#22C55E' }}>{approvalRate}%</span>
           </div>
         </ChartCard>
       </div>

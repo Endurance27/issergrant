@@ -21,7 +21,7 @@ export function StatCard({ label, value, icon, iconColor, iconBg, trend, subtitl
           <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em] mb-2">
             {label}
           </div>
-          <div className="font-black text-[28px] text-foreground leading-none">
+          <div className="font-bold text-[20px] text-foreground leading-none">
             {value}
           </div>
           {subtitle && (

@@ -161,7 +161,7 @@ export function Reports({ role }: ReportsProps) {
               <FileText size={16} />
             </div>
             <div>
-              <div className="font-mono font-extrabold text-xl text-foreground leading-none">{item.value}</div>
+              <div className="font-mono font-semibold text-sm text-foreground">{item.value}</div>
               <div className="text-[11px] text-muted-foreground mt-0.5">{item.label}</div>
             </div>
           </div>
