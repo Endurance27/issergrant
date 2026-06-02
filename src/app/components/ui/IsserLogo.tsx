@@ -3,7 +3,7 @@ interface IsserLogoProps {
   white?: boolean;
 }
 
-export function IsserLogo({ height = 40, white = false }: IsserLogoProps) {
+export function IsserLogo({ height = 40 }: IsserLogoProps) {
   return (
     <img
       src="/isser-logo.png"
@@ -12,7 +12,6 @@ export function IsserLogo({ height = 40, white = false }: IsserLogoProps) {
         height,
         width: 'auto',
         objectFit: 'contain',
-        filter: white ? 'brightness(0) invert(1)' : 'none',
       }}
     />
   );
