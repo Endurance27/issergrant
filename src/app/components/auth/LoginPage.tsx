@@ -155,7 +155,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         {/* Top: logo + headline */}
         <div className="relative">
           <div className="flex items-center mb-10">
-            <IsserLogo height={52} white />
+            <IsserLogo height={100} />
           </div>
           <h1 className="font-black text-[34px] text-white leading-snug mb-3">
             Manage your<br />research grants<br /><span style={{ color: '#B79A64' }}>with precision.</span>
