@@ -34,7 +34,7 @@ export function Badge({ status, size = 'md' }: BadgeProps) {
       className="inline-flex items-center gap-1 rounded-full whitespace-nowrap font-semibold"
       style={{ background: config.bg, color: config.text, fontSize, padding }}
     >
-      <span className="rounded-full flex-shrink-0" style={{ width: 5, height: 5, background: config.dot }} />
+      <span className="rounded-full flex-shrink-0 size-[5px]" style={{ background: config.dot }} />
       {status}
     </span>
   );

@@ -5,14 +5,13 @@ interface IsserLogoProps {
 
 export function IsserLogo({ height = 40 }: IsserLogoProps) {
   return (
-    <div style={{
-      background: '#ffffff',
-      borderRadius: 10,
-      padding: '4px 10px',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
+    <div
+      className="inline-flex items-center justify-center rounded-[10px]"
+      style={{
+        background: '#ffffff',
+        padding: '4px 10px',
+      }}
+    >
       <img
         src="/isser-logo.png"
         alt="ISSER - University of Ghana - Knowledge for Development"

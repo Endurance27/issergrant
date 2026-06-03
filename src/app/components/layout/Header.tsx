@@ -71,7 +71,7 @@ export function Header({ currentRole, onRoleChange, darkMode, onToggleDark, onNa
         >
           <Bell size={16} />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 rounded-full bg-red-500 text-white font-mono font-bold leading-none px-[3px]" style={{ fontSize: 9 }}>
+            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 rounded-full bg-red-500 text-white font-mono font-bold leading-none px-[3px] text-[9px]">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -88,8 +88,8 @@ export function Header({ currentRole, onRoleChange, darkMode, onToggleDark, onNa
             className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-all duration-150 hover:bg-muted ${showRoleMenu ? 'bg-muted' : ''}`}
           >
             <div
-              className="flex items-center justify-center rounded-full flex-shrink-0 text-white font-bold text-[11px]"
-              style={{ width: 30, height: 30, background: roleColors[currentRole] }}
+              className="flex items-center justify-center rounded-full flex-shrink-0 text-white font-bold text-[11px] size-[30px]"
+              style={{ background: roleColors[currentRole] }}
             >
               {user.avatar}
             </div>
@@ -118,8 +118,8 @@ export function Header({ currentRole, onRoleChange, darkMode, onToggleDark, onNa
                     className={`w-full flex items-center gap-2.5 px-3 py-2 transition-all duration-150 text-left hover:bg-muted ${currentRole === role ? 'bg-muted' : ''}`}
                   >
                     <div
-                      className="flex items-center justify-center rounded-full text-white font-bold text-[9px]"
-                      style={{ width: 24, height: 24, background: roleColors[role] }}
+                      className="flex items-center justify-center rounded-full text-white font-bold text-[9px] size-[24px]"
+                      style={{ background: roleColors[role] }}
                     >
                       {currentUsers[role].avatar}
                     </div>

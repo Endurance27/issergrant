@@ -118,10 +118,10 @@ export function Settings({ role, darkMode, onToggleDark }: SettingsProps) {
                     </div>
                     <button
                       onClick={() => setNotifPrefs(p => ({ ...p, [item.key]: !p[item.key as keyof typeof p] }))}
-                      className="rounded-full transition-all duration-200 flex-shrink-0 relative"
-                      style={{ width: 44, height: 24, background: notifPrefs[item.key as keyof typeof notifPrefs] ? 'var(--primary)' : 'var(--border)' }}
+                      className="w-[44px] h-[24px] rounded-full transition-all duration-200 flex-shrink-0 relative"
+                      style={{ background: notifPrefs[item.key as keyof typeof notifPrefs] ? 'var(--primary)' : 'var(--border)' }}
                     >
-                      <span className="absolute top-1 rounded-full transition-all duration-200 bg-white" style={{ width: 16, height: 16, left: notifPrefs[item.key as keyof typeof notifPrefs] ? 24 : 4 }} />
+                      <span className="absolute top-1 size-[16px] rounded-full transition-all duration-200 bg-white" style={{ left: notifPrefs[item.key as keyof typeof notifPrefs] ? 24 : 4 }} />
                     </button>
                   </div>
                 ))}
