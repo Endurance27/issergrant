@@ -1,1 +1,0 @@
-export { Modal } from '../../../app/components/ui/Modal';
