@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { AdminDashboardPage as AdminDashboardFeaturePage } from "../../../components/admin/pages/Dashboard";
-import { UserManagementPage } from "../../../components/admin/pages/Users";
+import { AdminDashboardPage as AdminDashboardFeaturePage } from "../../admin/dashboard";
+import { UserManagementPage } from "../../admin/users";
 import { GrantCalls } from "../../components/pages/GrantCalls";
 import { Proposals } from "../../components/pages/Proposals";
 import { Awards } from "../../components/pages/Awards";
