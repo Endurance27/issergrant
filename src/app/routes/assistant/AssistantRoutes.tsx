@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { AssistantDashboardPage as AssistantDashboardFeaturePage } from "../../../features/assistant/pages/Dashboard";
+import { AssistantDashboardPage as AssistantDashboardFeaturePage } from "../../../components/assistant-researcher/pages/Dashboard";
 import { GrantCalls } from "../../components/pages/GrantCalls";
 import { Proposals } from "../../components/pages/Proposals";
 import { Milestones } from "../../components/pages/Milestones";
