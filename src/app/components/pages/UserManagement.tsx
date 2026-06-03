@@ -160,7 +160,7 @@ export function UserManagement() {
           return (
             <button key={role} onClick={() => setRoleFilter(isActive ? 'All' : role)}
               className={`rounded-2xl p-4 flex items-center gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-left border ${isActive ? 'border-primary bg-secondary shadow-sm' : 'border-border bg-card'}`}>
-              <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: ROLE_COLORS[role] + '20' }}>
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0" style={{ background: ROLE_COLORS[role] + '20' }}>
                 <span className="font-bold text-sm" style={{ color: ROLE_COLORS[role] }}>{count}</span>
               </div>
               <div className="min-w-0">
@@ -207,7 +207,7 @@ export function UserManagement() {
                 <tr key={u.id} className="bg-card hover:bg-muted transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center rounded-full flex-shrink-0 text-white font-bold text-xs" style={{ width: 36, height: 36, background: ROLE_COLORS[u.role] }}>{u.avatar}</div>
+                      <div className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 text-white font-bold text-xs" style={{ background: ROLE_COLORS[u.role] }}>{u.avatar}</div>
                       <div className="min-w-0">
                         <div className="font-bold text-[13px] text-foreground truncate">{u.name}</div>
                         <div className="text-[11px] text-muted-foreground truncate">{u.email}</div>
@@ -225,21 +225,21 @@ export function UserManagement() {
                         <MoreHorizontal size={16} />
                       </button>
                       {activeMenu === u.id && (
-                        <div className="absolute right-0 top-full mt-1 rounded-xl shadow-xl z-30 overflow-hidden bg-card border border-border" style={{ minWidth: 190 }}>
+                        <div className="absolute right-0 top-full mt-1 min-w-[190px] rounded-xl shadow-xl z-30 overflow-hidden bg-card border border-border">
                           {u.status === 'Active' ? (
                             <button onClick={() => { setConfirmSuspend(u); setActiveMenu(null); }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted" style={{ color: '#F59E0B' }}>
+                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-amber-500">
                               <ShieldOff size={14} /> Suspend Account
                             </button>
                           ) : (
                             <button onClick={() => { toggleStatus(u.id, false); setActiveMenu(null); }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted" style={{ color: '#22C55E' }}>
+                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-green-500">
                               <ShieldCheck size={14} /> Activate Account
                             </button>
                           )}
                           <div className="h-px bg-border mx-2" />
                           <button onClick={() => { setConfirmDelete(u); setActiveMenu(null); }}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted" style={{ color: '#EF4444' }}>
+                            className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-red-500">
                             <Trash2 size={14} /> Delete User
                           </button>
                         </div>
@@ -268,7 +268,7 @@ export function UserManagement() {
         {paginated.map(u => (
           <div key={u.id} className="rounded-2xl bg-card border border-border p-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="flex items-center justify-center rounded-full flex-shrink-0 text-white font-bold text-sm" style={{ width: 44, height: 44, background: ROLE_COLORS[u.role] }}>{u.avatar}</div>
+              <div className="flex items-center justify-center w-11 h-11 rounded-full flex-shrink-0 text-white font-bold text-sm" style={{ background: ROLE_COLORS[u.role] }}>{u.avatar}</div>
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-[14px] text-foreground">{u.name}</div>
                 <div className="text-xs text-muted-foreground truncate">{u.email}</div>
@@ -287,15 +287,15 @@ export function UserManagement() {
             </div>
             <div className="flex items-center gap-2 justify-end">
               {u.status === 'Active' ? (
-                <button onClick={() => setConfirmSuspend(u)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ color: '#F59E0B', background: '#FFFBEB', border: '1px solid #FCD34D' }}>
+                <button onClick={() => setConfirmSuspend(u)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-500 bg-amber-50 border border-amber-300">
                   <ShieldOff size={12} /> Suspend
                 </button>
               ) : (
-                <button onClick={() => toggleStatus(u.id, false)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ color: '#22C55E', background: '#F0FDF4', border: '1px solid #86EFAC' }}>
+                <button onClick={() => toggleStatus(u.id, false)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-green-500 bg-green-50 border border-green-300">
                   <ShieldCheck size={12} /> Activate
                 </button>
               )}
-              <button onClick={() => setConfirmDelete(u)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ color: '#EF4444', background: '#FEF2F2', border: '1px solid #FCA5A5' }}>
+              <button onClick={() => setConfirmDelete(u)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 bg-red-50 border border-red-300">
                 <Trash2 size={12} /> Delete
               </button>
             </div>
@@ -364,7 +364,7 @@ export function UserManagement() {
           {/* Preview */}
           {newName && (
             <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
-              <div className="flex items-center justify-center rounded-full text-white font-bold text-sm flex-shrink-0" style={{ width: 40, height: 40, background: ROLE_COLORS[newRole] }}>
+              <div className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm flex-shrink-0" style={{ background: ROLE_COLORS[newRole] }}>
                 {newName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
               <div>

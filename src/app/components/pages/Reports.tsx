@@ -157,7 +157,7 @@ export function Reports({ role }: ReportsProps) {
           { label: 'Rejected', value: reports.filter(r => r.status === 'Rejected').length, color: '#EF4444', bg: '#FEF2F2' },
         ].map(item => (
           <div key={item.label} className="rounded-2xl p-4 flex items-center gap-3 bg-card border border-border">
-            <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 40, height: 40, background: item.bg, color: item.color }}>
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0" style={{ background: item.bg, color: item.color }}>
               <FileText size={16} />
             </div>
             <div>
@@ -181,7 +181,7 @@ export function Reports({ role }: ReportsProps) {
           const tc = typeColors[r.type];
           return (
             <div key={r.id} className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md group bg-card border border-border" onClick={() => setSelected(r)}>
-              <div className="flex items-center justify-center rounded-xl flex-shrink-0" style={{ width: 44, height: 44, background: tc.bg }}>
+              <div className="flex items-center justify-center w-11 h-11 rounded-xl flex-shrink-0" style={{ background: tc.bg }}>
                 <FileText size={20} style={{ color: tc.text }} />
               </div>
               <div className="flex-1 min-w-0">
@@ -283,7 +283,7 @@ export function Reports({ role }: ReportsProps) {
             </div>
             {role === 'Admin' && (selected.status === 'Under Review' || selected.status === 'Submitted') && (
               <div className="flex gap-3">
-                <button onClick={() => approveReport(selected.id)} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90 transition-opacity flex items-center justify-center gap-2" style={{ background: '#22C55E' }}>
+                <button onClick={() => approveReport(selected.id)} className="flex-1 py-2.5 rounded-xl bg-green-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
                   <CheckCircle2 size={15} /> Approve Report
                 </button>
                 <button onClick={() => setConfirmRevision(selected)} className="btn-destructive flex-1 py-2.5 flex items-center justify-center gap-2">

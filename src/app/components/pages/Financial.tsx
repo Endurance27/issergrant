@@ -65,8 +65,8 @@ export function Financial({ role }: FinancialProps) {
 
   const typeIcon = (type: string) => {
     if (type === 'Disbursement') return <TrendingUp size={14} className="text-primary" />;
-    if (type === 'Expense') return <DollarSign size={14} style={{ color: '#F59E0B' }} />;
-    return <AlertCircle size={14} style={{ color: '#10B981' }} />;
+    if (type === 'Expense') return <DollarSign size={14} className="text-amber-500" />;
+    return <AlertCircle size={14} className="text-emerald-500" />;
   };
 
   return (
@@ -86,7 +86,7 @@ export function Financial({ role }: FinancialProps) {
           <div key={item.label} className="rounded-2xl p-4 bg-card border border-border">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-[0.05em]">{item.label}</span>
-              <div className="flex items-center justify-center rounded-lg" style={{ width: 30, height: 30, background: item.bg, color: item.color }}>{item.icon}</div>
+              <div className="flex items-center justify-center w-[30px] h-[30px] rounded-lg" style={{ background: item.bg, color: item.color }}>{item.icon}</div>
             </div>
             <div className="font-mono font-semibold text-sm text-foreground">{item.value}</div>
           </div>
@@ -107,10 +107,10 @@ export function Financial({ role }: FinancialProps) {
                   </div>
                   <div className="flex items-center gap-4 flex-shrink-0">
                     <span className="font-mono text-xs text-muted-foreground">{fmtCurrency(award.disbursed)} / {fmtCurrency(award.awardedAmount)}</span>
-                    <span className="font-mono font-bold text-xs" style={{ color: pct >= 80 ? '#F59E0B' : 'var(--primary)' }}>{pct}%</span>
+                    <span className={`font-mono font-bold text-xs ${pct >= 80 ? 'text-amber-500' : 'text-primary'}`}>{pct}%</span>
                   </div>
                 </div>
-                <div className="rounded-full overflow-hidden bg-muted" style={{ height: 6 }}>
+                <div className="rounded-full overflow-hidden bg-muted h-1.5">
                   <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct >= 100 ? '#22C55E' : pct >= 80 ? '#F59E0B' : 'linear-gradient(to right, var(--primary), #2D6EA8)' }} />
                 </div>
               </div>
@@ -166,7 +166,7 @@ export function Financial({ role }: FinancialProps) {
                       <td className="px-4 py-3">
                         {t.status === 'Pending' && (
                           <div className="flex gap-1.5">
-                            <button onClick={() => setConfirmAction({ id: t.id, type: 'approve' })} className="flex items-center gap-1 px-2 py-1 rounded-md text-white text-[11px] font-semibold whitespace-nowrap hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }}><CheckCircle2 size={11} /> Approve</button>
+                            <button onClick={() => setConfirmAction({ id: t.id, type: 'approve' })} className="flex items-center gap-1 px-2 py-1 rounded-md bg-green-500 text-white text-[11px] font-semibold whitespace-nowrap hover:opacity-90 transition-opacity"><CheckCircle2 size={11} /> Approve</button>
                             <button onClick={() => setConfirmAction({ id: t.id, type: 'reject' })} className="btn-destructive flex items-center gap-1 px-2 py-1 text-[11px] whitespace-nowrap"><XCircle size={11} /> Reject</button>
                           </div>
                         )}
@@ -208,7 +208,7 @@ export function Financial({ role }: FinancialProps) {
                 </div>
                 {role === 'Finance Officer' && t.status === 'Pending' && (
                   <div className="flex gap-1.5">
-                    <button onClick={() => setConfirmAction({ id: t.id, type: 'approve' })} className="flex items-center gap-1 px-2 py-1 rounded-md text-white text-[11px] font-semibold hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }}><CheckCircle2 size={11} /> Approve</button>
+                    <button onClick={() => setConfirmAction({ id: t.id, type: 'approve' })} className="flex items-center gap-1 px-2 py-1 rounded-md bg-green-500 text-white text-[11px] font-semibold hover:opacity-90 transition-opacity"><CheckCircle2 size={11} /> Approve</button>
                     <button onClick={() => setConfirmAction({ id: t.id, type: 'reject' })} className="btn-destructive flex items-center gap-1 px-2 py-1 text-[11px]"><XCircle size={11} /> Reject</button>
                   </div>
                 )}

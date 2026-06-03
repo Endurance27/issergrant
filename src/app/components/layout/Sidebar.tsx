@@ -50,14 +50,14 @@ interface SidebarProps {
 export function Sidebar({ activePage, onNavigate, currentRole, onLogout, collapsed, onToggle }: SidebarProps) {
   return (
     <aside
-      className="h-screen flex flex-col transition-all duration-300 ease-in-out relative"
-      style={{ width: collapsed ? 64 : 240, background: 'var(--sidebar)', borderRight: '1px solid var(--sidebar-border)', flexShrink: 0 }}
+      className="h-screen flex flex-col transition-all duration-300 ease-in-out relative bg-sidebar border-r border-sidebar-border flex-shrink-0"
+      style={{ width: collapsed ? 64 : 240 }}
     >
-      <div className="flex items-center justify-center px-3 py-3" style={{ borderBottom: '1px solid var(--sidebar-border)', minHeight: 64 }}>
+      <div className="flex items-center justify-center px-3 py-3 border-b border-sidebar-border min-h-[64px]">
         <IsserLogo height={collapsed ? 32 : 44} white />
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3 px-2" style={{ scrollbarWidth: 'none' }}>
+      <nav className="flex-1 overflow-y-auto py-3 px-2" style={{ scrollbarWidth: 'none' as const }}>
         {navSections.map(section => {
           const sectionItems = section.ids
             .map(id => navItems.find(item => item.id === id)!)
@@ -68,12 +68,12 @@ export function Sidebar({ activePage, onNavigate, currentRole, onLogout, collaps
           return (
             <div key={section.label ?? 'main'} className="mb-1">
               {section.label && !collapsed && (
-                <div className="px-2.5 pt-3 pb-1 text-[9px] font-bold uppercase tracking-widest select-none" style={{ color: 'var(--sidebar-foreground)', opacity: 0.4 }}>
+                <div className="px-2.5 pt-3 pb-1 text-[9px] font-bold uppercase tracking-widest select-none text-sidebar-foreground opacity-40">
                   {section.label}
                 </div>
               )}
               {collapsed && section.label && (
-                <div className="my-1.5 mx-2" style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
+                <div className="my-1.5 mx-2 h-px bg-white/[0.08]" />
               )}
               <div className="space-y-0.5">
                 {sectionItems.map(item => {
@@ -87,23 +87,22 @@ export function Sidebar({ activePage, onNavigate, currentRole, onLogout, collaps
                       title={collapsed ? item.label : undefined}
                     >
                       {isActive && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full transition-all" style={{ width: 3, height: 20, background: '#B79A64' }} />
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full transition-all" style={{ background: '#B79A64' }} />
                       )}
                       <span style={{ color: isActive ? '#B79A64' : 'inherit', flexShrink: 0 }}>{item.icon}</span>
                       {!collapsed && (
                         <span className="font-medium text-[13px] flex-1 text-left">{item.label}</span>
                       )}
                       {!collapsed && item.badge && (
-                        <span className="flex items-center justify-center rounded-full text-white font-mono text-[10px]" style={{ minWidth: 18, height: 18, background: '#B79A64', padding: '0 4px' }}>
+                        <span className="flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-white font-mono text-[10px] px-1" style={{ background: '#B79A64' }}>
                           {item.badge}
                         </span>
                       )}
                       {collapsed && item.badge && (
-                        <span className="absolute top-1 right-1 rounded-full" style={{ width: 8, height: 8, background: '#B79A64' }} />
+                        <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ background: '#B79A64' }} />
                       )}
                       {collapsed && (
-                        <div className="absolute left-full ml-2 px-2 py-1 rounded text-xs whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity text-white"
-                          style={{ background: 'var(--sidebar-accent)' }}>
+                        <div className="absolute left-full ml-2 px-2 py-1 rounded text-xs whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity text-white bg-sidebar-accent">
                           {item.label}
                         </div>
                       )}
@@ -116,11 +115,11 @@ export function Sidebar({ activePage, onNavigate, currentRole, onLogout, collaps
         })}
       </nav>
 
-      <div className="px-2 py-3" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
+      <div className="px-2 py-3 border-t border-sidebar-border">
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 rounded-md transition-all duration-150 hover:bg-white/5 hover:text-red-400"
-          style={{ padding: '8px 10px', justifyContent: collapsed ? 'center' : 'flex-start', color: '#94A3B8' }}
+          className="w-full flex items-center gap-3 rounded-md transition-all duration-150 hover:bg-white/5 hover:text-red-400 text-slate-400"
+          style={{ padding: '8px 10px', justifyContent: collapsed ? 'center' : 'flex-start' }}
         >
           <LogOut size={18} />
           {!collapsed && <span className="font-medium text-[13px]">Sign Out</span>}
@@ -129,8 +128,7 @@ export function Sidebar({ activePage, onNavigate, currentRole, onLogout, collaps
 
       <button
         onClick={onToggle}
-        className="absolute -right-3 top-16 z-10 flex items-center justify-center rounded-full shadow-md transition-all duration-150 hover:scale-110"
-        style={{ width: 24, height: 24, background: 'var(--sidebar-accent)', border: '1px solid rgba(255,255,255,0.15)', color: '#94A3B8' }}
+        className="absolute -right-3 top-16 z-10 flex items-center justify-center w-6 h-6 rounded-full shadow-md transition-all duration-150 hover:scale-110 bg-sidebar-accent border border-white/15 text-slate-400"
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
       </button>

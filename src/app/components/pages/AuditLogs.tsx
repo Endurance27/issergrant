@@ -83,7 +83,7 @@ export function AuditLogs() {
       />
 
       {/* Module summary cards — scrollable on mobile */}
-      <div className="flex gap-3 mb-5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+      <div className="flex gap-3 mb-5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' as const }}>
         <button
           onClick={() => setModuleFilter('All')}
           className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${moduleFilter === 'All' ? 'border-primary bg-primary text-white shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted'}`}
@@ -150,7 +150,7 @@ export function AuditLogs() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center justify-center rounded-full flex-shrink-0 font-bold text-[10px]" style={{ width: 22, height: 22, background: color + '20', color }}>
+                        <div className="flex items-center justify-center w-[22px] h-[22px] rounded-full flex-shrink-0 font-bold text-[10px]" style={{ background: color + '20', color }}>
                           {getActionIcon(log.action)}
                         </div>
                         <span className="font-semibold text-xs text-foreground">{log.action}</span>
@@ -166,7 +166,7 @@ export function AuditLogs() {
                     <td className="px-4 py-3">
                       <span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">{log.ip}</span>
                     </td>
-                    <td className="px-4 py-3" style={{ maxWidth: 260 }}>
+                    <td className="px-4 py-3 max-w-[260px]">
                       <span className="text-xs text-muted-foreground truncate block">{log.details}</span>
                     </td>
                   </tr>
@@ -196,7 +196,7 @@ export function AuditLogs() {
             <div key={log.id} className="rounded-2xl bg-card border border-border p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center rounded-full flex-shrink-0 font-bold text-[10px]" style={{ width: 24, height: 24, background: color + '20', color }}>
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 font-bold text-[10px]" style={{ background: color + '20', color }}>
                     {getActionIcon(log.action)}
                   </div>
                   <span className="font-bold text-[13px] text-foreground">{log.action}</span>

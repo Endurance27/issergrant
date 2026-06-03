@@ -83,8 +83,8 @@ export function Milestones({ role }: MilestonesProps) {
           return (
             <div key={m.id} className="flex gap-4 cursor-pointer group" onClick={() => setSelected(m)}>
               {/* Timeline column */}
-              <div className="flex flex-col items-center flex-shrink-0 pt-1" style={{ width: 32 }}>
-                <div className="flex items-center justify-center rounded-full border-2 z-10" style={{ width: 32, height: 32, background: color + '15', borderColor: color }}>
+              <div className="flex flex-col items-center flex-shrink-0 pt-1 w-8">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 z-10" style={{ background: color + '15', borderColor: color }}>
                   {statusIcon(m.status)}
                 </div>
                 {!isLast && <div className="flex-1 mt-1 mb-0" style={{ width: 2, minHeight: 28, background: `linear-gradient(to bottom, ${color}60, var(--border))` }} />}
@@ -113,7 +113,7 @@ export function Milestones({ role }: MilestonesProps) {
                         <Badge status={m.status} />
                         {role === 'Admin' && m.status === 'Under Review' && (
                           <div className="flex gap-2 flex-wrap justify-end">
-                            <button className="px-3 py-1 rounded-lg text-white text-xs font-semibold hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }} onClick={e => { e.stopPropagation(); updateMilestoneStatus(m.id, 'Approved'); toast('Milestone approved'); }}>Approve</button>
+                            <button className="px-3 py-1 rounded-lg bg-green-500 text-white text-xs font-semibold hover:opacity-90 transition-opacity" onClick={e => { e.stopPropagation(); updateMilestoneStatus(m.id, 'Approved'); toast('Milestone approved'); }}>Approve</button>
                             <button className="btn-destructive px-3 py-1 text-xs" onClick={e => { e.stopPropagation(); updateMilestoneStatus(m.id, 'Rejected'); toast('Revision requested', 'warning'); }}>Revise</button>
                           </div>
                         )}

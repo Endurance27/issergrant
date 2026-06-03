@@ -30,9 +30,9 @@ export function StatCard({ label, value, icon, iconColor, iconBg, trend, subtitl
           {trend && (
             <div className="flex items-center gap-1 mt-2">
               {trend.up
-                ? <TrendingUp size={11} style={{ color: '#16A34A' }} />
-                : <TrendingDown size={11} style={{ color: '#DC2626' }} />}
-              <span className="font-bold text-[11px]" style={{ color: trend.up ? '#16A34A' : '#DC2626' }}>
+                ? <TrendingUp size={11} className="text-green-600" />
+                : <TrendingDown size={11} className="text-red-600" />}
+              <span className={`font-bold text-[11px] ${trend.up ? 'text-green-600' : 'text-red-600'}`}>
                 {trend.value}
               </span>
               <span className="text-[11px] text-muted-foreground">vs last month</span>
@@ -42,8 +42,8 @@ export function StatCard({ label, value, icon, iconColor, iconBg, trend, subtitl
 
         {/* Icon with glow + scale on hover */}
         <div
-          className="flex items-center justify-center rounded-2xl flex-shrink-0 ml-4 group-hover:scale-110 transition-transform duration-200"
-          style={{ width: 48, height: 48, background: iconBg, color: iconColor }}
+          className="flex items-center justify-center w-12 h-12 rounded-2xl flex-shrink-0 ml-4 group-hover:scale-110 transition-transform duration-200"
+          style={{ background: iconBg, color: iconColor }}
         >
           {icon}
         </div>

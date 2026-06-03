@@ -272,7 +272,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
               />
             </div>
-            {error && <p className="text-[13px]" style={{ color: '#EF4444' }}>{error}</p>}
+            {error && <p className="text-[13px] text-red-500">{error}</p>}
             <button
               onClick={handleLogin} disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white transition-all font-bold text-sm"

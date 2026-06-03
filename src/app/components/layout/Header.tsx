@@ -43,7 +43,7 @@ export function Header({ currentRole, onRoleChange, darkMode, onToggleDark, onNa
   }, [showRoleMenu]);
 
   return (
-    <header className="flex items-center justify-between px-6 h-16 flex-shrink-0 bg-card border-b border-border" style={{ zIndex: 10 }}>
+    <header className="flex items-center justify-between px-6 h-16 flex-shrink-0 bg-card border-b border-border z-10">
       <div className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 max-w-sm bg-muted border border-border">
         <Search size={15} className="text-muted-foreground" />
         <input
@@ -58,8 +58,7 @@ export function Header({ currentRole, onRoleChange, darkMode, onToggleDark, onNa
       <div className="flex items-center gap-2">
         <button
           onClick={onToggleDark}
-          className="flex items-center justify-center rounded-lg transition-all duration-150 hover:bg-muted text-muted-foreground"
-          style={{ width: 36, height: 36 }}
+          className="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150 hover:bg-muted text-muted-foreground"
           aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {darkMode ? <Sun size={16} /> : <Moon size={16} />}
@@ -67,13 +66,12 @@ export function Header({ currentRole, onRoleChange, darkMode, onToggleDark, onNa
 
         <button
           onClick={() => onNavigate('notifications')}
-          className="relative flex items-center justify-center rounded-lg transition-all duration-150 hover:bg-muted text-muted-foreground"
-          style={{ width: 36, height: 36 }}
+          className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150 hover:bg-muted text-muted-foreground"
           aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         >
           <Bell size={16} />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full bg-red-500 text-white font-mono font-bold leading-none" style={{ minWidth: 16, height: 16, fontSize: 9, padding: '0 3px' }}>
+            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 rounded-full bg-red-500 text-white font-mono font-bold leading-none px-[3px]" style={{ fontSize: 9 }}>
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -106,8 +104,7 @@ export function Header({ currentRole, onRoleChange, darkMode, onToggleDark, onNa
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowRoleMenu(false)} />
               <div
-                className="absolute right-0 top-full mt-1 rounded-lg shadow-lg z-50 overflow-hidden bg-card border border-border"
-                style={{ minWidth: 200 }}
+                className="absolute right-0 top-full mt-1 min-w-[200px] rounded-lg shadow-lg z-50 overflow-hidden bg-card border border-border"
                 role="menu"
               >
                 <div className="px-3 py-2 border-b border-border">

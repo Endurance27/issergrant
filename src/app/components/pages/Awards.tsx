@@ -153,14 +153,14 @@ export function Awards({ role, onNavigate }: AwardsProps) {
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-muted-foreground">Disbursement Progress</span>
-                    <span className="font-mono font-bold text-xs" style={{ color: pct >= 80 ? '#F59E0B' : '#10B981' }}>{pct}%</span>
+                    <span className={`font-mono font-bold text-xs ${pct >= 80 ? 'text-amber-500' : 'text-emerald-500'}`}>{pct}%</span>
                   </div>
-                  <div className="rounded-full overflow-hidden bg-muted" style={{ height: 8 }}>
+                  <div className="rounded-full overflow-hidden bg-muted h-2">
                     <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct >= 100 ? 'linear-gradient(to right,#22C55E,#4ADE80)' : 'linear-gradient(to right,var(--primary),#2D6EA8)' }} />
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-[11px] text-muted-foreground">Disbursed: <span className="font-semibold" style={{ color: '#22C55E' }}>{fmtCurrency(award.disbursed)}</span></span>
-                    <span className="text-[11px] text-muted-foreground">Remaining: <span className="font-semibold" style={{ color: '#F59E0B' }}>{fmtCurrency(award.remaining)}</span></span>
+                    <span className="text-[11px] text-muted-foreground">Disbursed: <span className="font-semibold text-green-500">{fmtCurrency(award.disbursed)}</span></span>
+                    <span className="text-[11px] text-muted-foreground">Remaining: <span className="font-semibold text-amber-500">{fmtCurrency(award.remaining)}</span></span>
                   </div>
                 </div>
 
@@ -173,7 +173,7 @@ export function Awards({ role, onNavigate }: AwardsProps) {
                     <div key={cat.label} className="text-center p-3 rounded-xl bg-muted">
                       <div className="font-mono font-bold text-sm" style={{ color: cat.color }}>{cat.pct}%</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">{cat.label}</div>
-                      <div className="mt-2 rounded-full overflow-hidden bg-border" style={{ height: 3 }}>
+                      <div className="mt-2 rounded-full overflow-hidden bg-border h-[3px]">
                         <div className="h-full rounded-full" style={{ width: `${cat.pct}%`, background: cat.color }} />
                       </div>
                     </div>

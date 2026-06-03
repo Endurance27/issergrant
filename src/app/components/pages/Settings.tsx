@@ -67,7 +67,7 @@ export function Settings({ role, darkMode, onToggleDark }: SettingsProps) {
             <div className="rounded-2xl p-6 bg-card border border-border">
               <h3 className="font-bold text-base text-foreground mb-5">Profile Information</h3>
               <div className="flex items-center gap-4 mb-6 p-4 rounded-xl bg-muted">
-                <div className="flex items-center justify-center rounded-full text-white font-extrabold text-[22px]" style={{ width: 64, height: 64, background: 'var(--primary)' }}>{user.avatar}</div>
+                <div className="flex items-center justify-center w-16 h-16 rounded-full text-white font-extrabold text-[22px] bg-primary">{user.avatar}</div>
                 <div>
                   <div className="font-extrabold text-base text-foreground">{user.name}</div>
                   <div className="text-[13px] text-muted-foreground">{user.role} · {user.department}</div>
@@ -87,7 +87,7 @@ export function Settings({ role, darkMode, onToggleDark }: SettingsProps) {
                 ].map(field => (
                   <div key={field.label}>
                     <label className="block text-xs font-semibold text-foreground mb-1.5">{field.label}</label>
-                    <input type="text" defaultValue={field.value} readOnly={field.readonly} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px]" style={{ color: field.readonly ? 'var(--muted-foreground)' : 'var(--foreground)', cursor: field.readonly ? 'not-allowed' : 'text' }} />
+                    <input type="text" defaultValue={field.value} readOnly={field.readonly} className={`w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] ${field.readonly ? 'text-muted-foreground cursor-not-allowed' : 'text-foreground'}`} />
                   </div>
                 ))}
               </div>
@@ -220,9 +220,9 @@ export function Settings({ role, darkMode, onToggleDark }: SettingsProps) {
                   </button>
                 </div>
               </div>
-              <div className="rounded-2xl p-6" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                <h3 className="font-bold text-sm mb-2" style={{ color: '#991B1B' }}>Danger Zone</h3>
-                <p className="text-[13px] mb-3" style={{ color: '#B91C1C' }}>Irreversible and destructive actions.</p>
+              <div className="rounded-2xl p-6 bg-red-50 border border-red-200">
+                <h3 className="font-bold text-sm mb-2 text-red-900">Danger Zone</h3>
+                <p className="text-[13px] mb-3 text-red-700">Irreversible and destructive actions.</p>
                 <button onClick={() => setShowResetConfirm(true)} className="btn-destructive">Reset All System Data</button>
               </div>
             </div>

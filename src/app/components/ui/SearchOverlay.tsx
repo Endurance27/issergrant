@@ -76,7 +76,7 @@ export function SearchOverlay({ query, onClose, onNavigate }: SearchOverlayProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4" onClick={onClose}>
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.45)' }} />
+      <div className="absolute inset-0 bg-black/45" />
       <div
         ref={ref}
         className="relative w-full max-w-lg rounded-xl shadow-2xl overflow-hidden bg-card border border-border"
@@ -92,7 +92,7 @@ export function SearchOverlay({ query, onClose, onNavigate }: SearchOverlayProps
           </button>
         </div>
 
-        <div className="overflow-y-auto" style={{ maxHeight: 460, scrollbarWidth: 'none' }}>
+        <div className="overflow-y-auto max-h-[460px]" style={{ scrollbarWidth: 'none' }}>
           {results.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Search size={28} className="text-muted-foreground opacity-30 mb-2.5" />
@@ -116,7 +116,7 @@ export function SearchOverlay({ query, onClose, onNavigate }: SearchOverlayProps
                       onClick={() => { onNavigate(result.page); onClose(); }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-border hover:bg-muted"
                     >
-                      <div className="flex items-center justify-center rounded-lg flex-shrink-0" style={{ width: 32, height: 32, background: typeColors[result.type] + '15', color: typeColors[result.type] }}>
+                      <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0" style={{ background: typeColors[result.type] + '15', color: typeColors[result.type] }}>
                         {icons[result.type]}
                       </div>
                       <div className="flex-1 min-w-0">
