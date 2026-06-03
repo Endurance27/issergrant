@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { FinanceDashboardPage as FinanceDashboardFeaturePage } from "../../../features/finance/pages/Dashboard";
+import { FinanceDashboardPage as FinanceDashboardFeaturePage } from "../../../components/finance/pages/Dashboard";
 import { Awards } from "../../components/pages/Awards";
 import { Financial } from "../../components/pages/Financial";
 import { Reports } from "../../components/pages/Reports";
