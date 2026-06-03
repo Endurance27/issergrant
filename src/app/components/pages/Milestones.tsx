@@ -69,7 +69,7 @@ export function Milestones({ role }: MilestonesProps) {
           const count = s === 'All' ? allMilestones.length : allMilestones.filter(m => m.status === s).length;
           return (
             <button key={s} onClick={() => setFilter(s)} className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs border ${filter === s ? 'border-primary bg-primary text-white font-semibold shadow-sm' : 'border-border bg-card text-muted-foreground font-medium hover:bg-muted'}`}>
-              {s !== 'All' && filter !== s && <span className="w-1.5 h-1.5 rounded-full" style={{ background: STATUS_COLOR[s], display: 'inline-block' }} />}
+              {s !== 'All' && filter !== s && <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: STATUS_COLOR[s] }} />}
               {s} <span className="opacity-70">({count})</span>
             </button>
           );
@@ -87,13 +87,13 @@ export function Milestones({ role }: MilestonesProps) {
                 <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 z-10" style={{ background: color + '15', borderColor: color }}>
                   {statusIcon(m.status)}
                 </div>
-                {!isLast && <div className="flex-1 mt-1 mb-0" style={{ width: 2, minHeight: 28, background: `linear-gradient(to bottom, ${color}60, var(--border))` }} />}
+                {!isLast && <div className="flex-1 mt-1 mb-0 w-[2px] min-h-[28px]" style={{ background: `linear-gradient(to bottom, ${color}60, var(--border))` }} />}
               </div>
 
               {/* Card */}
               <div className="flex-1 pb-4">
-                <div className="rounded-2xl bg-card border border-border overflow-hidden transition-all duration-150 group-hover:shadow-md group-hover:-translate-y-0.5"
-                  style={{ borderLeftWidth: 3, borderLeftColor: color }}>
+                <div className="rounded-2xl bg-card border border-border border-l-[3px] overflow-hidden transition-all duration-150 group-hover:shadow-md group-hover:-translate-y-0.5"
+                  style={{ borderLeftColor: color }}>
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">

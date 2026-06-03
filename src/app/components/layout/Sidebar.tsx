@@ -89,7 +89,7 @@ export function Sidebar({ activePage, onNavigate, currentRole, onLogout, collaps
                       {isActive && (
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full transition-all" style={{ background: '#B79A64' }} />
                       )}
-                      <span style={{ color: isActive ? '#B79A64' : 'inherit', flexShrink: 0 }}>{item.icon}</span>
+                      <span className="shrink-0" style={{ color: isActive ? '#B79A64' : 'inherit' }}>{item.icon}</span>
                       {!collapsed && (
                         <span className="font-medium text-[13px] flex-1 text-left">{item.label}</span>
                       )}

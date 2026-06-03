@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               className="flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg border animate-in slide-in-from-bottom-3 fade-in duration-200 pointer-events-auto"
               style={{ background: s.bg, borderColor: s.border }}
             >
-              <span style={{ color: s.icon, flexShrink: 0, marginTop: 1 }}>{icons[t.type]}</span>
+              <span className="shrink-0 mt-px" style={{ color: s.icon }}>{icons[t.type]}</span>
               <span className="flex-1 text-sm font-medium leading-snug" style={{ color: s.text }}>{t.message}</span>
               <button onClick={() => dismiss(t.id)} className="flex-shrink-0 hover:opacity-60 transition-opacity" style={{ color: s.icon }}>
                 <X size={13} />

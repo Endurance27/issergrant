@@ -122,14 +122,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden h-full">
 
         {/* Layer 1 — photo mosaic */}
-        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2" style={{ gap: 2 }}>
+        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[2px]">
           {PHOTOS.map((src, i) => (
             <div key={i} className="overflow-hidden relative min-h-0">
               <img
                 src={src}
                 alt=""
-                className="photo-zoom w-full h-full object-cover"
-                style={{ animationDelay: `${i * 0.15}s`, display: 'block' }}
+                className="photo-zoom w-full h-full object-cover block"
+                style={{ animationDelay: `${i * 0.15}s` }}
               />
             </div>
           ))}
@@ -141,7 +141,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         }} />
 
         {/* Layer 3 — subtle grid on top of overlay */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.04 }} xmlns="http://www.w3.org/2000/svg">
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="lgrid" width="40" height="40" patternUnits="userSpaceOnUse">
               <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
@@ -166,12 +166,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </div>
 
         {/* Middle: floating UI preview cards */}
-        <div className="relative flex-1 my-8" style={{ minHeight: 220 }}>
+        <div className="relative flex-1 my-8 min-h-[220px]">
 
           {/* Card 1 — Proposal approved (top-left) */}
           <div className="card-a drift-in-1 absolute" style={{ ...GLASS, top: 0, left: 0, padding: '14px 16px', width: 230 }}>
             <div className="flex items-center gap-2.5 mb-2">
-              <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 28, height: 28, background: 'rgba(34,197,94,0.25)' }}>
+              <div className="flex items-center justify-center rounded-full shrink-0 size-[28px]" style={{ background: 'rgba(34,197,94,0.25)' }}>
                 <CheckCircle2 size={14} style={{ color: '#4ADE80' }} />
               </div>
               <div>
@@ -189,13 +189,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           {/* Card 2 — Disbursement progress (right side) */}
           <div className="card-b drift-in-2 absolute" style={{ ...GLASS, top: 16, right: 0, padding: '14px 16px', width: 210 }}>
             <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 26, height: 26, background: 'rgba(183,154,100,0.3)' }}>
+              <div className="flex items-center justify-center rounded-full shrink-0 size-[26px]" style={{ background: 'rgba(183,154,100,0.3)' }}>
                 <TrendingUp size={13} style={{ color: '#F0C674' }} />
               </div>
               <span className="font-bold text-xs" style={GLASS_CARD_TEXT}>Disbursement</span>
             </div>
             <div className="text-[11px] mb-1.5" style={GLASS_SUB}>Nanoparticle Research</div>
-            <div className="rounded-full overflow-hidden mb-1.5" style={{ height: 5, background: 'rgba(255,255,255,0.15)' }}>
+            <div className="rounded-full overflow-hidden mb-1.5 h-[5px]" style={{ background: 'rgba(255,255,255,0.15)' }}>
               <div className="h-full rounded-full" style={{ width: '65%', background: 'linear-gradient(to right, #60A5FA, #93C5FD)' }} />
             </div>
             <div className="flex justify-between">
@@ -207,7 +207,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           {/* Card 3 — Milestone (bottom-left) */}
           <div className="card-c drift-in-3 absolute" style={{ ...GLASS, bottom: 0, left: 20, padding: '14px 16px', width: 200 }}>
             <div className="flex items-center gap-2 mb-2">
-              <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 26, height: 26, background: 'rgba(251,146,60,0.25)' }}>
+              <div className="flex items-center justify-center rounded-full shrink-0 size-[26px]" style={{ background: 'rgba(251,146,60,0.25)' }}>
                 <Clock size={13} style={{ color: '#FB923C' }} />
               </div>
               <span className="font-bold text-xs" style={GLASS_CARD_TEXT}>Milestone Due</span>
@@ -245,7 +245,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           ].map(item => (
             <div key={item.label} className="flex items-center gap-4 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <span className="font-black text-[20px] min-w-[72px]" style={{ color: '#B79A64' }}>{item.stat}</span>
-              <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.65)' }}>{item.label}</span>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>{item.label}</span>
             </div>
           ))}
         </div>
@@ -295,7 +295,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 <button onClick={() => setShowForgot(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"><X size={16} /></button>
                 {!forgotSent ? (
                   <>
-                    <h3 className="font-extrabold text-[18px] text-foreground mb-1">Reset Password</h3>
+                    <h3 className="font-extrabold text-lg text-foreground mb-1">Reset Password</h3>
                     <p className="text-[13px] text-muted-foreground mb-4">Enter your institutional email and we'll send a reset link.</p>
                     <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="you@iser.edu" className="w-full px-4 py-3 rounded-xl outline-none bg-muted border border-border text-sm text-foreground mb-3" />
                     <button onClick={() => { if (forgotEmail) setForgotSent(true); }} className="w-full py-3 rounded-xl text-white font-bold text-sm" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>Send Reset Link</button>
@@ -303,7 +303,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 ) : (
                   <div className="text-center py-4">
                     <CheckCircle2 size={40} className="mx-auto mb-3 text-green-500" />
-                    <h3 className="font-extrabold text-[18px] text-foreground mb-2">Email Sent!</h3>
+                    <h3 className="font-extrabold text-lg text-foreground mb-2">Email Sent!</h3>
                     <p className="text-[13px] text-muted-foreground">Check <strong>{forgotEmail}</strong> for the password reset link.</p>
                     <button onClick={() => setShowForgot(false)} className="mt-4 text-[13px] font-semibold text-primary hover:opacity-75 transition-opacity">Back to Login</button>
                   </div>
