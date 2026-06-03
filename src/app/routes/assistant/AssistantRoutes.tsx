@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Dashboard } from "../../components/pages/Dashboard";
+import { AssistantDashboardPage as AssistantDashboardFeaturePage } from "../../../features/assistant/pages/Dashboard";
 import { GrantCalls } from "../../components/pages/GrantCalls";
 import { Proposals } from "../../components/pages/Proposals";
 import { Milestones } from "../../components/pages/Milestones";
@@ -18,7 +18,7 @@ function useAssistantNav() {
 
 export function AssistantDashboardPage() {
   const nav = useAssistantNav();
-  return <Dashboard role="Assistant Researcher" onNavigate={nav} />;
+  return <AssistantDashboardFeaturePage onNavigate={nav} />;
 }
 
 export function AssistantGrantCallsPage() {
