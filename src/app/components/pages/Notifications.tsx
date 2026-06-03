@@ -56,14 +56,14 @@ export function Notifications() {
                 className="flex items-start gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-150 group hover:shadow-md"
                 style={{ background: n.read ? 'var(--card)' : 'var(--secondary)', border: `1px solid ${n.read ? 'var(--border)' : 'color-mix(in srgb, var(--primary) 20%, transparent)'}` }}
               >
-                <div className="flex items-center justify-center rounded-full flex-shrink-0 mt-0.5" style={{ width: 36, height: 36, background: cfg.bg, color: cfg.color }}>
+                <div className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 mt-0.5" style={{ background: cfg.bg, color: cfg.color }}>
                   {cfg.icon}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className={`text-sm text-foreground ${n.read ? 'font-semibold' : 'font-bold'}`}>{n.title}</div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {!n.read && <span className="rounded-full mt-1.5 bg-primary inline-block" style={{ width: 7, height: 7 }} />}
+                      {!n.read && <span className="rounded-full mt-1.5 bg-primary inline-block w-[7px] h-[7px]" />}
                       <span className="text-[11px] text-muted-foreground whitespace-nowrap">{n.time}</span>
                       <button onClick={e => { e.stopPropagation(); dismissNotif(n.id); }}
                         className="flex items-center justify-center rounded-md p-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:bg-muted">

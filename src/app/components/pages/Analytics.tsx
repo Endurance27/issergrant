@@ -85,7 +85,7 @@ export function Analytics() {
             {analyticsData.fundingByCategory.map(item => (
               <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full inline-block flex-shrink-0" style={{ width: 8, height: 8, background: item.color }} />
+                  <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ background: item.color }} />
                   <span className="text-[11px] text-foreground">{item.name}</span>
                 </div>
                 <span className="font-mono text-[11px] text-muted-foreground">GHS {(item.value / 1000).toFixed(0)}k</span>
@@ -136,7 +136,7 @@ export function Analytics() {
                       <span className="font-mono text-[11px] font-bold" style={{ color: item.color }}>{pct}%</span>
                     </div>
                   </div>
-                  <div className="rounded-full overflow-hidden bg-muted" style={{ height: 6 }}>
+                  <div className="rounded-full overflow-hidden bg-muted h-1.5">
                     <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: item.color }} />
                   </div>
                 </div>
@@ -145,7 +145,7 @@ export function Analytics() {
           </div>
           <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Overall approval rate</span>
-            <span className="font-mono font-semibold text-sm" style={{ color: '#22C55E' }}>{approvalRate}%</span>
+            <span className="font-mono font-semibold text-sm text-green-500">{approvalRate}%</span>
           </div>
         </ChartCard>
       </div>

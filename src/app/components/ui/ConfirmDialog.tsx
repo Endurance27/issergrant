@@ -18,11 +18,11 @@ export function ConfirmDialog({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onCancel}>
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.4)' }} />
+      <div className="absolute inset-0 bg-black/40" />
       <div className="relative rounded-xl shadow-2xl w-full max-w-sm bg-card border border-border" onClick={e => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-start gap-4 mb-4">
-            <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 40, height: 40, background: confirmColor + '18' }}>
+            <div className="flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0" style={{ background: confirmColor + '18' }}>
               <AlertTriangle size={20} style={{ color: confirmColor }} />
             </div>
             <div>

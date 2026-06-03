@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-5 right-5 z-[200] flex flex-col gap-2 pointer-events-none" style={{ width: 340 }}>
+      <div className="fixed bottom-5 right-5 z-[200] flex flex-col gap-2 pointer-events-none w-[340px]">
         {toasts.map(t => {
           const s = styles[t.type];
           return (

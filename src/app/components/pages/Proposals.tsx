@@ -249,7 +249,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
         <div className="flex items-center gap-3 px-4 py-3 mb-3 rounded-xl bg-secondary border border-primary/20 animate-in slide-in-from-top-2 duration-200">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
           <div className="flex gap-2 ml-auto">
-            <button onClick={handleBulkApprove} className="px-3 py-1.5 rounded-xl text-white text-xs font-semibold hover:opacity-90" style={{ background: '#22C55E' }}>Approve All</button>
+            <button onClick={handleBulkApprove} className="px-3 py-1.5 rounded-xl bg-green-500 text-white text-xs font-semibold hover:opacity-90">Approve All</button>
             <button onClick={handleBulkReject} className="btn-destructive text-xs px-3 py-1.5">Reject All</button>
             <button onClick={() => setSelectedIds(new Set())} className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"><Trash2 size={11} /> Clear</button>
           </div>
@@ -297,9 +297,9 @@ export function Proposals({ role, navState }: ProposalsProps) {
                       <button onClick={() => setSelected(p)} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted" title="View details"><Eye size={14} /></button>
                       {role === 'Admin' && (p.status === 'Under Review' || p.status === 'Revised') && (
                         <>
-                          <button onClick={() => openReview(p, 'Approved')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#22C55E' }} title="Approve"><CheckCircle2 size={14} /></button>
-                          <button onClick={() => openReview(p, 'Revised')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#A855F7' }} title="Request revision"><RotateCcw size={14} /></button>
-                          <button onClick={() => openReview(p, 'Rejected')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#EF4444' }} title="Reject"><XCircle size={14} /></button>
+                          <button onClick={() => openReview(p, 'Approved')} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-green-500" title="Approve"><CheckCircle2 size={14} /></button>
+                          <button onClick={() => openReview(p, 'Revised')} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-purple-500" title="Request revision"><RotateCcw size={14} /></button>
+                          <button onClick={() => openReview(p, 'Rejected')} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-red-500" title="Reject"><XCircle size={14} /></button>
                         </>
                       )}
                       {role === 'Admin' && p.status === 'Approved' && (
@@ -360,9 +360,9 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   <button onClick={() => setSelected(p)} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted" title="View details"><Eye size={14} /></button>
                   {role === 'Admin' && (p.status === 'Under Review' || p.status === 'Revised') && (
                     <>
-                      <button onClick={() => openReview(p, 'Approved')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#22C55E' }} title="Approve"><CheckCircle2 size={14} /></button>
-                      <button onClick={() => openReview(p, 'Revised')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#A855F7' }} title="Request revision"><RotateCcw size={14} /></button>
-                      <button onClick={() => openReview(p, 'Rejected')} className="flex items-center justify-center rounded-md p-1.5 transition-colors" style={{ color: '#EF4444' }} title="Reject"><XCircle size={14} /></button>
+                      <button onClick={() => openReview(p, 'Approved')} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-green-500" title="Approve"><CheckCircle2 size={14} /></button>
+                      <button onClick={() => openReview(p, 'Revised')} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-purple-500" title="Request revision"><RotateCcw size={14} /></button>
+                      <button onClick={() => openReview(p, 'Rejected')} className="flex items-center justify-center rounded-md p-1.5 transition-colors text-red-500" title="Reject"><XCircle size={14} /></button>
                     </>
                   )}
                   {role === 'Admin' && p.status === 'Approved' && (
@@ -410,8 +410,8 @@ export function Proposals({ role, navState }: ProposalsProps) {
                 <div className="space-y-3">
                   {selected.reviewHistory!.map((entry, idx) => (
                     <div key={idx} className="flex gap-3">
-                      <div className="flex items-center justify-center rounded-full flex-shrink-0 mt-0.5" style={{ width: 28, height: 28, background: (actionColors as any)[entry.action] + '18' }}>
-                        {entry.action === 'Approved' ? <CheckCircle2 size={13} style={{ color: '#22C55E' }} /> : entry.action === 'Rejected' ? <XCircle size={13} style={{ color: '#EF4444' }} /> : <RotateCcw size={13} style={{ color: '#A855F7' }} />}
+                      <div className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 mt-0.5" style={{ background: (actionColors as any)[entry.action] + '18' }}>
+                        {entry.action === 'Approved' ? <CheckCircle2 size={13} className="text-green-500" /> : entry.action === 'Rejected' ? <XCircle size={13} className="text-red-500" /> : <RotateCcw size={13} className="text-purple-500" />}
                       </div>
                       <div className="flex-1 p-3 rounded-xl bg-muted">
                         <div className="flex items-center justify-between mb-1">
@@ -431,9 +431,9 @@ export function Proposals({ role, navState }: ProposalsProps) {
             )}
             {role === 'Admin' && (selected.status === 'Under Review' || selected.status === 'Revised') && (
               <div className="flex gap-3 pt-2">
-                <button onClick={() => { openReview(selected, 'Approved'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: '#22C55E' }}>Approve</button>
-                <button onClick={() => { openReview(selected, 'Revised'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: '#A855F7' }}>Request Revision</button>
-                <button onClick={() => { openReview(selected, 'Rejected'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90 transition-opacity" style={{ background: '#EF4444' }}>Reject</button>
+                <button onClick={() => { openReview(selected, 'Approved'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl bg-green-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity">Approve</button>
+                <button onClick={() => { openReview(selected, 'Revised'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl bg-purple-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity">Request Revision</button>
+                <button onClick={() => { openReview(selected, 'Rejected'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity">Reject</button>
               </div>
             )}
             {role === 'Admin' && selected.status === 'Approved' && (
@@ -448,12 +448,12 @@ export function Proposals({ role, navState }: ProposalsProps) {
       {/* Review action dialog */}
       {reviewAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setReviewAction(null)}>
-          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.4)' }} />
+          <div className="absolute inset-0 bg-black/40" />
           <div className="relative rounded-2xl shadow-2xl w-full max-w-md bg-card border border-border" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="flex items-center justify-center rounded-full" style={{ width: 40, height: 40, background: actionColors[reviewAction.type] + '18' }}>
-                  {reviewAction.type === 'Approved' ? <CheckCircle2 size={20} style={{ color: '#22C55E' }} /> : reviewAction.type === 'Rejected' ? <XCircle size={20} style={{ color: '#EF4444' }} /> : <RotateCcw size={20} style={{ color: '#A855F7' }} />}
+                <div className="flex items-center justify-center w-10 h-10 rounded-full" style={{ background: actionColors[reviewAction.type] + '18' }}>
+                  {reviewAction.type === 'Approved' ? <CheckCircle2 size={20} className="text-green-500" /> : reviewAction.type === 'Rejected' ? <XCircle size={20} className="text-red-500" /> : <RotateCcw size={20} className="text-purple-500" />}
                 </div>
                 <div>
                   <div className="font-bold text-[15px] text-foreground">{actionLabels[reviewAction.type]}</div>
@@ -471,7 +471,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setReviewAction(null)} className="btn-secondary flex-1 py-2.5">Cancel</button>
-                <button onClick={submitReview} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90" style={{ background: actionColors[reviewAction.type] }}>{actionLabels[reviewAction.type]}</button>
+                <button onClick={submitReview} className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90" style={{ background: actionColors[reviewAction.type] as string }}>{actionLabels[reviewAction.type]}</button>
               </div>
             </div>
           </div>

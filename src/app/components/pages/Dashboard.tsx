@@ -88,7 +88,7 @@ function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
             {analyticsData.fundingByCategory.map(item => (
               <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full inline-block flex-shrink-0" style={{ width: 8, height: 8, background: item.color }} />
+                  <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ background: item.color }} />
                   <span className="text-[11px] text-foreground">{item.name}</span>
                 </div>
                 <span className="font-mono text-[11px] text-muted-foreground">GHS {(item.value / 1000).toFixed(0)}k</span>
@@ -120,7 +120,7 @@ function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
               const statusColor = m.status === 'Approved' ? '#22C55E' : m.status === 'Under Review' ? '#F59E0B' : '#94A3B8';
               return (
                 <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors">
-                  <div className="flex items-center justify-center rounded-full flex-shrink-0" style={{ width: 28, height: 28, background: statusColor + '20', color: statusColor }}>
+                  <div className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0" style={{ background: statusColor + '20', color: statusColor }}>
                     {m.status === 'Approved' ? <CheckCircle2 size={14} /> : m.status === 'Rejected' ? <XCircle size={14} /> : <Clock size={14} />}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -243,7 +243,7 @@ function FinanceDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
               </div>
               <span className="font-mono font-semibold text-[13px] text-foreground whitespace-nowrap">{fmtCurrency(t.amount)}</span>
               <div className="flex gap-2">
-                <button onClick={() => onNavigate('financial')} className="px-3 py-1 rounded-lg text-white text-[11px] font-semibold transition-opacity hover:opacity-90" style={{ background: '#22C55E' }}>Approve</button>
+                <button onClick={() => onNavigate('financial')} className="px-3 py-1 rounded-lg bg-green-500 text-white text-[11px] font-semibold transition-opacity hover:opacity-90">Approve</button>
                 <button onClick={() => onNavigate('financial')} className="btn-secondary px-3 py-1 text-[11px]">Reject</button>
               </div>
             </div>

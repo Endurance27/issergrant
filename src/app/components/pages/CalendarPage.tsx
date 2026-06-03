@@ -98,7 +98,7 @@ export function CalendarPage() {
 
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border">
             <div className="flex items-center gap-1.5">
-              <span className="rounded-sm inline-block w-2.5 h-2.5" style={{ background: '#EF4444' }} />
+              <span className="rounded-sm inline-block w-2.5 h-2.5 bg-red-500" />
               <span className="text-[11px] text-muted-foreground">Grant Deadlines</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -116,7 +116,7 @@ export function CalendarPage() {
               const isUrgent = daysUntil <= 14;
               return (
                 <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted" style={{ borderLeft: `3px solid ${ev.color}` }}>
-                  <div className="flex items-center justify-center rounded-full flex-shrink-0 mt-0.5" style={{ width: 28, height: 28, background: ev.color + '20', color: ev.color }}>
+                  <div className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 mt-0.5" style={{ background: ev.color + '20', color: ev.color }}>
                     {ev.type === 'deadline' ? <AlertCircle size={13} /> : <Calendar size={13} />}
                   </div>
                   <div className="flex-1 min-w-0">
