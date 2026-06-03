@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Dashboard } from "../../components/pages/Dashboard";
+import { AdminDashboardPage as AdminDashboardFeaturePage } from "../../../features/admin/pages/Dashboard";
+import { UserManagementPage } from "../../../features/admin/pages/Users";
 import { GrantCalls } from "../../components/pages/GrantCalls";
 import { Proposals } from "../../components/pages/Proposals";
 import { Awards } from "../../components/pages/Awards";
@@ -8,7 +9,6 @@ import { Financial } from "../../components/pages/Financial";
 import { Reports } from "../../components/pages/Reports";
 import { Notifications } from "../../components/pages/Notifications";
 import { Analytics } from "../../components/pages/Analytics";
-import { UserManagement } from "../../components/pages/UserManagement";
 import { AuditLogs } from "../../components/pages/AuditLogs";
 import { CalendarPage } from "../../components/pages/CalendarPage";
 import { Settings } from "../../components/pages/Settings";
@@ -23,7 +23,7 @@ function useAdminNav() {
 
 export function AdminDashboardPage() {
   const nav = useAdminNav();
-  return <Dashboard role="Admin" onNavigate={nav} />;
+  return <AdminDashboardFeaturePage onNavigate={nav} />;
 }
 
 export function AdminGrantCallsPage() {
@@ -63,7 +63,7 @@ export function AdminAnalyticsPage() {
 }
 
 export function AdminUsersPage() {
-  return <UserManagement />;
+  return <UserManagementPage />;
 }
 
 export function AdminAuditPage() {

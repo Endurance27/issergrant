@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Dashboard } from "../../components/pages/Dashboard";
+import { FinanceDashboardPage as FinanceDashboardFeaturePage } from "../../../features/finance/pages/Dashboard";
 import { Awards } from "../../components/pages/Awards";
 import { Financial } from "../../components/pages/Financial";
 import { Reports } from "../../components/pages/Reports";
@@ -18,7 +18,7 @@ function useFinanceNav() {
 
 export function FinanceDashboardPage() {
   const nav = useFinanceNav();
-  return <Dashboard role="Finance Officer" onNavigate={nav} />;
+  return <FinanceDashboardFeaturePage onNavigate={nav} />;
 }
 
 export function FinanceAwardsPage() {

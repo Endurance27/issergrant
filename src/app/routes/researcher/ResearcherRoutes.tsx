@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Dashboard } from "../../components/pages/Dashboard";
+import { ResearcherDashboardPage as ResearcherDashboardFeaturePage } from "../../../features/researcher/pages/Dashboard";
 import { GrantCalls } from "../../components/pages/GrantCalls";
 import { Proposals } from "../../components/pages/Proposals";
 import { Milestones } from "../../components/pages/Milestones";
@@ -19,7 +19,7 @@ function useResearcherNav() {
 
 export function ResearcherDashboardPage() {
   const nav = useResearcherNav();
-  return <Dashboard role="Researcher" onNavigate={nav} />;
+  return <ResearcherDashboardFeaturePage onNavigate={nav} />;
 }
 
 export function ResearcherGrantCallsPage() {
