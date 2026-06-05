@@ -14,8 +14,6 @@ const DEPARTMENTS = [
   'Environmental Science', 'Physics', 'Finance & Accounts', 'Education',
 ];
 
-const ROLES: Role[] = ['Researcher', 'Assistant Researcher', 'Finance Officer', 'Admin'];
-
 interface AddUserModalProps {
   open: boolean;
   onClose: () => void;
@@ -24,6 +22,7 @@ interface AddUserModalProps {
   newRole: Role;
   newDept: string;
   formError: string;
+  allowedRoles: Role[];
   onNameChange: (v: string) => void;
   onEmailChange: (v: string) => void;
   onRoleChange: (v: Role) => void;
@@ -32,7 +31,7 @@ interface AddUserModalProps {
 }
 
 export function AddUserModal({
-  open, onClose, newName, newEmail, newRole, newDept, formError,
+  open, onClose, newName, newEmail, newRole, newDept, formError, allowedRoles,
   onNameChange, onEmailChange, onRoleChange, onDeptChange, onSubmit,
 }: AddUserModalProps) {
   return (
@@ -69,7 +68,7 @@ export function AddUserModal({
               onChange={e => onRoleChange(e.target.value as Role)}
               className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
             >
-              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              {allowedRoles.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div>
