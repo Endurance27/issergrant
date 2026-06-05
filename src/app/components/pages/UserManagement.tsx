@@ -37,8 +37,18 @@ const TH = ({ label, sortKey, active, dir, onToggle }: { label: string; sortKey?
   </th>
 );
 
-export function UserManagement() {
+interface UserManagementProps {
+  role?: Role;
+}
+
+export function UserManagement({ role = 'Admin' }: UserManagementProps) {
   const { addNotification, addAuditLog } = useAppContext();
+
+  // Admin can add Researcher and Finance Officer only
+  // Researcher can add Assistant Researcher only
+  const allowedRoles: Role[] = role === 'Researcher'
+    ? ['Assistant Researcher']
+    : ['Researcher', 'Finance Officer'];
   const [users, setUsers] = useState<User[]>([]);
 
   // Load users from Supabase on mount
@@ -69,7 +79,8 @@ export function UserManagement() {
   // Controlled form state
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [newRole, setNewRole] = useState<Role>('Researcher');
+  const [newRole, setNewRole] = useState<Role>(role === 'Researcher' ? 'Assistant Researcher' : 'Researcher');
+
   const [newDept, setNewDept] = useState(DEPARTMENTS[0]);
   const [formError, setFormError] = useState('');
 
@@ -138,7 +149,7 @@ export function UserManagement() {
     setNewName(''); setNewEmail(''); setNewRole('Researcher'); setNewDept(DEPARTMENTS[0]); setFormError('');
   };
 
-  const openCreate = () => { setNewName(''); setNewEmail(''); setNewRole('Researcher'); setNewDept(DEPARTMENTS[0]); setFormError(''); setShowCreate(true); };
+  const openCreate = () => { setNewName(''); setNewEmail(''); setNewRole(role === 'Researcher' ? 'Assistant Researcher' : 'Researcher'); setNewDept(DEPARTMENTS[0]); setFormError(''); setShowCreate(true); };
 
   return (
     <div onClick={() => setActiveMenu(null)}>
@@ -346,7 +357,7 @@ export function UserManagement() {
                 onChange={e => setNewRole(e.target.value as Role)}
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               >
-                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                {allowedRoles.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div>
