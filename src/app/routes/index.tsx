@@ -16,6 +16,7 @@ import {
   ResearcherDashboardPage, ResearcherGrantCallsPage, ResearcherProposalsPage,
   ResearcherMilestonesPage, ResearcherAwardsPage, ResearcherReportsPage,
   ResearcherNotificationsPage, ResearcherCalendarPage, ResearcherSettingsPage,
+  ResearcherTeamMembersPage,
 } from "./researcher/ResearcherRoutes";
 import {
   AssistantDashboardPage, AssistantGrantCallsPage, AssistantProposalsPage,
@@ -92,6 +93,7 @@ export function AppRoutes() {
           <Route path="notifications" element={<ResearcherNotificationsPage />} />
           <Route path="calendar" element={<ResearcherCalendarPage />} />
           <Route path="settings" element={<ResearcherSettingsPage />} />
+          <Route path="users" element={<ResearcherTeamMembersPage />} />
         </Route>
       </Route>
 

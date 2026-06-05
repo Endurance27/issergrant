@@ -9,6 +9,7 @@ import { Notifications } from "../../components/pages/Notifications";
 import { CalendarPage } from "../../components/pages/CalendarPage";
 import { Settings } from "../../components/pages/Settings";
 import { useAuthContext } from "../../context/AuthContext";
+import { UserManagement } from "../../components/pages/UserManagement";
 import type { NavState } from "../../App";
 
 function useResearcherNav() {
@@ -57,4 +58,8 @@ export function ResearcherCalendarPage() {
 export function ResearcherSettingsPage() {
   const { darkMode, toggleDark } = useAuthContext();
   return <Settings role="Researcher" darkMode={darkMode} onToggleDark={toggleDark} />;
+}
+
+export function ResearcherTeamMembersPage() {
+  return <UserManagement role="Researcher" />;
 }
