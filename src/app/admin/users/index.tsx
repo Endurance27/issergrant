@@ -16,8 +16,23 @@ import { UserCardList } from "./UserCard";
 import { AddUserModal } from "./AddUserModal";
 
 const DEPARTMENTS = [
-  'Administration', 'Biomedical Engineering', 'Computer Science',
-  'Environmental Science', 'Physics', 'Finance & Accounts', 'Education',
+  // Economics Division
+  'Macroeconomic Policy',
+  'Trade and Development',
+  'Public Finance',
+  'Poverty and Inequality',
+  'Labour Economics',
+  // Social Division
+  'Education',
+  'Health',
+  'Gender Studies',
+  'Governance',
+  'Social Protection and Development Policy',
+  // Statistics and Survey Division
+  'Survey Design and Implementation',
+  'Statistical Analysis',
+  'Data Management',
+  'Research Methods and Data Visualization',
 ];
 
 // Admin can only add Researcher and Finance Officer
