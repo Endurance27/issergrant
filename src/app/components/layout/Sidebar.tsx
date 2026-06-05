@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
   { id: 'calendar',      label: 'Calendar',         icon: <Calendar size={18} />,        roles: ['Admin', 'Researcher', 'Assistant Researcher', 'Finance Officer'] },
   { id: 'analytics',     label: 'Analytics',        icon: <BarChart3 size={18} />,       roles: ['Admin', 'Finance Officer'] },
   { id: 'notifications', label: 'Notifications',    icon: <Bell size={18} />,            roles: ['Admin', 'Researcher', 'Assistant Researcher', 'Finance Officer'], badge: 3 },
-  { id: 'users',         label: 'User Management',  icon: <Users size={18} />,           roles: ['Admin'] },
+  { id: 'users',         label: 'Team Members',     icon: <Users size={18} />,           roles: ['Admin', 'Researcher'] },
   { id: 'settings',      label: 'Settings',         icon: <Settings size={18} />,        roles: ['Admin', 'Researcher', 'Assistant Researcher', 'Finance Officer'] },
   { id: 'audit',         label: 'Audit Logs',       icon: <Shield size={18} />,          roles: ['Admin'] },
 ];
