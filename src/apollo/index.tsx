@@ -9,8 +9,13 @@ import { ApolloProvider } from '@apollo/client/react';
 import { ErrorLink } from '@apollo/client/link/error';
 import React from 'react';
 
+// Use Vercel proxy in production to avoid mixed content (HTTP vs HTTPS)
+// In development, call the GraphQL server directly
+const GRAPHQL_URI = import.meta.env.VITE_GRAPHQL_URL ??
+  (import.meta.env.PROD ? '/api/graphql' : 'http://197.255.123.247/graphql');
+
 const httpLink = new HttpLink({
-  uri: 'http://197.255.123.247/graphql',
+  uri: GRAPHQL_URI,
 });
 
 const authLink = new ApolloLink((operation, forward) => {
