@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useFormik } from "formik";
+import { createUserSchema } from "../../../schemas/user.schema";
+import type { CreateUserFormValues } from "../../../types/forms";
 import { Plus } from "lucide-react";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { useToast } from "../../components/ui/Toast";
@@ -67,19 +70,69 @@ export function UserManagementPage() {
   const [confirmDelete, setConfirmDelete] = useState<User | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState<User | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newRole, setNewRole] = useState<Role>(ALLOWED_ROLES[0]);
-  const [newDept, setNewDept] = useState(DEPARTMENTS[0]);
-  const [newStaffId, setNewStaffId] = useState('');
-  const [newPhoneContact, setNewPhoneContact] = useState('');
   const [formError, setFormError] = useState('');
 
   const [tempPasswordData, setTempPasswordData] = useState<{ name: string; email: string; temporaryPassword: string } | null>(null);
 
   const { toast } = useToast();
   const { createUser: createUserMutation, loading: creating } = useCreateUser();
+
+  const formik = useFormik<CreateUserFormValues>({
+    initialValues: {
+      name: '',
+      email: '',
+      role: ALLOWED_ROLES[0],
+      department: DEPARTMENTS[0],
+      staffId: '',
+      phoneContact: '',
+    },
+    validationSchema: createUserSchema,
+    onSubmit: async (values, { resetForm }) => {
+      setFormError('');
+      if (users.find(u => u.email.toLowerCase() === values.email.toLowerCase())) {
+        setFormError('A user with this email already exists.');
+        return;
+      }
+      const initials = values.name.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      try {
+        const result = await createUserMutation({
+          name: values.name.trim(),
+          email: values.email.trim().toLowerCase(),
+          role: values.role as UserRole,
+          department: values.department,
+          staffId: values.staffId.trim(),
+          phoneContact: values.phoneContact.trim(),
+        });
+        if (!result) {
+          setFormError('Failed to create user. Please try again.');
+          return;
+        }
+        const newUser: User = {
+          id: result.user.id as unknown as number,
+          name: values.name.trim(),
+          email: values.email.trim().toLowerCase(),
+          role: values.role as Role,
+          status: 'Active',
+          department: values.department,
+          joined: new Date().toISOString().slice(0, 10),
+          avatar: result.user.avatar || initials,
+        };
+        setUsers(prev => [newUser, ...prev]);
+        addNotification({ title: 'New User Added', message: `${newUser.name} (${values.role}) has been added to the system.`, time: 'Just now', type: 'system' });
+        addAuditLog({ action: 'User Created', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${newUser.name} — ${values.role} — ${values.department}` });
+        toast(`${newUser.name} added successfully`);
+        setShowCreate(false);
+        resetForm();
+        setTempPasswordData({
+          name: newUser.name,
+          email: newUser.email,
+          temporaryPassword: result.temporaryPassword,
+        });
+      } catch {
+        setFormError('Failed to save user. Please try again.');
+      }
+    },
+  });
 
   const filtered = users.filter(u => {
     const q = search.toLowerCase();
@@ -111,62 +164,10 @@ export function UserManagementPage() {
     toast('User deleted', 'error');
   };
 
-  const handleCreate = async () => {
-    setFormError('');
-    if (!newName.trim()) { setFormError('Full name is required.'); return; }
-    if (!newEmail.trim() || !newEmail.includes('@')) { setFormError('A valid email address is required.'); return; }
-    if (users.find(u => u.email.toLowerCase() === newEmail.toLowerCase())) { setFormError('A user with this email already exists.'); return; }
-    if (!newStaffId.trim()) { setFormError('Staff ID is required.'); return; }
-    if (!newPhoneContact.trim()) { setFormError('Phone contact is required.'); return; }
-
-    const initials = newName.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-
-    try {
-      const result = await createUserMutation({
-        name: newName.trim(),
-        email: newEmail.trim().toLowerCase(),
-        role: newRole as UserRole,
-        department: newDept,
-        staffId: newStaffId.trim(),
-        phoneContact: newPhoneContact.trim(),
-      });
-
-      if (!result) {
-        setFormError('Failed to create user. Please try again.');
-        return;
-      }
-
-      const newUser: User = {
-        id: result.user.id as unknown as number,
-        name: newName.trim(),
-        email: newEmail.trim().toLowerCase(),
-        role: newRole,
-        status: 'Active',
-        department: newDept,
-        joined: new Date().toISOString().slice(0, 10),
-        avatar: result.user.avatar || initials,
-      };
-
-      setUsers(prev => [newUser, ...prev]);
-      addNotification({ title: 'New User Added', message: `${newUser.name} (${newRole}) has been added to the system.`, time: 'Just now', type: 'system' });
-      addAuditLog({ action: 'User Created', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${newUser.name} — ${newRole} — ${newDept}` });
-      toast(`${newUser.name} added successfully`);
-      setShowCreate(false);
-      setNewName(''); setNewEmail(''); setNewRole(ALLOWED_ROLES[0]); setNewDept(DEPARTMENTS[0]); setNewStaffId(''); setNewPhoneContact(''); setFormError('');
-
-      setTempPasswordData({
-        name: newUser.name,
-        email: newUser.email,
-        temporaryPassword: result.temporaryPassword,
-      });
-    } catch {
-      setFormError('Failed to save user. Please try again.');
-    }
-  };
-
   const openCreate = () => {
-    setNewName(''); setNewEmail(''); setNewRole(ALLOWED_ROLES[0]); setNewDept(DEPARTMENTS[0]);
-    setNewStaffId(''); setNewPhoneContact(''); setFormError(''); setShowCreate(true);
+    formik.resetForm();
+    setFormError('');
+    setShowCreate(true);
   };
 
   return (
@@ -216,21 +217,25 @@ export function UserManagementPage() {
       <AddUserModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        newName={newName}
-        newEmail={newEmail}
-        newRole={newRole}
-        newDept={newDept}
-        newStaffId={newStaffId}
-        newPhoneContact={newPhoneContact}
+        newName={formik.values.name}
+        newEmail={formik.values.email}
+        newRole={formik.values.role as Role}
+        newDept={formik.values.department}
+        newStaffId={formik.values.staffId}
+        newPhoneContact={formik.values.phoneContact}
         formError={creating ? 'Creating user…' : formError}
-        onNameChange={v => { setNewName(v); setFormError(''); }}
-        onEmailChange={v => { setNewEmail(v); setFormError(''); }}
+        onNameChange={v => formik.setFieldValue('name', v)}
+        onEmailChange={v => formik.setFieldValue('email', v)}
         allowedRoles={ALLOWED_ROLES}
-        onRoleChange={setNewRole}
-        onDeptChange={setNewDept}
-        onStaffIdChange={v => { setNewStaffId(v); setFormError(''); }}
-        onPhoneContactChange={v => { setNewPhoneContact(v); setFormError(''); }}
-        onSubmit={handleCreate}
+        onRoleChange={v => formik.setFieldValue('role', v)}
+        onDeptChange={v => formik.setFieldValue('department', v)}
+        onStaffIdChange={v => formik.setFieldValue('staffId', v)}
+        onPhoneContactChange={v => formik.setFieldValue('phoneContact', v)}
+        onSubmit={() => formik.handleSubmit()}
+        isSubmitting={formik.isSubmitting || creating}
+        touched={formik.touched}
+        errors={formik.errors}
+        onBlur={formik.handleBlur}
       />
 
       {tempPasswordData && (

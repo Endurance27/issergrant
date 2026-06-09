@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useFormik } from "formik";
+import { grantCallSchema } from "../../../schemas/grantCall.schema";
+import type { GrantCallFormValues } from "../../../types/forms";
 import { Plus, Search, Calendar, Users, DollarSign, ChevronRight } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
@@ -25,13 +28,63 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
   const [filter, setFilter] = useState<'All' | 'Open' | 'Closed' | 'Draft'>('All');
   const [selected, setSelected] = useState<GrantCall | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState('');
-  const [newBudget, setNewBudget] = useState('');
-  const [newDeadline, setNewDeadline] = useState('');
-  const [newDescription, setNewDescription] = useState('');
-  const [newEligibility, setNewEligibility] = useState('');
   const { toast } = useToast();
+
+  const formik = useFormik<GrantCallFormValues>({
+    initialValues: { title: '', deadline: '', category: '', totalBudget: 0, description: '', eligibility: '' },
+    validationSchema: grantCallSchema,
+    onSubmit: async (values, { resetForm }) => {
+      const saveGrantCallWithStatus = async (status: 'Draft' | 'Open') => {
+        const newGC: GrantCall = {
+          id: `GC-${Date.now()}`,
+          title: values.title,
+          category: values.category,
+          totalBudget: values.totalBudget,
+          deadline: values.deadline,
+          applications: 0,
+          status,
+          description: values.description,
+          eligibility: values.eligibility,
+        };
+        const { error } = await supabase.from('grant_calls').insert([newGC]);
+        if (!error) {
+          setGrantCalls(prev => [...prev, newGC]);
+          toast(status === 'Draft' ? 'Saved as draft' : 'Grant call published');
+        } else {
+          setGrantCalls(prev => [...prev, newGC]);
+          toast(status === 'Draft' ? 'Saved as draft' : 'Grant call published');
+        }
+        setShowCreate(false);
+        resetForm();
+      };
+      await saveGrantCallWithStatus('Open');
+    },
+  });
+
+  const saveAsDraft = async () => {
+    const values = formik.values;
+    const newGC: GrantCall = {
+      id: `GC-${Date.now()}`,
+      title: values.title || 'Untitled',
+      category: values.category || 'General',
+      totalBudget: values.totalBudget || 0,
+      deadline: values.deadline || new Date().toISOString().slice(0, 10),
+      applications: 0,
+      status: 'Draft',
+      description: values.description,
+      eligibility: values.eligibility,
+    };
+    const { error } = await supabase.from('grant_calls').insert([newGC]);
+    if (!error) {
+      setGrantCalls(prev => [...prev, newGC]);
+      toast('Saved as draft');
+    } else {
+      setGrantCalls(prev => [...prev, newGC]);
+      toast('Saved as draft');
+    }
+    setShowCreate(false);
+    formik.resetForm();
+  };
 
   useEffect(() => {
     const fetchGrantCalls = async () => {
@@ -52,31 +105,6 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
     fetchGrantCalls();
   }, []);
 
-  const saveGrantCall = async (status: 'Draft' | 'Open') => {
-    if (!newTitle.trim()) { toast('Enter a grant call title', 'error'); return; }
-    const newGC: GrantCall = {
-      id: `GC-${Date.now()}`,
-      title: newTitle,
-      category: newCategory || 'General',
-      totalBudget: Number(newBudget) || 0,
-      deadline: newDeadline || new Date().toISOString().slice(0, 10),
-      applications: 0,
-      status,
-      description: newDescription,
-      eligibility: newEligibility,
-    };
-    const { error } = await supabase.from('grant_calls').insert([newGC]);
-    if (!error) {
-      setGrantCalls(prev => [...prev, newGC]);
-      toast(status === 'Draft' ? 'Saved as draft' : 'Grant call published');
-    } else {
-      setGrantCalls(prev => [...prev, newGC]);
-      toast(status === 'Draft' ? 'Saved as draft' : 'Grant call published');
-    }
-    setShowCreate(false);
-    setNewTitle(''); setNewCategory(''); setNewBudget(''); setNewDeadline('');
-    setNewDescription(''); setNewEligibility('');
-  };
 
   const filtered = grantCalls.filter(g => {
     const matchSearch = g.title.toLowerCase().includes(search.toLowerCase()) || g.category.toLowerCase().includes(search.toLowerCase());
@@ -206,35 +234,61 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
         )}
       </Modal>
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create New Grant Call" width={600}>
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); formik.resetForm(); }} title="Create New Grant Call" width={600}>
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Grant Call Title</label>
-            <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Sustainable Energy Innovation Grant" className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            <input type="text" name="title" value={formik.values.title} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="e.g. Sustainable Energy Innovation Grant" className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            {formik.touched.title && formik.errors.title && (
+              <p className="text-xs text-red-500 mt-1">{formik.errors.title}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Category</label>
-            <input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="e.g. Health & Technology" className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            <input type="text" name="category" value={formik.values.category} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="e.g. Health & Technology" className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            {formik.touched.category && formik.errors.category && (
+              <p className="text-xs text-red-500 mt-1">{formik.errors.category}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Total Budget (GHS)</label>
-            <input type="number" value={newBudget} onChange={e => setNewBudget(e.target.value)} placeholder="500000" className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            <input type="number" name="totalBudget" value={formik.values.totalBudget || ''} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="500000" className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            {formik.touched.totalBudget && formik.errors.totalBudget && (
+              <p className="text-xs text-red-500 mt-1">{formik.errors.totalBudget as string}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Application Deadline</label>
-            <input type="date" value={newDeadline} onChange={e => setNewDeadline(e.target.value)} className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            <input type="date" name="deadline" value={formik.values.deadline} onChange={formik.handleChange} onBlur={formik.handleBlur} className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            {formik.touched.deadline && formik.errors.deadline && (
+              <p className="text-xs text-red-500 mt-1">{formik.errors.deadline}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Description</label>
-            <textarea rows={3} value={newDescription} onChange={e => setNewDescription(e.target.value)} className="w-full px-3 py-2.5 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" placeholder="Describe the grant call objectives..." />
+            <textarea rows={3} name="description" value={formik.values.description} onChange={formik.handleChange} onBlur={formik.handleBlur} className="w-full px-3 py-2.5 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" placeholder="Describe the grant call objectives..." />
+            {formik.touched.description && formik.errors.description && (
+              <p className="text-xs text-red-500 mt-1">{formik.errors.description}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Eligibility Criteria</label>
-            <textarea rows={2} value={newEligibility} onChange={e => setNewEligibility(e.target.value)} className="w-full px-3 py-2.5 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" placeholder="Who can apply?" />
+            <textarea rows={2} name="eligibility" value={formik.values.eligibility} onChange={formik.handleChange} onBlur={formik.handleBlur} className="w-full px-3 py-2.5 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" placeholder="Who can apply?" />
+            {formik.touched.eligibility && formik.errors.eligibility && (
+              <p className="text-xs text-red-500 mt-1">{formik.errors.eligibility}</p>
+            )}
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => saveGrantCall('Draft')} className="flex-1 py-2.5 rounded-xl border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors">Save as Draft</button>
-            <button onClick={() => saveGrantCall('Open')} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>Publish Now</button>
+            <button onClick={saveAsDraft} disabled={formik.isSubmitting} className="flex-1 py-2.5 rounded-xl border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50">Save as Draft</button>
+            <button
+              type="submit"
+              disabled={formik.isSubmitting}
+              onClick={() => formik.handleSubmit()}
+              className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}
+            >
+              {formik.isSubmitting ? 'Publishing...' : 'Publish Now'}
+            </button>
           </div>
         </div>
       </Modal>

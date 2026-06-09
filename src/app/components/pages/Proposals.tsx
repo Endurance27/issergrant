@@ -1,4 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
+import { useFormik } from "formik";
+import { proposalSchema } from "../../../schemas/proposal.schema";
+import type { ProposalFormValues } from "../../../types/forms";
 import { Search, Plus, FileText, CheckCircle2, XCircle, Eye, RotateCcw, MessageSquare, Clock, Award, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
@@ -69,10 +72,40 @@ export function Proposals({ role, navState }: ProposalsProps) {
   const [statusFilter, setStatusFilter] = useState('All');
   const [selected, setSelected] = useState<ProposalWithHistory | null>(null);
   const [showNew, setShowNew] = useState(navState?.grantCallId ? true : false);
-  const [selectedGrant, setSelectedGrant] = useState(navState?.grantCallId || '');
-  const [newTitle, setNewTitle] = useState('');
-  const [newAbstract, setNewAbstract] = useState('');
-  const [newAmount, setNewAmount] = useState('');
+
+  const proposalFormik = useFormik<ProposalFormValues>({
+    initialValues: {
+      title: '',
+      grantCallId: navState?.grantCallId || '',
+      requestedAmount: 0,
+      department: currentUsers[role].department,
+      abstract: '',
+    },
+    validationSchema: proposalSchema,
+    onSubmit: (values, { resetForm }) => {
+      const gc = grantCalls.find(g => g.id === values.grantCallId);
+      const newP: ProposalWithHistory = {
+        id: `PR-${Date.now()}`,
+        title: values.title,
+        researcher: currentUsers[role].name,
+        researcherId: currentUsers[role].id,
+        grantCallId: values.grantCallId,
+        grantCallTitle: gc?.title || '',
+        submitted: new Date().toISOString().slice(0, 10),
+        status: 'Submitted',
+        requestedAmount: values.requestedAmount,
+        department: values.department,
+        abstract: values.abstract,
+      };
+      setProposals(p => [newP, ...p]);
+      supabase.from('proposals').insert([newP]).then(() => {});
+      addAuditLog({ action: 'Proposal Submitted', user: currentUsers[role].name, role, module: 'Proposals', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `New proposal: ${values.title}` });
+      toast('Proposal submitted successfully');
+      setShowNew(false);
+      resetForm();
+    },
+  });
+
   const [reviewAction, setReviewAction] = useState<{ proposal: ProposalWithHistory; type: 'Approved' | 'Rejected' | 'Revised' } | null>(null);
   const [reviewComment, setReviewComment] = useState('');
   const [commentError, setCommentError] = useState('');
@@ -174,31 +207,6 @@ export function Proposals({ role, navState }: ProposalsProps) {
     setAwardAmount(''); setAwardStart(''); setAwardEnd('');
   };
 
-  const submitNewProposal = () => {
-    if (!newTitle.trim()) { toast('Enter a research title', 'error'); return; }
-    if (!selectedGrant) { toast('Select a grant call', 'error'); return; }
-    const gc = grantCalls.find(g => g.id === selectedGrant);
-    const newP: ProposalWithHistory = {
-      id: `PR-${Date.now()}`,
-      title: newTitle,
-      researcher: currentUsers[role].name,
-      researcherId: currentUsers[role].id,
-      grantCallId: selectedGrant,
-      grantCallTitle: gc?.title || '',
-      submitted: new Date().toISOString().slice(0, 10),
-      status: 'Submitted',
-      requestedAmount: Number(newAmount) || 0,
-      department: currentUsers[role].department,
-      abstract: newAbstract,
-    };
-    setProposals(p => [newP, ...p]);
-    // Persist new proposal to Supabase
-    supabase.from('proposals').insert([newP]).then(() => {});
-    addAuditLog({ action: 'Proposal Submitted', user: currentUsers[role].name, role, module: 'Proposals', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `New proposal: ${newTitle}` });
-    toast('Proposal submitted successfully');
-    setShowNew(false);
-    setNewTitle(''); setNewAbstract(''); setNewAmount(''); setSelectedGrant('');
-  };
 
   return (
     <div>
@@ -510,30 +518,49 @@ export function Proposals({ role, navState }: ProposalsProps) {
       </Modal>
 
       {/* New proposal modal */}
-      <Modal open={showNew} onClose={() => setShowNew(false)} title="Submit New Proposal" width={600}>
+      <Modal open={showNew} onClose={() => { setShowNew(false); proposalFormik.resetForm(); }} title="Submit New Proposal" width={600}>
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Grant Call</label>
-            <select value={selectedGrant} onChange={e => setSelectedGrant(e.target.value)} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground">
+            <select name="grantCallId" value={proposalFormik.values.grantCallId} onChange={proposalFormik.handleChange} onBlur={proposalFormik.handleBlur} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground">
               <option value="">Select a grant call...</option>
               {grantCalls.filter(g => g.status === 'Open').map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
             </select>
+            {proposalFormik.touched.grantCallId && proposalFormik.errors.grantCallId && (
+              <p className="text-xs text-red-500 mt-1">{proposalFormik.errors.grantCallId}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Research Title</label>
-            <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Full title of your research proposal" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            <input type="text" name="title" value={proposalFormik.values.title} onChange={proposalFormik.handleChange} onBlur={proposalFormik.handleBlur} placeholder="Full title of your research proposal" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            {proposalFormik.touched.title && proposalFormik.errors.title && (
+              <p className="text-xs text-red-500 mt-1">{proposalFormik.errors.title}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Abstract</label>
-            <textarea rows={4} value={newAbstract} onChange={e => setNewAbstract(e.target.value)} placeholder="Brief summary of research objectives..." className="w-full px-3 py-2 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" />
+            <textarea rows={4} name="abstract" value={proposalFormik.values.abstract} onChange={proposalFormik.handleChange} onBlur={proposalFormik.handleBlur} placeholder="Brief summary of research objectives..." className="w-full px-3 py-2 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" />
+            {proposalFormik.touched.abstract && proposalFormik.errors.abstract && (
+              <p className="text-xs text-red-500 mt-1">{proposalFormik.errors.abstract}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Requested Amount (GHS)</label>
-            <input type="number" value={newAmount} onChange={e => setNewAmount(e.target.value)} placeholder="e.g. 150000" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            <input type="number" name="requestedAmount" value={proposalFormik.values.requestedAmount || ''} onChange={proposalFormik.handleChange} onBlur={proposalFormik.handleBlur} placeholder="e.g. 150000" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+            {proposalFormik.touched.requestedAmount && proposalFormik.errors.requestedAmount && (
+              <p className="text-xs text-red-500 mt-1">{proposalFormik.errors.requestedAmount as string}</p>
+            )}
           </div>
           <div className="flex gap-3">
-            <button onClick={() => { toast('Draft saved', 'info'); setShowNew(false); }} className="btn-secondary flex-1 py-2.5">Save as Draft</button>
-            <button onClick={submitNewProposal} className="btn-primary flex-1 py-2.5">Submit Proposal</button>
+            <button onClick={() => { toast('Draft saved', 'info'); setShowNew(false); proposalFormik.resetForm(); }} className="btn-secondary flex-1 py-2.5">Save as Draft</button>
+            <button
+              type="submit"
+              disabled={proposalFormik.isSubmitting}
+              onClick={() => proposalFormik.handleSubmit()}
+              className="btn-primary flex-1 py-2.5 disabled:opacity-50"
+            >
+              {proposalFormik.isSubmitting ? 'Submitting...' : 'Submit Proposal'}
+            </button>
           </div>
         </div>
       </Modal>

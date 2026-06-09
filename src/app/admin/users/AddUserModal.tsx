@@ -1,6 +1,8 @@
 import { Badge } from "../../components/ui/Badge";
 import { Modal } from "../../components/ui/Modal";
 import type { Role } from "../../data/mockData";
+import type { FormikErrors, FormikTouched } from "formik";
+import type { CreateUserFormValues } from "../../../types/forms";
 
 const ROLE_COLORS: Record<Role, string> = {
   'Admin': '#1A3363',
@@ -47,11 +49,16 @@ interface AddUserModalProps {
   onStaffIdChange: (v: string) => void;
   onPhoneContactChange: (v: string) => void;
   onSubmit: () => void;
+  isSubmitting?: boolean;
+  touched?: FormikTouched<CreateUserFormValues>;
+  errors?: FormikErrors<CreateUserFormValues>;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
 
 export function AddUserModal({
   open, onClose, newName, newEmail, newRole, newDept, newStaffId, newPhoneContact, formError, allowedRoles,
   onNameChange, onEmailChange, onRoleChange, onDeptChange, onStaffIdChange, onPhoneContactChange, onSubmit,
+  isSubmitting = false, touched = {}, errors = {}, onBlur,
 }: AddUserModalProps) {
   return (
     <Modal open={open} onClose={onClose} title="Add New User" width={520}>
@@ -61,21 +68,31 @@ export function AddUserModal({
             <label className="block text-xs font-semibold text-foreground mb-1.5">Full Name <span className="text-red-500">*</span></label>
             <input
               type="text"
+              name="name"
               value={newName}
               onChange={e => onNameChange(e.target.value)}
+              onBlur={onBlur}
               placeholder="Dr. Jane Smith"
               className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
             />
+            {touched.name && errors.name && (
+              <p className="text-xs text-red-500 mt-1">{errors.name}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Email Address <span className="text-red-500">*</span></label>
             <input
               type="email"
+              name="email"
               value={newEmail}
               onChange={e => onEmailChange(e.target.value)}
+              onBlur={onBlur}
               placeholder="jane@iser.edu"
               className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
             />
+            {touched.email && errors.email && (
+              <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+            )}
           </div>
         </div>
 
@@ -83,8 +100,10 @@ export function AddUserModal({
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Role</label>
             <select
+              name="role"
               value={newRole}
               onChange={e => onRoleChange(e.target.value as Role)}
+              onBlur={onBlur}
               className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
             >
               {allowedRoles.map(r => <option key={r} value={r}>{r}</option>)}
@@ -93,8 +112,10 @@ export function AddUserModal({
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Department</label>
             <select
+              name="department"
               value={newDept}
               onChange={e => onDeptChange(e.target.value)}
+              onBlur={onBlur}
               className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
             >
               {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
@@ -107,27 +128,37 @@ export function AddUserModal({
             <label className="block text-xs font-semibold text-foreground mb-1.5">Staff ID <span className="text-red-500">*</span></label>
             <input
               type="text"
+              name="staffId"
               value={newStaffId}
               onChange={e => onStaffIdChange(e.target.value)}
+              onBlur={onBlur}
               placeholder="ISER-001"
               className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
             />
+            {touched.staffId && errors.staffId && (
+              <p className="text-xs text-red-500 mt-1">{errors.staffId}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1.5">Phone Contact <span className="text-red-500">*</span></label>
             <input
               type="tel"
+              name="phoneContact"
               value={newPhoneContact}
               onChange={e => onPhoneContactChange(e.target.value)}
+              onBlur={onBlur}
               placeholder="+256 700 000000"
               className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
             />
+            {touched.phoneContact && errors.phoneContact && (
+              <p className="text-xs text-red-500 mt-1">{errors.phoneContact}</p>
+            )}
           </div>
         </div>
 
         {newName && (
           <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm flex-shrink-0" style={{ background: ROLE_COLORS[newRole] }}>
+            <div className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm flex-shrink-0" style={{ background: ROLE_COLORS[newRole] || '#1A3363' }}>
               {newName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
             </div>
             <div>
@@ -148,7 +179,14 @@ export function AddUserModal({
 
         <div className="flex gap-3">
           <button onClick={onClose} className="btn-secondary flex-1 py-2.5">Cancel</button>
-          <button onClick={onSubmit} className="btn-primary flex-1 py-2.5">Create User</button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            onClick={() => onSubmit()}
+            className="btn-primary flex-1 py-2.5 disabled:opacity-50"
+          >
+            {isSubmitting ? 'Creating...' : 'Create User'}
+          </button>
         </div>
       </div>
     </Modal>

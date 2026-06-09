@@ -1,4 +1,7 @@
 import { useState, useRef } from "react";
+import { useFormik } from "formik";
+import { profileSchema } from "../../../schemas/profile.schema";
+import type { ProfileFormValues } from "../../../types/forms";
 import { Bell, Shield, User, Palette, Globe, Save } from "lucide-react";
 import type { Role } from "../../data/mockData";
 import { currentUsers } from "../../data/mockData";
@@ -11,6 +14,14 @@ interface SettingsProps { role: Role; darkMode: boolean; onToggleDark: () => voi
 export function Settings({ role, darkMode, onToggleDark }: SettingsProps) {
   const [activeTab, setActiveTab] = useState('profile');
   const user = currentUsers[role];
+
+  const profileFormik = useFormik<ProfileFormValues>({
+    initialValues: { name: user.name, email: user.email, department: user.department },
+    validationSchema: profileSchema,
+    onSubmit: () => {
+      save('Profile saved');
+    },
+  });
   const [notifPrefs, setNotifPrefs] = useState({ email: true, inApp: true, deadlines: true, approvals: true, payments: true, system: false });
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -78,22 +89,44 @@ export function Settings({ role, darkMode, onToggleDark }: SettingsProps) {
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  { label: 'Full Name', value: user.name },
-                  { label: 'Email Address', value: user.email },
-                  { label: 'Role', value: user.role, readonly: true },
-                  { label: 'Department', value: user.department },
-                  { label: 'Member Since', value: user.joined, readonly: true },
-                ].map(field => (
-                  <div key={field.label}>
-                    <label className="block text-xs font-semibold text-foreground mb-1.5">{field.label}</label>
-                    <input type="text" defaultValue={field.value} readOnly={field.readonly} className={`w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] ${field.readonly ? 'text-muted-foreground cursor-not-allowed' : 'text-foreground'}`} />
-                  </div>
-                ))}
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Full Name</label>
+                  <input type="text" name="name" value={profileFormik.values.name} onChange={profileFormik.handleChange} onBlur={profileFormik.handleBlur} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+                  {profileFormik.touched.name && profileFormik.errors.name && (
+                    <p className="text-xs text-red-500 mt-1">{profileFormik.errors.name}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Email Address</label>
+                  <input type="text" name="email" value={profileFormik.values.email} onChange={profileFormik.handleChange} onBlur={profileFormik.handleBlur} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+                  {profileFormik.touched.email && profileFormik.errors.email && (
+                    <p className="text-xs text-red-500 mt-1">{profileFormik.errors.email}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Role</label>
+                  <input type="text" value={user.role} readOnly className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-muted-foreground cursor-not-allowed" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Department</label>
+                  <input type="text" name="department" value={profileFormik.values.department} onChange={profileFormik.handleChange} onBlur={profileFormik.handleBlur} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
+                  {profileFormik.touched.department && profileFormik.errors.department && (
+                    <p className="text-xs text-red-500 mt-1">{profileFormik.errors.department}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Member Since</label>
+                  <input type="text" value={user.joined} readOnly className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-muted-foreground cursor-not-allowed" />
+                </div>
               </div>
               <div className="mt-6">
-                <button onClick={() => save('Profile saved')} className="btn-primary flex items-center gap-2">
-                  <Save size={14} /> Save Changes
+                <button
+                  type="submit"
+                  disabled={profileFormik.isSubmitting}
+                  onClick={() => profileFormik.handleSubmit()}
+                  className="btn-primary flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Save size={14} /> {profileFormik.isSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
