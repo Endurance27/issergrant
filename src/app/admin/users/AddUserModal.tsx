@@ -10,11 +10,24 @@ const ROLE_COLORS: Record<Role, string> = {
 };
 
 const DEPARTMENTS = [
-  'Administration', 'Biomedical Engineering', 'Computer Science',
-  'Environmental Science', 'Physics', 'Finance & Accounts', 'Education',
+  // Economics Division
+  'Macroeconomic Policy',
+  'Trade and Development',
+  'Public Finance',
+  'Poverty and Inequality',
+  'Labour Economics',
+  // Social Division
+  'Education',
+  'Health',
+  'Gender Studies',
+  'Governance',
+  'Social Protection and Development Policy',
+  // Statistics and Survey Division
+  'Survey Design and Implementation',
+  'Statistical Analysis',
+  'Data Management',
+  'Research Methods and Data Visualization',
 ];
-
-const ROLES: Role[] = ['Researcher', 'Assistant Researcher', 'Finance Officer', 'Admin'];
 
 interface AddUserModalProps {
   open: boolean;
@@ -24,6 +37,7 @@ interface AddUserModalProps {
   newRole: Role;
   newDept: string;
   formError: string;
+  allowedRoles: Role[];
   onNameChange: (v: string) => void;
   onEmailChange: (v: string) => void;
   onRoleChange: (v: Role) => void;
@@ -32,7 +46,7 @@ interface AddUserModalProps {
 }
 
 export function AddUserModal({
-  open, onClose, newName, newEmail, newRole, newDept, formError,
+  open, onClose, newName, newEmail, newRole, newDept, formError, allowedRoles,
   onNameChange, onEmailChange, onRoleChange, onDeptChange, onSubmit,
 }: AddUserModalProps) {
   return (
@@ -69,7 +83,7 @@ export function AddUserModal({
               onChange={e => onRoleChange(e.target.value as Role)}
               className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
             >
-              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              {allowedRoles.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div>

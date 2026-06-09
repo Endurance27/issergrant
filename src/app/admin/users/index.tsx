@@ -16,9 +16,27 @@ import { UserCardList } from "./UserCard";
 import { AddUserModal } from "./AddUserModal";
 
 const DEPARTMENTS = [
-  'Administration', 'Biomedical Engineering', 'Computer Science',
-  'Environmental Science', 'Physics', 'Finance & Accounts', 'Education',
+  // Economics Division
+  'Macroeconomic Policy',
+  'Trade and Development',
+  'Public Finance',
+  'Poverty and Inequality',
+  'Labour Economics',
+  // Social Division
+  'Education',
+  'Health',
+  'Gender Studies',
+  'Governance',
+  'Social Protection and Development Policy',
+  // Statistics and Survey Division
+  'Survey Design and Implementation',
+  'Statistical Analysis',
+  'Data Management',
+  'Research Methods and Data Visualization',
 ];
+
+// Admin can only add Researcher and Finance Officer
+const ALLOWED_ROLES: Role[] = ['Researcher', 'Finance Officer'];
 
 export function UserManagementPage() {
   const { addNotification, addAuditLog } = useAppContext();
@@ -49,7 +67,7 @@ export function UserManagementPage() {
 
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [newRole, setNewRole] = useState<Role>('Researcher');
+  const [newRole, setNewRole] = useState<Role>(ALLOWED_ROLES[0]);
   const [newDept, setNewDept] = useState(DEPARTMENTS[0]);
   const [formError, setFormError] = useState('');
 
@@ -109,13 +127,13 @@ export function UserManagementPage() {
       addAuditLog({ action: 'User Created', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${newUser.name} — ${newRole} — ${newDept}` });
       toast(`${newUser.name} added successfully`);
       setShowCreate(false);
-      setNewName(''); setNewEmail(''); setNewRole('Researcher'); setNewDept(DEPARTMENTS[0]); setFormError('');
+      setNewName(''); setNewEmail(''); setNewRole(ALLOWED_ROLES[0]); setNewDept(DEPARTMENTS[0]); setFormError('');
     } catch {
       setFormError('Failed to save user. Please try again.');
     }
   };
 
-  const openCreate = () => { setNewName(''); setNewEmail(''); setNewRole('Researcher'); setNewDept(DEPARTMENTS[0]); setFormError(''); setShowCreate(true); };
+  const openCreate = () => { setNewName(''); setNewEmail(''); setNewRole(ALLOWED_ROLES[0]); setNewDept(DEPARTMENTS[0]); setFormError(''); setShowCreate(true); };
 
   return (
     <div onClick={() => setActiveMenu(null)}>
@@ -171,6 +189,7 @@ export function UserManagementPage() {
         formError={formError}
         onNameChange={v => { setNewName(v); setFormError(''); }}
         onEmailChange={v => { setNewEmail(v); setFormError(''); }}
+        allowedRoles={ALLOWED_ROLES}
         onRoleChange={setNewRole}
         onDeptChange={setNewDept}
         onSubmit={handleCreate}

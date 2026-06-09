@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { useCallback } from "react";
 import { LoginPage } from "../components/auth/LoginPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminLayout } from "./admin/AdminLayout";
@@ -15,6 +16,7 @@ import {
   ResearcherDashboardPage, ResearcherGrantCallsPage, ResearcherProposalsPage,
   ResearcherMilestonesPage, ResearcherAwardsPage, ResearcherReportsPage,
   ResearcherNotificationsPage, ResearcherCalendarPage, ResearcherSettingsPage,
+  ResearcherTeamMembersPage,
 } from "./researcher/ResearcherRoutes";
 import {
   AssistantDashboardPage, AssistantGrantCallsPage, AssistantProposalsPage,
@@ -27,6 +29,7 @@ import {
   FinanceCalendarPage, FinanceSettingsPage,
 } from "./finance/FinanceRoutes";
 import { useAuthContext, roleToBasePath } from "../context/AuthContext";
+import type { Role } from "../data/mockData";
 
 function RootRedirect() {
   const { loggedIn, currentRole } = useAuthContext();
@@ -34,13 +37,28 @@ function RootRedirect() {
   return <Navigate to={roleToBasePath(currentRole) + '/dashboard'} replace />;
 }
 
-export function AppRoutes() {
-  const { handleLogin } = useAuthContext();
+// Redirects to the correct dashboard immediately after login
+function LoginRoute() {
+  const { loggedIn, currentRole, handleLogin } = useAuthContext();
+  const navigate = useNavigate();
 
+  const onLogin = useCallback((role: Role) => {
+    handleLogin(role);
+    navigate(roleToBasePath(role) + '/dashboard', { replace: true });
+  }, [handleLogin, navigate]);
+
+  if (loggedIn) {
+    return <Navigate to={roleToBasePath(currentRole) + '/dashboard'} replace />;
+  }
+
+  return <LoginPage onLogin={onLogin} />;
+}
+
+export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
-      <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+      <Route path="/login" element={<LoginRoute />} />
 
       {/* Admin routes */}
       <Route element={<ProtectedRoute allowedRole="Admin" />}>
@@ -75,6 +93,7 @@ export function AppRoutes() {
           <Route path="notifications" element={<ResearcherNotificationsPage />} />
           <Route path="calendar" element={<ResearcherCalendarPage />} />
           <Route path="settings" element={<ResearcherSettingsPage />} />
+          <Route path="users" element={<ResearcherTeamMembersPage />} />
         </Route>
       </Route>
 
