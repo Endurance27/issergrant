@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
+import { useFormik } from "formik";
 import { supabase } from "../../../lib/supabase";
+import { createUserSchema } from "../../../schemas/user.schema";
+import type { CreateUserFormValues } from "../../../types/forms";
 import { Plus, Search, MoreHorizontal, ShieldCheck, ShieldOff, Trash2, Users, ChevronUp, ChevronDown } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
@@ -94,20 +97,65 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
   const [confirmDelete, setConfirmDelete] = useState<User | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState<User | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-
-  // Controlled form state
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newRole, setNewRole] = useState<Role>(role === 'Researcher' ? 'Assistant Researcher' : 'Researcher');
-  const [newDept, setNewDept] = useState(DEPARTMENTS[0]);
-  const [newStaffId, setNewStaffId] = useState('');
-  const [newPhoneContact, setNewPhoneContact] = useState('');
   const [formError, setFormError] = useState('');
 
   const [tempPasswordData, setTempPasswordData] = useState<{ name: string; email: string; temporaryPassword: string } | null>(null);
 
   const { toast } = useToast();
   const { createUser: createUserMutation, loading: creating } = useCreateUser();
+
+  const formik = useFormik<CreateUserFormValues>({
+    initialValues: {
+      name: '',
+      email: '',
+      role: role === 'Researcher' ? 'Assistant Researcher' : 'Researcher',
+      department: DEPARTMENTS[0],
+      staffId: '',
+      phoneContact: '',
+    },
+    validationSchema: createUserSchema,
+    onSubmit: async (values, { resetForm }) => {
+      setFormError('');
+      if (users.find(u => u.email.toLowerCase() === values.email.toLowerCase())) {
+        setFormError('A user with this email already exists.');
+        return;
+      }
+      const initials = values.name.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      const result = await createUserMutation({
+        name: values.name.trim(),
+        email: values.email.trim().toLowerCase(),
+        role: values.role as UserRole,
+        department: values.department,
+        staffId: values.staffId.trim(),
+        phoneContact: values.phoneContact.trim(),
+      });
+      if (!result) {
+        setFormError('Failed to save user. Please try again.');
+        return;
+      }
+      const newUser: User = {
+        id: result.user.id as unknown as number,
+        name: values.name.trim(),
+        email: values.email.trim().toLowerCase(),
+        role: values.role as Role,
+        status: 'Active',
+        department: values.department,
+        joined: new Date().toISOString().slice(0, 10),
+        avatar: result.user.avatar || initials,
+      };
+      setUsers(prev => [newUser, ...prev]);
+      addNotification({ title: 'New User Added', message: `${newUser.name} (${values.role}) has been added to the system.`, time: 'Just now', type: 'system' });
+      addAuditLog({ action: 'User Created', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${newUser.name} — ${values.role} — ${values.department}` });
+      toast(`${newUser.name} added successfully`);
+      setShowCreate(false);
+      resetForm();
+      setTempPasswordData({
+        name: newUser.name,
+        email: newUser.email,
+        temporaryPassword: result.temporaryPassword,
+      });
+    },
+  });
 
   const allRoles = ['All', ...ROLES];
   const filtered = users.filter(u => {
@@ -140,58 +188,10 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
     toast('User deleted', 'error');
   };
 
-  const createUser = async () => {
-    setFormError('');
-    if (!newName.trim()) { setFormError('Full name is required.'); return; }
-    if (!newEmail.trim() || !newEmail.includes('@')) { setFormError('A valid email address is required.'); return; }
-    if (users.find(u => u.email.toLowerCase() === newEmail.toLowerCase())) { setFormError('A user with this email already exists.'); return; }
-    if (!newStaffId.trim()) { setFormError('Staff ID is required.'); return; }
-    if (!newPhoneContact.trim()) { setFormError('Phone contact is required.'); return; }
-
-    const initials = newName.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-
-    const result = await createUserMutation({
-      name: newName.trim(),
-      email: newEmail.trim().toLowerCase(),
-      role: newRole as UserRole,
-      department: newDept,
-      staffId: newStaffId.trim(),
-      phoneContact: newPhoneContact.trim(),
-    });
-
-    if (!result) {
-      setFormError('Failed to save user. Please try again.');
-      return;
-    }
-
-    const newUser: User = {
-      id: result.user.id as unknown as number,
-      name: newName.trim(),
-      email: newEmail.trim().toLowerCase(),
-      role: newRole,
-      status: 'Active',
-      department: newDept,
-      joined: new Date().toISOString().slice(0, 10),
-      avatar: result.user.avatar || initials,
-    };
-
-    setUsers(prev => [newUser, ...prev]);
-    addNotification({ title: 'New User Added', message: `${newUser.name} (${newRole}) has been added to the system.`, time: 'Just now', type: 'system' });
-    addAuditLog({ action: 'User Created', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${newUser.name} — ${newRole} — ${newDept}` });
-    toast(`${newUser.name} added successfully`);
-    setShowCreate(false);
-    setNewName(''); setNewEmail(''); setNewRole('Researcher'); setNewDept(DEPARTMENTS[0]); setNewStaffId(''); setNewPhoneContact(''); setFormError('');
-
-    setTempPasswordData({
-      name: newUser.name,
-      email: newUser.email,
-      temporaryPassword: result.temporaryPassword,
-    });
-  };
-
   const openCreate = () => {
-    setNewName(''); setNewEmail(''); setNewRole(role === 'Researcher' ? 'Assistant Researcher' : 'Researcher');
-    setNewDept(DEPARTMENTS[0]); setNewStaffId(''); setNewPhoneContact(''); setFormError(''); setShowCreate(true);
+    formik.resetForm();
+    setFormError('');
+    setShowCreate(true);
   };
 
   return (
@@ -374,21 +374,31 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
               <label className="block text-xs font-semibold text-foreground mb-1.5">Full Name <span className="text-red-500">*</span></label>
               <input
                 type="text"
-                value={newName}
-                onChange={e => { setNewName(e.target.value); setFormError(''); }}
+                name="name"
+                value={formik.values.name}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Dr. Jane Smith"
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               />
+              {formik.touched.name && formik.errors.name && (
+                <p className="text-xs text-red-500 mt-1">{formik.errors.name}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1.5">Email Address <span className="text-red-500">*</span></label>
               <input
                 type="email"
-                value={newEmail}
-                onChange={e => { setNewEmail(e.target.value); setFormError(''); }}
+                name="email"
+                value={formik.values.email}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="jane@iser.edu"
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               />
+              {formik.touched.email && formik.errors.email && (
+                <p className="text-xs text-red-500 mt-1">{formik.errors.email}</p>
+              )}
             </div>
           </div>
 
@@ -396,8 +406,10 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1.5">Role</label>
               <select
-                value={newRole}
-                onChange={e => setNewRole(e.target.value as Role)}
+                name="role"
+                value={formik.values.role}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               >
                 {allowedRoles.map(r => <option key={r} value={r}>{r}</option>)}
@@ -406,8 +418,10 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1.5">Department</label>
               <select
-                value={newDept}
-                onChange={e => setNewDept(e.target.value)}
+                name="department"
+                value={formik.values.department}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               >
                 {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
@@ -420,33 +434,43 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
               <label className="block text-xs font-semibold text-foreground mb-1.5">Staff ID <span className="text-red-500">*</span></label>
               <input
                 type="text"
-                value={newStaffId}
-                onChange={e => { setNewStaffId(e.target.value); setFormError(''); }}
+                name="staffId"
+                value={formik.values.staffId}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="ISER-001"
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               />
+              {formik.touched.staffId && formik.errors.staffId && (
+                <p className="text-xs text-red-500 mt-1">{formik.errors.staffId}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1.5">Phone Contact <span className="text-red-500">*</span></label>
               <input
                 type="tel"
-                value={newPhoneContact}
-                onChange={e => { setNewPhoneContact(e.target.value); setFormError(''); }}
+                name="phoneContact"
+                value={formik.values.phoneContact}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="+256 700 000000"
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               />
+              {formik.touched.phoneContact && formik.errors.phoneContact && (
+                <p className="text-xs text-red-500 mt-1">{formik.errors.phoneContact}</p>
+              )}
             </div>
           </div>
 
           {/* Preview */}
-          {newName && (
+          {formik.values.name && (
             <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm flex-shrink-0" style={{ background: ROLE_COLORS[newRole] }}>
-                {newName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+              <div className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm flex-shrink-0" style={{ background: ROLE_COLORS[formik.values.role as Role] || '#1A3363' }}>
+                {formik.values.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
               <div>
-                <div className="font-bold text-[13px] text-foreground">{newName}</div>
-                <div className="text-xs text-muted-foreground">{newRole} · {newDept}</div>
+                <div className="font-bold text-[13px] text-foreground">{formik.values.name}</div>
+                <div className="text-xs text-muted-foreground">{formik.values.role} · {formik.values.department}</div>
               </div>
               <Badge status="Active" size="sm" />
             </div>
@@ -462,7 +486,14 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
 
           <div className="flex gap-3">
             <button onClick={() => setShowCreate(false)} className="btn-secondary flex-1 py-2.5">Cancel</button>
-            <button onClick={createUser} disabled={creating} className="btn-primary flex-1 py-2.5">{creating ? 'Creating…' : 'Create User'}</button>
+            <button
+              type="submit"
+              disabled={formik.isSubmitting || creating}
+              onClick={() => formik.handleSubmit()}
+              className="btn-primary flex-1 py-2.5 disabled:opacity-50"
+            >
+              {formik.isSubmitting || creating ? 'Creating...' : 'Create User'}
+            </button>
           </div>
         </div>
       </Modal>

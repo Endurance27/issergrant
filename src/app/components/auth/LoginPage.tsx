@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useFormik } from "formik";
 import { ArrowRight, CheckCircle2, TrendingUp, Clock, Award, X } from "lucide-react";
 import type { Role } from "../../data/mockData";
 import { IsserLogo } from "../ui/IsserLogo";
 import { supabase } from "../../../lib/supabase";
+import { loginSchema } from "../../../schemas/auth.schema";
+import type { LoginFormValues } from "../../../types/forms";
 
 const roleColors: Record<Role, string> = {
   'Admin': 'var(--primary)',
@@ -50,34 +53,31 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const SHARED_EMAIL = 'smensah03@ug.edu.gh';
   const SHARED_PASSWORD = 'Blessing1';
 
-  const [email, setEmail] = useState(SHARED_EMAIL);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
 
-  const handleLogin = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: SHARED_EMAIL, password: SHARED_PASSWORD });
-      if (authError) {
-        // Supabase auth not configured — fall through to local demo login
+  const formik = useFormik<LoginFormValues>({
+    initialValues: { email: SHARED_EMAIL, password: '' },
+    validationSchema: loginSchema,
+    onSubmit: async (values) => {
+      try {
+        const { error: authError } = await supabase.auth.signInWithPassword({ email: SHARED_EMAIL, password: SHARED_PASSWORD });
+        if (authError) {
+          // Supabase auth not configured — fall through to local demo login
+        }
+        const role: Role = roleByEmail[values.email.toLowerCase()] ?? 'Researcher';
+        onLogin(role);
+      } catch {
+        const role: Role = roleByEmail[values.email.toLowerCase()] ?? 'Researcher';
+        onLogin(role);
       }
-      const role: Role = roleByEmail[email.toLowerCase()] ?? 'Researcher';
-      onLogin(role);
-    } catch {
-      const role: Role = roleByEmail[email.toLowerCase()] ?? 'Researcher';
-      onLogin(role);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
   const quickLogin = (role: Role) => {
-    setLoading(true);
-    setTimeout(() => { setLoading(false); onLogin(role); }, 500);
+    formik.setSubmitting(true);
+    setTimeout(() => { formik.setSubmitting(false); onLogin(role); }, 500);
   };
 
   return (
@@ -267,17 +267,25 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <div>
               <label className="block font-semibold text-[13px] text-foreground mb-2">Email Address</label>
               <input
-                type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }}
+                type="email"
+                name="email"
+                value={formik.values.email}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 className="w-full px-4 py-3 rounded-xl outline-none transition-all bg-card text-sm text-foreground border border-border"
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                onKeyDown={e => e.key === 'Enter' && formik.handleSubmit()}
               />
+              {formik.touched.email && formik.errors.email && (
+                <p className="text-xs text-red-500 mt-1">{formik.errors.email}</p>
+              )}
             </div>
-            {error && <p className="text-[13px] text-red-500">{error}</p>}
             <button
-              onClick={handleLogin} disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white transition-all font-bold text-sm"
-              style={{ background: loading ? '#90A8C4' : 'var(--primary)', cursor: loading ? 'not-allowed' : 'pointer' }}>
-              {loading ? 'Signing in...' : <><span>Sign In</span><ArrowRight size={16} /></>}
+              type="submit"
+              onClick={() => formik.handleSubmit()}
+              disabled={formik.isSubmitting}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white transition-all font-bold text-sm disabled:opacity-50"
+              style={{ background: formik.isSubmitting ? '#90A8C4' : 'var(--primary)', cursor: formik.isSubmitting ? 'not-allowed' : 'pointer' }}>
+              {formik.isSubmitting ? 'Signing in...' : <><span>Sign In</span><ArrowRight size={16} /></>}
             </button>
           </div>
 
@@ -315,7 +323,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <div className="grid grid-cols-2 gap-2">
             {demoAccounts.map(acc => (
               <button
-                key={acc.role} onClick={() => quickLogin(acc.role)} disabled={loading}
+                key={acc.role} onClick={() => quickLogin(acc.role)} disabled={formik.isSubmitting}
                 className="p-3 rounded-xl text-left transition-all border border-border bg-card hover:shadow-sm"
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = roleColors[acc.role] === 'var(--primary)' ? 'var(--primary)' : roleColors[acc.role]; (e.currentTarget as HTMLElement).style.background = (roleColors[acc.role] === 'var(--primary)' ? '#1A3363' : roleColors[acc.role]) + '10'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--card)'; }}>
