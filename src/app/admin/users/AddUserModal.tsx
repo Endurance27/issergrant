@@ -36,18 +36,22 @@ interface AddUserModalProps {
   newEmail: string;
   newRole: Role;
   newDept: string;
+  newStaffId: string;
+  newPhoneContact: string;
   formError: string;
   allowedRoles: Role[];
   onNameChange: (v: string) => void;
   onEmailChange: (v: string) => void;
   onRoleChange: (v: Role) => void;
   onDeptChange: (v: string) => void;
+  onStaffIdChange: (v: string) => void;
+  onPhoneContactChange: (v: string) => void;
   onSubmit: () => void;
 }
 
 export function AddUserModal({
-  open, onClose, newName, newEmail, newRole, newDept, formError, allowedRoles,
-  onNameChange, onEmailChange, onRoleChange, onDeptChange, onSubmit,
+  open, onClose, newName, newEmail, newRole, newDept, newStaffId, newPhoneContact, formError, allowedRoles,
+  onNameChange, onEmailChange, onRoleChange, onDeptChange, onStaffIdChange, onPhoneContactChange, onSubmit,
 }: AddUserModalProps) {
   return (
     <Modal open={open} onClose={onClose} title="Add New User" width={520}>
@@ -95,6 +99,29 @@ export function AddUserModal({
             >
               {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
             </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Staff ID <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              value={newStaffId}
+              onChange={e => onStaffIdChange(e.target.value)}
+              placeholder="ISER-001"
+              className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">Phone Contact <span className="text-red-500">*</span></label>
+            <input
+              type="tel"
+              value={newPhoneContact}
+              onChange={e => onPhoneContactChange(e.target.value)}
+              placeholder="+256 700 000000"
+              className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
+            />
           </div>
         </div>
 
