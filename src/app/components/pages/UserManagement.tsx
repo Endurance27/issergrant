@@ -124,7 +124,7 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
       const result = await createUserMutation({
         name: values.name.trim(),
         email: values.email.trim().toLowerCase(),
-        role: values.role as UserRole,
+        role: values.role as unknown as import("../../../gql/graphql").UserRoleEnum,
         department: values.department,
         staffId: values.staffId.trim(),
         phoneContact: values.phoneContact.trim(),
