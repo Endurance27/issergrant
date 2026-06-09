@@ -13,6 +13,9 @@ import { useSortable } from "../../hooks/useSortable";
 import { useAppContext } from "../../context/AppContext";
 import { users as initialUsers, currentUsers } from "../../data/mockData";
 import type { User, Role } from "../../data/mockData";
+import { TemporaryPasswordModal } from "../ui/TemporaryPasswordModal";
+import { useCreateUser } from "../../../hooks/useCreateUser";
+import type { UserRole } from "../../../gql/graphql";
 
 const ROLE_COLORS: Record<Role, string> = {
   'Admin': '#1A3363',
@@ -84,6 +87,7 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
     };
     fetchUsers();
   }, []);
+
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
@@ -95,11 +99,15 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<Role>(role === 'Researcher' ? 'Assistant Researcher' : 'Researcher');
-
   const [newDept, setNewDept] = useState(DEPARTMENTS[0]);
+  const [newStaffId, setNewStaffId] = useState('');
+  const [newPhoneContact, setNewPhoneContact] = useState('');
   const [formError, setFormError] = useState('');
 
+  const [tempPasswordData, setTempPasswordData] = useState<{ name: string; email: string; temporaryPassword: string } | null>(null);
+
   const { toast } = useToast();
+  const { createUser: createUserMutation, loading: creating } = useCreateUser();
 
   const allRoles = ['All', ...ROLES];
   const filtered = users.filter(u => {
@@ -137,34 +145,54 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
     if (!newName.trim()) { setFormError('Full name is required.'); return; }
     if (!newEmail.trim() || !newEmail.includes('@')) { setFormError('A valid email address is required.'); return; }
     if (users.find(u => u.email.toLowerCase() === newEmail.toLowerCase())) { setFormError('A user with this email already exists.'); return; }
+    if (!newStaffId.trim()) { setFormError('Staff ID is required.'); return; }
+    if (!newPhoneContact.trim()) { setFormError('Phone contact is required.'); return; }
 
     const initials = newName.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    const newUser = {
+
+    const result = await createUserMutation({
+      name: newName.trim(),
+      email: newEmail.trim().toLowerCase(),
+      role: newRole as UserRole,
+      department: newDept,
+      staffId: newStaffId.trim(),
+      phoneContact: newPhoneContact.trim(),
+    });
+
+    if (!result) {
+      setFormError('Failed to save user. Please try again.');
+      return;
+    }
+
+    const newUser: User = {
+      id: result.user.id as unknown as number,
       name: newName.trim(),
       email: newEmail.trim().toLowerCase(),
       role: newRole,
       status: 'Active',
       department: newDept,
       joined: new Date().toISOString().slice(0, 10),
-      avatar: initials,
+      avatar: result.user.avatar || initials,
     };
 
-    const { data, error } = await supabase.from('users').insert([newUser]).select().single();
-    if (error) {
-      console.error("Error saving user:", error);
-      setFormError('Failed to save user. Please try again.');
-      return;
-    }
-
-    setUsers(prev => [data as User, ...prev]);
+    setUsers(prev => [newUser, ...prev]);
     addNotification({ title: 'New User Added', message: `${newUser.name} (${newRole}) has been added to the system.`, time: 'Just now', type: 'system' });
     addAuditLog({ action: 'User Created', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${newUser.name} — ${newRole} — ${newDept}` });
     toast(`${newUser.name} added successfully`);
     setShowCreate(false);
-    setNewName(''); setNewEmail(''); setNewRole('Researcher'); setNewDept(DEPARTMENTS[0]); setFormError('');
+    setNewName(''); setNewEmail(''); setNewRole('Researcher'); setNewDept(DEPARTMENTS[0]); setNewStaffId(''); setNewPhoneContact(''); setFormError('');
+
+    setTempPasswordData({
+      name: newUser.name,
+      email: newUser.email,
+      temporaryPassword: result.temporaryPassword,
+    });
   };
 
-  const openCreate = () => { setNewName(''); setNewEmail(''); setNewRole(role === 'Researcher' ? 'Assistant Researcher' : 'Researcher'); setNewDept(DEPARTMENTS[0]); setFormError(''); setShowCreate(true); };
+  const openCreate = () => {
+    setNewName(''); setNewEmail(''); setNewRole(role === 'Researcher' ? 'Assistant Researcher' : 'Researcher');
+    setNewDept(DEPARTMENTS[0]); setNewStaffId(''); setNewPhoneContact(''); setFormError(''); setShowCreate(true);
+  };
 
   return (
     <div onClick={() => setActiveMenu(null)}>
@@ -387,6 +415,29 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">Staff ID <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                value={newStaffId}
+                onChange={e => { setNewStaffId(e.target.value); setFormError(''); }}
+                placeholder="ISER-001"
+                className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">Phone Contact <span className="text-red-500">*</span></label>
+              <input
+                type="tel"
+                value={newPhoneContact}
+                onChange={e => { setNewPhoneContact(e.target.value); setFormError(''); }}
+                placeholder="+256 700 000000"
+                className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
+              />
+            </div>
+          </div>
+
           {/* Preview */}
           {newName && (
             <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
@@ -411,10 +462,20 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
 
           <div className="flex gap-3">
             <button onClick={() => setShowCreate(false)} className="btn-secondary flex-1 py-2.5">Cancel</button>
-            <button onClick={createUser} className="btn-primary flex-1 py-2.5">Create User</button>
+            <button onClick={createUser} disabled={creating} className="btn-primary flex-1 py-2.5">{creating ? 'Creating…' : 'Create User'}</button>
           </div>
         </div>
       </Modal>
+
+      {tempPasswordData && (
+        <TemporaryPasswordModal
+          open={!!tempPasswordData}
+          onClose={() => setTempPasswordData(null)}
+          name={tempPasswordData.name}
+          email={tempPasswordData.email}
+          temporaryPassword={tempPasswordData.temporaryPassword}
+        />
+      )}
 
       <ConfirmDialog
         open={!!confirmDelete}

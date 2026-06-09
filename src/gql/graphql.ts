@@ -131,3 +131,26 @@ export interface UpdateProposalVariables {
   status?: string;
   requestedAmount?: number;
 }
+
+export type UserRole = 'Admin' | 'Researcher' | 'Assistant Researcher' | 'Finance Officer'
+
+export interface CreateUserInput {
+  name: string
+  email: string
+  role: UserRole
+  department: string
+  staffId: string
+  phoneContact: string
+}
+
+export interface CreateUserResponse {
+  createUser: {
+    temporaryPassword: string
+    user: {
+      id: string
+      authUserId: string
+      avatar?: string
+      lastLogin?: string
+    }
+  }
+}
