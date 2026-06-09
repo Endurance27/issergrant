@@ -10,6 +10,9 @@ import { useToast } from "../ui/Toast";
 import { grantCalls as mockGrantCalls } from "../../data/mockData";
 import { supabase } from "../../../lib/supabase";
 import type { Role, GrantCall } from "../../data/mockData";
+import { CreateFundingCallModal } from "../../admin/grantCalls/CreateFundingCallModal";
+import { useCreateFundingCall } from "../../../hooks/useCreateFundingCall";
+import type { CreateFundingCallFormValues } from "../../../types/fundingCall.types";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 
@@ -28,7 +31,10 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
   const [filter, setFilter] = useState<'All' | 'Open' | 'Closed' | 'Draft'>('All');
   const [selected, setSelected] = useState<GrantCall | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showFundingCallCreate, setShowFundingCallCreate] = useState(false);
+  const [fundingCallFormError, setFundingCallFormError] = useState('');
   const { toast } = useToast();
+  const { createFundingCall, loading: creatingFundingCall } = useCreateFundingCall();
 
   const formik = useFormik<GrantCallFormValues>({
     initialValues: { title: '', deadline: '', category: '', totalBudget: 0, description: '', eligibility: '' },
@@ -106,6 +112,42 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
   }, []);
 
 
+  const handleCreateFundingCall = async (values: CreateFundingCallFormValues) => {
+    setFundingCallFormError('');
+    const result = await createFundingCall({
+      funder: values.funder,
+      totalAvailable: Number(values.totalAvailable),
+      maximumAward: Number(values.maximumAward),
+      theme: values.theme,
+      description: values.description,
+      hasMinMaxAward: values.hasMinMaxAward,
+      minimumAward: values.hasMinMaxAward && values.minimumAward !== '' ? Number(values.minimumAward) : undefined,
+      allowsMultipleApplications: values.allowsMultipleApplications,
+      openDate: values.openDate,
+      originalCallLink: values.originalCallLink,
+      eligibility: values.eligibility.filter(e => e.trim() !== ''),
+      createdBy: 'admin',
+    });
+    if (!result) {
+      setFundingCallFormError('Failed to create funding call. Please try again.');
+      return;
+    }
+    const newGC: GrantCall = {
+      id: result.id,
+      title: result.theme,
+      category: result.funder,
+      totalBudget: result.totalAvailable,
+      deadline: result.openDate,
+      applications: 0,
+      status: 'Open',
+      description: result.description,
+      eligibility: result.eligibility.join('; '),
+    };
+    setGrantCalls(prev => [newGC, ...prev]);
+    toast('Funding call created successfully', 'success');
+    setShowFundingCallCreate(false);
+  };
+
   const filtered = grantCalls.filter(g => {
     const matchSearch = g.title.toLowerCase().includes(search.toLowerCase()) || g.category.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === 'All' || g.status === filter;
@@ -119,8 +161,8 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
         subtitle={`${grantCalls.filter(g => g.status === 'Open').length} active opportunities available`}
         action={
           role === 'Admin' ? (
-            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-[13px] shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>
-              <Plus size={16} /> New Grant Call
+            <button onClick={() => setShowFundingCallCreate(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-[13px] shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>
+              <Plus size={16} /> New Funding Call
             </button>
           ) : undefined
         }
@@ -233,6 +275,14 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
           </div>
         )}
       </Modal>
+
+      <CreateFundingCallModal
+        open={showFundingCallCreate}
+        onClose={() => { setShowFundingCallCreate(false); setFundingCallFormError(''); }}
+        onSubmit={handleCreateFundingCall}
+        isSubmitting={creatingFundingCall}
+        formError={fundingCallFormError}
+      />
 
       <Modal open={showCreate} onClose={() => { setShowCreate(false); formik.resetForm(); }} title="Create New Grant Call" width={600}>
         <div className="space-y-4">
