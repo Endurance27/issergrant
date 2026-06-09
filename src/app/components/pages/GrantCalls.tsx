@@ -12,7 +12,8 @@ import { supabase } from "../../../lib/supabase";
 import type { Role, GrantCall } from "../../data/mockData";
 import { CreateFundingCallModal } from "../../admin/grantCalls/CreateFundingCallModal";
 import { useCreateFundingCall } from "../../../hooks/useCreateFundingCall";
-import type { CreateFundingCallFormValues } from "../../../types/fundingCall.types";
+import type { CreateFundingCallFormValues, FundingCall as FundingCallType } from "../../../types/fundingCall.types";
+import { EditFundingCallForm } from "../funding/EditFundingCallForm";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 
@@ -33,6 +34,7 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [showFundingCallCreate, setShowFundingCallCreate] = useState(false);
   const [fundingCallFormError, setFundingCallFormError] = useState('');
+  const [editingFundingCall, setEditingFundingCall] = useState<FundingCallType | null>(null);
   const { toast } = useToast();
   const { createFundingCall, loading: creatingFundingCall } = useCreateFundingCall();
 
@@ -268,10 +270,71 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
             )}
             {role === 'Admin' && (
               <div className="flex gap-3">
-                <button onClick={() => { toast('Grant call updated'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>Edit</button>
+                <button
+                  onClick={() => {
+                    // Convert the local GrantCall shape to FundingCallType for the edit form
+                    const fc: FundingCallType = {
+                      id: selected.id,
+                      funder: selected.category,
+                      theme: selected.title,
+                      description: selected.description,
+                      totalAvailable: selected.totalBudget,
+                      maximumAward: selected.totalBudget,
+                      hasMinMaxAward: false,
+                      allowsMultipleApplications: 'no',
+                      openDate: selected.deadline,
+                      originalCallLink: '',
+                      eligibility: selected.eligibility ? [selected.eligibility] : [],
+                      createdBy: 'admin',
+                      status: selected.status,
+                    };
+                    setSelected(null);
+                    setEditingFundingCall(fc);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:opacity-90 transition-opacity"
+                  style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}
+                >
+                  Edit
+                </button>
                 {selected.status === 'Open' && <button onClick={() => { toast('Grant call closed', 'warning'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors">Close Call</button>}
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Edit Funding Call Modal ───────────────────────────────────── */}
+      <Modal
+        open={!!editingFundingCall}
+        onClose={() => setEditingFundingCall(null)}
+        title="Edit Funding Call"
+        width={660}
+      >
+        {editingFundingCall && (
+          <div className="max-h-[70vh] overflow-y-auto pr-1">
+            <EditFundingCallForm
+              fundingCall={editingFundingCall}
+              onSuccess={(updated) => {
+                // Reflect the change in the grant calls list
+                setGrantCalls(prev =>
+                  prev.map(g =>
+                    g.id === updated.id
+                      ? {
+                          ...g,
+                          title: updated.theme,
+                          category: updated.funder,
+                          totalBudget: updated.totalAvailable,
+                          deadline: updated.openDate,
+                          description: updated.description,
+                          eligibility: updated.eligibility.join('; '),
+                        }
+                      : g
+                  )
+                );
+                setEditingFundingCall(null);
+              }}
+              onCancel={() => setEditingFundingCall(null)}
+            />
           </div>
         )}
       </Modal>
