@@ -21,6 +21,8 @@ export function roleToBasePath(role: Role): string {
 interface AuthContextValue {
   loggedIn: boolean;
   currentRole: Role;
+  /** Supabase auth UID — populated once a session exists, empty string otherwise */
+  currentUserId: string;
   darkMode: boolean;
   handleLogin: (role: Role) => void;
   handleLogout: () => Promise<void>;
@@ -37,6 +39,7 @@ export function useAuthContext() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loggedIn, setLoggedIn] = useState(false);
   const [currentRole, setCurrentRole] = useState<Role>('Admin');
+  const [currentUserId, setCurrentUserId] = useState('');
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
@@ -45,19 +48,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email) {
-        const role: Role = roleByEmail[session.user.email.toLowerCase()] ?? 'Researcher';
+      if (session?.user) {
+        const role: Role = roleByEmail[session.user.email?.toLowerCase() ?? ''] ?? 'Researcher';
         setCurrentRole(role);
+        setCurrentUserId(session.user.id);
         setLoggedIn(true);
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user?.email) {
-        const role: Role = roleByEmail[session.user.email.toLowerCase()] ?? 'Researcher';
+      if (session?.user) {
+        const role: Role = roleByEmail[session.user.email?.toLowerCase() ?? ''] ?? 'Researcher';
         setCurrentRole(role);
+        setCurrentUserId(session.user.id);
         setLoggedIn(true);
       } else {
+        setCurrentUserId('');
         setLoggedIn(false);
       }
     });
@@ -72,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
+    setCurrentUserId('');
     setLoggedIn(false);
   }, []);
 
@@ -82,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const toggleDark = useCallback(() => setDarkMode(d => !d), []);
 
   return (
-    <AuthContext.Provider value={{ loggedIn, currentRole, darkMode, handleLogin, handleLogout, handleRoleChange, toggleDark }}>
+    <AuthContext.Provider value={{ loggedIn, currentRole, currentUserId, darkMode, handleLogin, handleLogout, handleRoleChange, toggleDark }}>
       {children}
     </AuthContext.Provider>
   );
