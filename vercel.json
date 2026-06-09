@@ -3,6 +3,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    {
+      "source": "/api/graphql",
+      "destination": "http://197.255.123.247/graphql"
+    },
     { "source": "/(.*)", "destination": "/" }
   ]
 }

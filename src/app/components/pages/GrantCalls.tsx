@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import { grantCallSchema } from "../../../schemas/grantCall.schema";
 import type { GrantCallFormValues } from "../../../types/forms";
-import { Plus, Search, Calendar, Users, DollarSign, ChevronRight } from "lucide-react";
+import { Plus, Search, Calendar, Users, DollarSign, ChevronRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { PageHeader } from "../ui/PageHeader";
@@ -10,6 +10,13 @@ import { useToast } from "../ui/Toast";
 import { grantCalls as mockGrantCalls } from "../../data/mockData";
 import { supabase } from "../../../lib/supabase";
 import type { Role, GrantCall } from "../../data/mockData";
+import { CreateFundingCallModal } from "../../admin/grantCalls/CreateFundingCallModal";
+import { useCreateFundingCall } from "../../../hooks/useCreateFundingCall";
+import type { CreateFundingCallFormValues, FundingCall as FundingCallType } from "../../../types/fundingCall.types";
+import { EditFundingCallForm } from "../funding/EditFundingCallForm";
+import { BookmarkButton } from "../funding/BookmarkButton";
+import { BookmarkNotesModal } from "../funding/BookmarkNotesModal";
+import type { LocalBookmark } from "../../../types/bookmark.types";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 
@@ -28,7 +35,14 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
   const [filter, setFilter] = useState<'All' | 'Open' | 'Closed' | 'Draft'>('All');
   const [selected, setSelected] = useState<GrantCall | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showFundingCallCreate, setShowFundingCallCreate] = useState(false);
+  const [fundingCallFormError, setFundingCallFormError] = useState('');
+  const [editingFundingCall, setEditingFundingCall] = useState<FundingCallType | null>(null);
+  // Bookmark state — keyed by grant call ID
+  const [bookmarks, setBookmarks] = useState<Record<string, LocalBookmark>>({});
+  const [bookmarkTarget, setBookmarkTarget] = useState<GrantCall | null>(null);
   const { toast } = useToast();
+  const { createFundingCall, loading: creatingFundingCall } = useCreateFundingCall();
 
   const formik = useFormik<GrantCallFormValues>({
     initialValues: { title: '', deadline: '', category: '', totalBudget: 0, description: '', eligibility: '' },
@@ -106,6 +120,42 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
   }, []);
 
 
+  const handleCreateFundingCall = async (values: CreateFundingCallFormValues) => {
+    setFundingCallFormError('');
+    const result = await createFundingCall({
+      funder: values.funder,
+      totalAvailable: Number(values.totalAvailable),
+      maximumAward: Number(values.maximumAward),
+      theme: values.theme,
+      description: values.description,
+      hasMinMaxAward: values.hasMinMaxAward,
+      minimumAward: values.hasMinMaxAward && values.minimumAward !== '' ? Number(values.minimumAward) : undefined,
+      allowsMultipleApplications: values.allowsMultipleApplications,
+      openDate: values.openDate,
+      originalCallLink: values.originalCallLink,
+      eligibility: values.eligibility.filter(e => e.trim() !== ''),
+      createdBy: 'admin',
+    });
+    if (!result) {
+      setFundingCallFormError('Failed to create funding call. Please try again.');
+      return;
+    }
+    const newGC: GrantCall = {
+      id: result.id,
+      title: result.theme,
+      category: result.funder,
+      totalBudget: result.totalAvailable,
+      deadline: result.openDate,
+      applications: 0,
+      status: 'Open',
+      description: result.description,
+      eligibility: result.eligibility.join('; '),
+    };
+    setGrantCalls(prev => [newGC, ...prev]);
+    toast('Funding call created successfully', 'success');
+    setShowFundingCallCreate(false);
+  };
+
   const filtered = grantCalls.filter(g => {
     const matchSearch = g.title.toLowerCase().includes(search.toLowerCase()) || g.category.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === 'All' || g.status === filter;
@@ -119,8 +169,8 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
         subtitle={`${grantCalls.filter(g => g.status === 'Open').length} active opportunities available`}
         action={
           role === 'Admin' ? (
-            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-[13px] shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>
-              <Plus size={16} /> New Grant Call
+            <button onClick={() => setShowFundingCallCreate(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-[13px] shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>
+              <Plus size={16} /> New Funding Call
             </button>
           ) : undefined
         }
@@ -151,7 +201,29 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
             <div className="p-5">
               <div className="flex items-start justify-between mb-3">
                 <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{g.id}</span>
-                <Badge status={g.status} size="sm" />
+                <div className="flex items-center gap-1.5">
+                  {(role === 'Researcher' || role === 'Assistant Researcher') && (
+                    <BookmarkButton
+                      fundingCallId={g.id}
+                      fundingCallTitle={g.title}
+                      isBookmarked={!!bookmarks[g.id]}
+                      notes={bookmarks[g.id]?.notes}
+                      size="sm"
+                      onToggle={(bookmarked, bm) => {
+                        if (bookmarked && bm) {
+                          setBookmarks(prev => ({ ...prev, [g.id]: bm }));
+                        } else {
+                          setBookmarks(prev => {
+                            const next = { ...prev };
+                            delete next[g.id];
+                            return next;
+                          });
+                        }
+                      }}
+                    />
+                  )}
+                  <Badge status={g.status} size="sm" />
+                </div>
               </div>
               <h3 className="font-bold text-sm text-foreground mb-2 leading-snug">{g.title}</h3>
               <p className="text-xs text-muted-foreground mb-4 leading-relaxed line-clamp-2">{g.description}</p>
@@ -219,20 +291,120 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
               <div className="text-[11px] text-muted-foreground mb-1">Eligibility Criteria</div>
               <div className="text-[13px] text-foreground">{selected.eligibility}</div>
             </div>
-            {(role === 'Researcher' || role === 'Assistant Researcher') && selected.status === 'Open' && (
-              <button onClick={() => { setSelected(null); onNavigate('proposals', { grantCallId: selected.id, grantCallTitle: selected.title }); }} className="w-full py-2.5 rounded-xl text-white font-bold text-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>
-                Apply for This Grant
-              </button>
+            {(role === 'Researcher' || role === 'Assistant Researcher') && (
+              <div className="flex gap-3">
+                {selected.status === 'Open' && (
+                  <button
+                    onClick={() => { setSelected(null); onNavigate('proposals', { grantCallId: selected.id, grantCallTitle: selected.title }); }}
+                    className="flex-1 py-2.5 rounded-xl text-white font-bold text-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+                    style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}
+                  >
+                    Apply for This Grant
+                  </button>
+                )}
+                <button
+                  onClick={() => { setBookmarkTarget(selected); setSelected(null); }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-[13px] transition-all ${bookmarks[selected.id] ? 'border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-border text-muted-foreground hover:bg-muted'}`}
+                >
+                  {bookmarks[selected.id]
+                    ? <><BookmarkCheck size={14} /> Bookmarked</>
+                    : <><Bookmark size={14} /> Bookmark</>}
+                </button>
+              </div>
             )}
             {role === 'Admin' && (
               <div className="flex gap-3">
-                <button onClick={() => { toast('Grant call updated'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>Edit</button>
+                <button
+                  onClick={() => {
+                    // Convert the local GrantCall shape to FundingCallType for the edit form
+                    const fc: FundingCallType = {
+                      id: selected.id,
+                      funder: selected.category,
+                      theme: selected.title,
+                      description: selected.description,
+                      totalAvailable: selected.totalBudget,
+                      maximumAward: selected.totalBudget,
+                      hasMinMaxAward: false,
+                      allowsMultipleApplications: 'no',
+                      openDate: selected.deadline,
+                      originalCallLink: '',
+                      eligibility: selected.eligibility ? [selected.eligibility] : [],
+                      createdBy: 'admin',
+                      status: selected.status,
+                    };
+                    setSelected(null);
+                    setEditingFundingCall(fc);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:opacity-90 transition-opacity"
+                  style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}
+                >
+                  Edit
+                </button>
                 {selected.status === 'Open' && <button onClick={() => { toast('Grant call closed', 'warning'); setSelected(null); }} className="flex-1 py-2.5 rounded-xl border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors">Close Call</button>}
               </div>
             )}
           </div>
         )}
       </Modal>
+
+      {/* ── Bookmark Notes Modal ─────────────────────────────────────── */}
+      {bookmarkTarget && (
+        <BookmarkNotesModal
+          open={!!bookmarkTarget}
+          fundingCallId={bookmarkTarget.id}
+          fundingCallTitle={bookmarkTarget.title}
+          initialNotes={bookmarks[bookmarkTarget.id]?.notes ?? ''}
+          onClose={() => setBookmarkTarget(null)}
+          onSuccess={(bm) => {
+            setBookmarks(prev => ({ ...prev, [bookmarkTarget.id]: bm }));
+            setBookmarkTarget(null);
+          }}
+        />
+      )}
+
+      {/* ── Edit Funding Call Modal ───────────────────────────────────── */}
+      <Modal
+        open={!!editingFundingCall}
+        onClose={() => setEditingFundingCall(null)}
+        title="Edit Funding Call"
+        width={660}
+      >
+        {editingFundingCall && (
+          <div className="max-h-[70vh] overflow-y-auto pr-1">
+            <EditFundingCallForm
+              fundingCall={editingFundingCall}
+              onSuccess={(updated) => {
+                // Reflect the change in the grant calls list
+                setGrantCalls(prev =>
+                  prev.map(g =>
+                    g.id === updated.id
+                      ? {
+                          ...g,
+                          title: updated.theme,
+                          category: updated.funder,
+                          totalBudget: updated.totalAvailable,
+                          deadline: updated.openDate,
+                          description: updated.description,
+                          eligibility: updated.eligibility.join('; '),
+                        }
+                      : g
+                  )
+                );
+                setEditingFundingCall(null);
+              }}
+              onCancel={() => setEditingFundingCall(null)}
+            />
+          </div>
+        )}
+      </Modal>
+
+      <CreateFundingCallModal
+        open={showFundingCallCreate}
+        onClose={() => { setShowFundingCallCreate(false); setFundingCallFormError(''); }}
+        onSubmit={handleCreateFundingCall}
+        isSubmitting={creatingFundingCall}
+        formError={fundingCallFormError}
+      />
 
       <Modal open={showCreate} onClose={() => { setShowCreate(false); formik.resetForm(); }} title="Create New Grant Call" width={600}>
         <div className="space-y-4">

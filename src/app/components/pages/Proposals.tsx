@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useFormik } from "formik";
 import { proposalSchema } from "../../../schemas/proposal.schema";
 import type { ProposalFormValues } from "../../../types/forms";
+import { CreateProposalForm } from "../proposals/CreateProposalForm";
 import { Search, Plus, FileText, CheckCircle2, XCircle, Eye, RotateCcw, MessageSquare, Clock, Award, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
@@ -517,51 +518,31 @@ export function Proposals({ role, navState }: ProposalsProps) {
         )}
       </Modal>
 
-      {/* New proposal modal */}
-      <Modal open={showNew} onClose={() => { setShowNew(false); proposalFormik.resetForm(); }} title="Submit New Proposal" width={600}>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-foreground mb-1.5">Grant Call</label>
-            <select name="grantCallId" value={proposalFormik.values.grantCallId} onChange={proposalFormik.handleChange} onBlur={proposalFormik.handleBlur} className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground">
-              <option value="">Select a grant call...</option>
-              {grantCalls.filter(g => g.status === 'Open').map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
-            </select>
-            {proposalFormik.touched.grantCallId && proposalFormik.errors.grantCallId && (
-              <p className="text-xs text-red-500 mt-1">{proposalFormik.errors.grantCallId}</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-foreground mb-1.5">Research Title</label>
-            <input type="text" name="title" value={proposalFormik.values.title} onChange={proposalFormik.handleChange} onBlur={proposalFormik.handleBlur} placeholder="Full title of your research proposal" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
-            {proposalFormik.touched.title && proposalFormik.errors.title && (
-              <p className="text-xs text-red-500 mt-1">{proposalFormik.errors.title}</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-foreground mb-1.5">Abstract</label>
-            <textarea rows={4} name="abstract" value={proposalFormik.values.abstract} onChange={proposalFormik.handleChange} onBlur={proposalFormik.handleBlur} placeholder="Brief summary of research objectives..." className="w-full px-3 py-2 rounded-xl outline-none resize-none bg-muted border border-border text-[13px] text-foreground" />
-            {proposalFormik.touched.abstract && proposalFormik.errors.abstract && (
-              <p className="text-xs text-red-500 mt-1">{proposalFormik.errors.abstract}</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-foreground mb-1.5">Requested Amount (GHS)</label>
-            <input type="number" name="requestedAmount" value={proposalFormik.values.requestedAmount || ''} onChange={proposalFormik.handleChange} onBlur={proposalFormik.handleBlur} placeholder="e.g. 150000" className="w-full px-3 py-2 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground" />
-            {proposalFormik.touched.requestedAmount && proposalFormik.errors.requestedAmount && (
-              <p className="text-xs text-red-500 mt-1">{proposalFormik.errors.requestedAmount as string}</p>
-            )}
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => { toast('Draft saved', 'info'); setShowNew(false); proposalFormik.resetForm(); }} className="btn-secondary flex-1 py-2.5">Save as Draft</button>
-            <button
-              type="submit"
-              disabled={proposalFormik.isSubmitting}
-              onClick={() => proposalFormik.handleSubmit()}
-              className="btn-primary flex-1 py-2.5 disabled:opacity-50"
-            >
-              {proposalFormik.isSubmitting ? 'Submitting...' : 'Submit Proposal'}
-            </button>
-          </div>
+      {/* New proposal modal — GraphQL-backed for Researchers / Assistant Researchers */}
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="Submit New Proposal" width={620}>
+        <div className="max-h-[75vh] overflow-y-auto pr-1">
+          <CreateProposalForm
+            defaultFundingCallId={navState?.grantCallId ?? ''}
+            onSuccess={(created) => {
+              // Merge the returned record into the local proposals list
+              const localProposal = {
+                id: created.id,
+                title: created.title,
+                researcher: created.user?.name ?? 'You',
+                researcherId: 0,
+                grantCallId: created.fundingCallId,
+                grantCallTitle: created.fundingCallTitle ?? created.fundingCall?.theme ?? '',
+                submitted: new Date().toISOString().slice(0, 10),
+                status: 'Under Review' as const,
+                requestedAmount: created.requestedAmount,
+                department: created.department,
+                abstract: created.abstract,
+              };
+              setProposals(prev => [localProposal, ...prev]);
+              setShowNew(false);
+            }}
+            onCancel={() => setShowNew(false)}
+          />
         </div>
       </Modal>
     </div>

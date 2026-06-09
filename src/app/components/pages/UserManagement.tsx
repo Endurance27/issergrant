@@ -19,6 +19,7 @@ import type { User, Role } from "../../data/mockData";
 import { TemporaryPasswordModal } from "../ui/TemporaryPasswordModal";
 import { useCreateUser } from "../../../hooks/useCreateUser";
 import type { UserRole } from "../../../gql/graphql";
+import { AssistantResearcherForm } from "./AssistantResearcherForm";
 
 const ROLE_COLORS: Record<Role, string> = {
   'Admin': '#1A3363',
@@ -97,6 +98,7 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
   const [confirmDelete, setConfirmDelete] = useState<User | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState<User | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showAssistantForm, setShowAssistantForm] = useState(false);
   const [formError, setFormError] = useState('');
 
   const [tempPasswordData, setTempPasswordData] = useState<{ name: string; email: string; temporaryPassword: string } | null>(null);
@@ -124,7 +126,7 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
       const result = await createUserMutation({
         name: values.name.trim(),
         email: values.email.trim().toLowerCase(),
-        role: values.role as UserRole,
+        role: values.role as unknown as import("../../../gql/graphql").UserRoleEnum,
         department: values.department,
         staffId: values.staffId.trim(),
         phoneContact: values.phoneContact.trim(),
@@ -200,9 +202,18 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
         title="User Management"
         subtitle={`${activeCount} active users across ${deptCount} departments`}
         action={
-          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-            <Plus size={16} /> Add User
-          </button>
+          <div className="flex items-center gap-2">
+            {role === 'Researcher' && (
+              <button onClick={() => setShowAssistantForm(true)} className="btn-primary flex items-center gap-2">
+                <Plus size={16} /> Add Assistant Researcher
+              </button>
+            )}
+            {role !== 'Researcher' && (
+              <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+                <Plus size={16} /> Add User
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -497,6 +508,8 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
           </div>
         </div>
       </Modal>
+
+      <AssistantResearcherForm open={showAssistantForm} onClose={() => setShowAssistantForm(false)} />
 
       {tempPasswordData && (
         <TemporaryPasswordModal
