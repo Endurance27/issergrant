@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import { grantCallSchema } from "../../../schemas/grantCall.schema";
 import type { GrantCallFormValues } from "../../../types/forms";
-import { Plus, Search, Calendar, Users, DollarSign, ChevronRight } from "lucide-react";
+import { Plus, Search, Calendar, Users, DollarSign, ChevronRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { PageHeader } from "../ui/PageHeader";
@@ -14,6 +14,9 @@ import { CreateFundingCallModal } from "../../admin/grantCalls/CreateFundingCall
 import { useCreateFundingCall } from "../../../hooks/useCreateFundingCall";
 import type { CreateFundingCallFormValues, FundingCall as FundingCallType } from "../../../types/fundingCall.types";
 import { EditFundingCallForm } from "../funding/EditFundingCallForm";
+import { BookmarkButton } from "../funding/BookmarkButton";
+import { BookmarkNotesModal } from "../funding/BookmarkNotesModal";
+import type { LocalBookmark } from "../../../types/bookmark.types";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 
@@ -35,6 +38,9 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
   const [showFundingCallCreate, setShowFundingCallCreate] = useState(false);
   const [fundingCallFormError, setFundingCallFormError] = useState('');
   const [editingFundingCall, setEditingFundingCall] = useState<FundingCallType | null>(null);
+  // Bookmark state — keyed by grant call ID
+  const [bookmarks, setBookmarks] = useState<Record<string, LocalBookmark>>({});
+  const [bookmarkTarget, setBookmarkTarget] = useState<GrantCall | null>(null);
   const { toast } = useToast();
   const { createFundingCall, loading: creatingFundingCall } = useCreateFundingCall();
 
@@ -195,7 +201,29 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
             <div className="p-5">
               <div className="flex items-start justify-between mb-3">
                 <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{g.id}</span>
-                <Badge status={g.status} size="sm" />
+                <div className="flex items-center gap-1.5">
+                  {(role === 'Researcher' || role === 'Assistant Researcher') && (
+                    <BookmarkButton
+                      fundingCallId={g.id}
+                      fundingCallTitle={g.title}
+                      isBookmarked={!!bookmarks[g.id]}
+                      notes={bookmarks[g.id]?.notes}
+                      size="sm"
+                      onToggle={(bookmarked, bm) => {
+                        if (bookmarked && bm) {
+                          setBookmarks(prev => ({ ...prev, [g.id]: bm }));
+                        } else {
+                          setBookmarks(prev => {
+                            const next = { ...prev };
+                            delete next[g.id];
+                            return next;
+                          });
+                        }
+                      }}
+                    />
+                  )}
+                  <Badge status={g.status} size="sm" />
+                </div>
               </div>
               <h3 className="font-bold text-sm text-foreground mb-2 leading-snug">{g.title}</h3>
               <p className="text-xs text-muted-foreground mb-4 leading-relaxed line-clamp-2">{g.description}</p>
@@ -263,10 +291,26 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
               <div className="text-[11px] text-muted-foreground mb-1">Eligibility Criteria</div>
               <div className="text-[13px] text-foreground">{selected.eligibility}</div>
             </div>
-            {(role === 'Researcher' || role === 'Assistant Researcher') && selected.status === 'Open' && (
-              <button onClick={() => { setSelected(null); onNavigate('proposals', { grantCallId: selected.id, grantCallTitle: selected.title }); }} className="w-full py-2.5 rounded-xl text-white font-bold text-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>
-                Apply for This Grant
-              </button>
+            {(role === 'Researcher' || role === 'Assistant Researcher') && (
+              <div className="flex gap-3">
+                {selected.status === 'Open' && (
+                  <button
+                    onClick={() => { setSelected(null); onNavigate('proposals', { grantCallId: selected.id, grantCallTitle: selected.title }); }}
+                    className="flex-1 py-2.5 rounded-xl text-white font-bold text-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+                    style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}
+                  >
+                    Apply for This Grant
+                  </button>
+                )}
+                <button
+                  onClick={() => { setBookmarkTarget(selected); setSelected(null); }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-[13px] transition-all ${bookmarks[selected.id] ? 'border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-border text-muted-foreground hover:bg-muted'}`}
+                >
+                  {bookmarks[selected.id]
+                    ? <><BookmarkCheck size={14} /> Bookmarked</>
+                    : <><Bookmark size={14} /> Bookmark</>}
+                </button>
+              </div>
             )}
             {role === 'Admin' && (
               <div className="flex gap-3">
@@ -302,6 +346,21 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
           </div>
         )}
       </Modal>
+
+      {/* ── Bookmark Notes Modal ─────────────────────────────────────── */}
+      {bookmarkTarget && (
+        <BookmarkNotesModal
+          open={!!bookmarkTarget}
+          fundingCallId={bookmarkTarget.id}
+          fundingCallTitle={bookmarkTarget.title}
+          initialNotes={bookmarks[bookmarkTarget.id]?.notes ?? ''}
+          onClose={() => setBookmarkTarget(null)}
+          onSuccess={(bm) => {
+            setBookmarks(prev => ({ ...prev, [bookmarkTarget.id]: bm }));
+            setBookmarkTarget(null);
+          }}
+        />
+      )}
 
       {/* ── Edit Funding Call Modal ───────────────────────────────────── */}
       <Modal
