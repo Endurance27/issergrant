@@ -29,17 +29,23 @@ import {
   FinanceCalendarPage, FinanceSettingsPage,
 } from "./finance/FinanceRoutes";
 import { useAuthContext, roleToBasePath } from "../context/AuthContext";
+import { useAuthStore } from "../../store/auth.store";
+import { ROLE_BASE_PATH } from "../../types/user.types";
 import type { Role } from "../data/mockData";
 
 function RootRedirect() {
-  const { loggedIn, currentRole } = useAuthContext();
-  if (!loggedIn) return <Navigate to="/login" replace />;
-  return <Navigate to={roleToBasePath(currentRole) + '/dashboard'} replace />;
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userRole = useAuthStore((s) => s.user?.role ?? null);
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  const basePath = userRole ? (ROLE_BASE_PATH[userRole] ?? '/login') : '/login';
+  return <Navigate to={`${basePath}/dashboard`} replace />;
 }
 
 // Redirects to the correct dashboard immediately after login
 function LoginRoute() {
-  const { loggedIn, currentRole, handleLogin } = useAuthContext();
+  const { handleLogin } = useAuthContext();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userRole = useAuthStore((s) => s.user?.role ?? null);
   const navigate = useNavigate();
 
   const onLogin = useCallback((role: Role) => {
@@ -47,8 +53,9 @@ function LoginRoute() {
     navigate(roleToBasePath(role) + '/dashboard', { replace: true });
   }, [handleLogin, navigate]);
 
-  if (loggedIn) {
-    return <Navigate to={roleToBasePath(currentRole) + '/dashboard'} replace />;
+  if (isAuthenticated) {
+    const basePath = userRole ? (ROLE_BASE_PATH[userRole] ?? '/login') : '/login';
+    return <Navigate to={`${basePath}/dashboard`} replace />;
   }
 
   return <LoginPage onLogin={onLogin} />;

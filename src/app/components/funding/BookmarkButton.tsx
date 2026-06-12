@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Bookmark, BookmarkCheck, Loader2 } from 'lucide-react'
 import { useBookmarkGrantCall } from '../../../hooks/useBookmarkGrantCall'
-import { useAuthContext } from '../../context/AuthContext'
+import { useAuthStore } from '../../../store/auth.store'
 import { useToast } from '../ui/Toast'
 import type { LocalBookmark } from '../../../types/bookmark.types'
 
@@ -24,7 +24,7 @@ export function BookmarkButton({
   onToggle,
   size = 'md',
 }: BookmarkButtonProps) {
-  const { currentUserId } = useAuthContext()
+  const currentUserId = useAuthStore((s) => s.user?.id ?? '')
   const { bookmarkGrantCall, loading } = useBookmarkGrantCall()
   const { toast } = useToast()
 
