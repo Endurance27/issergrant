@@ -7,8 +7,18 @@ import type {
 } from '../../gql/graphql';
 
 const CREATE_USER_MUTATION: DocumentNode = gql`
-  mutation CreateUser($name: String!, $email: String!, $role: String!, $department: String!) {
-    createUser(name: $name, email: $email, role: $role, department: $department) {
+  mutation CreateUser(
+    $name: String!
+    $email: String!
+    $role: String!
+    $department: String!
+  ) {
+    createUser(
+      name: $name
+      email: $email
+      role: $role
+      department: $department
+    ) {
       id
       name
       email
@@ -22,8 +32,22 @@ const CREATE_USER_MUTATION: DocumentNode = gql`
 `;
 
 const UPDATE_USER_MUTATION: DocumentNode = gql`
-  mutation UpdateUser($id: ID!, $name: String, $email: String, $role: String, $status: String, $department: String) {
-    updateUser(id: $id, name: $name, email: $email, role: $role, status: $status, department: $department) {
+  mutation UpdateUser(
+    $id: ID!
+    $name: String
+    $email: String
+    $role: String
+    $status: String
+    $department: String
+  ) {
+    updateUser(
+      id: $id
+      name: $name
+      email: $email
+      role: $role
+      status: $status
+      department: $department
+    ) {
       id
       name
       email
@@ -35,10 +59,25 @@ const UPDATE_USER_MUTATION: DocumentNode = gql`
     }
   }
 `;
+const SIGN_IN_MUTATION: DocumentNode = gql`
+  mutation SignIn($content: SignInContent) {
+    signIn(content: $content) {
+      accessToken
+      account_type
+      email
+      id
+    }
+  }
+`;
 
-export async function createUser(variables: CreateUserVariables): Promise<User | null> {
+export async function createUser(
+  variables: CreateUserVariables,
+): Promise<User | null> {
   try {
-    const { data } = await client.mutate<{ createUser: User }, CreateUserVariables>({
+    const { data } = await client.mutate<
+      { createUser: User },
+      CreateUserVariables
+    >({
       mutation: CREATE_USER_MUTATION,
       variables,
     });
@@ -49,9 +88,14 @@ export async function createUser(variables: CreateUserVariables): Promise<User |
   }
 }
 
-export async function updateUser(variables: UpdateUserVariables): Promise<User | null> {
+export async function updateUser(
+  variables: UpdateUserVariables,
+): Promise<User | null> {
   try {
-    const { data } = await client.mutate<{ updateUser: User }, UpdateUserVariables>({
+    const { data } = await client.mutate<
+      { updateUser: User },
+      UpdateUserVariables
+    >({
       mutation: UPDATE_USER_MUTATION,
       variables,
     });
@@ -61,3 +105,5 @@ export async function updateUser(variables: UpdateUserVariables): Promise<User |
     return null;
   }
 }
+
+export { SIGN_IN_MUTATION };

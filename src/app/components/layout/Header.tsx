@@ -8,6 +8,7 @@ const roleColors: Record<Role, string> = {
   'Researcher': 'var(--primary)',
   'Assistant Researcher': '#B79A64',
   'Finance Officer': '#403C3A',
+  'Director': '#1A5276',
 };
 
 interface HeaderProps {

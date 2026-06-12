@@ -1,4 +1,4 @@
-export type Role = 'Admin' | 'Researcher' | 'Assistant Researcher' | 'Finance Officer';
+export type Role = 'Admin' | 'Researcher' | 'Assistant Researcher' | 'Finance Officer' | 'Director';
 export type StatusBadge = 'Draft' | 'Submitted' | 'Under Review' | 'Approved' | 'Rejected' | 'Paid' | 'Pending' | 'Active' | 'Suspended' | 'Open' | 'Closed' | 'Locked' | 'Revised';
 
 export interface User {
@@ -116,6 +116,11 @@ export const currentUsers: Record<Role, User> = {
     id: 5, name: 'Ms. Fatima Al-Rashid', email: 'fatima.rashid@iser.edu', role: 'Finance Officer',
     status: 'Active', department: 'Finance & Accounts', joined: '2023-01-08',
     avatar: 'FA'
+  },
+  'Director': {
+    id: 6, name: 'Prof. Emmanuel Asante', email: 'e.asante@iser.edu', role: 'Director',
+    status: 'Active', department: 'Research Directorate', joined: '2022-07-01',
+    avatar: 'EA'
   },
 };
 

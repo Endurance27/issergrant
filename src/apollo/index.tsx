@@ -4,16 +4,17 @@ import {
   HttpLink,
   ApolloLink,
   CombinedGraphQLErrors,
-} from '@apollo/client';
-import { ApolloProvider } from '@apollo/client/react';
-import { ErrorLink } from '@apollo/client/link/error';
-import React from 'react';
-import { useAuthStore } from '../store/auth.store';
+} from "@apollo/client";
+import { ApolloProvider } from "@apollo/client/react";
+import { ErrorLink } from "@apollo/client/link/error";
+import React from "react";
+import { useAuthStore } from "../store/auth.store";
 
 // Use Vercel proxy in production to avoid mixed content (HTTP vs HTTPS)
 // In development, call the GraphQL server directly
-const GRAPHQL_URI = import.meta.env.VITE_GRAPHQL_URL ??
-  (import.meta.env.PROD ? '/api/graphql' : 'http://197.255.123.247/graphql');
+// const GRAPHQL_URI = import.meta.env.VITE_GRAPHQL_URL ??
+//   (import.meta.env.PROD ? '/api/graphql' : 'http://197.255.123.247/graphql');
+const GRAPHQL_URI = "http://197.255.123.247/graphql";
 
 const httpLink = new HttpLink({
   uri: GRAPHQL_URI,
@@ -29,12 +30,14 @@ const httpLink = new HttpLink({
  */
 const authLink = new ApolloLink((operation, forward) => {
   const token = useAuthStore.getState().accessToken;
-  operation.setContext(({ headers = {} }: { headers?: Record<string, string> }) => ({
-    headers: {
-      ...headers,
-      Authorization: token ? `Bearer ${token}` : '',
-    },
-  }));
+  operation.setContext(
+    ({ headers = {} }: { headers?: Record<string, string> }) => ({
+      headers: {
+        ...headers,
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    }),
+  );
   return forward(operation);
 });
 
@@ -46,7 +49,7 @@ const errorLink = new ErrorLink(({ error }) => {
   if (CombinedGraphQLErrors.is(error)) {
     error.errors.forEach(({ message, locations, path }) => {
       console.error(
-        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
+        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
       );
     });
   } else {
@@ -64,9 +67,5 @@ interface ApolloClientProviderProps {
 }
 
 export function ApolloClientProvider({ children }: ApolloClientProviderProps) {
-  return (
-    <ApolloProvider client={client}>
-      {children}
-    </ApolloProvider>
-  );
+  return <ApolloProvider client={client}>{children}</ApolloProvider>;
 }

@@ -1,0 +1,22 @@
+{
+  "admin": {
+    "email": "admin@admin.com",
+    "password": "1234"
+  },
+  "researcher": {
+    "email": "researcher001@email.com",
+    "password": "x2k9(#8g7!UC"
+  },
+  "financeOfficer": {
+    "email": "financeofficer001@email.com",
+    "password": "i!GGEKCZmKX!"
+  },
+  "director": {
+    "email": "director001@email.com",
+    "password": "@u$y3oLANLDu"
+  },
+  "assistantResearcher": {
+    "email": "asssistantreseacher001@mail.com",
+    "password": "DZ15NgOvPk3g"
+  }
+}

@@ -16,24 +16,47 @@
  * (name on inputs, role/text on buttons) — no extra data-cy hooks required.
  */
 
+/**
+ * Log in as Admin using the real login form.
+ * The beforeEach intercept stubs the sign-in mutation and sets req.alias='signIn',
+ * so cy.wait('@signIn') resolves once the mocked response is received.
+ */
+function loginAsAdmin() {
+  cy.visit('/login');
+  cy.get('[data-testid="email-input"]').type('admin@admin.com');
+  cy.get('[data-testid="password-input"]').type('1234');
+  cy.get('[data-testid="login-button"]').click();
+  cy.wait('@signIn');
+  cy.location('pathname', { timeout: 10000 }).should('eq', '/admin/dashboard');
+}
+
 describe('Admin user sign-up (Add User flow)', () => {
   beforeEach(() => {
-    // Reset the auth state so the Supabase session from a previous run
-    // doesn't bypass the login form.
-    cy.clearCookies()
-    cy.clearLocalStorage()
+    // Reset the auth state so no leftover session bleeds into this test.
+    cy.clearCookies();
+    cy.clearLocalStorage();
+
+    // Stub the Supabase REST call that fetches users on mount of UserManagementPage.
+    // Without this, a slow Supabase response can arrive after the first user is
+    // added to local state and overwrite it, causing the duplicate-email guard to
+    // miss the newly-created user.
+    cy.intercept(
+      'GET',
+      'https://pavkifpdanbpnzlxoyqi.supabase.co/rest/v1/users*',
+      { statusCode: 200, body: [] },
+    ).as('fetchUsers');
 
     // Stub the createUser GraphQL mutation so the test is hermetic and
     // doesn't depend on a live backend. The stub mirrors the shape of the
     // real `createUser` resolver defined in src/gql/mutations/createUser.ts.
     cy.intercept('POST', '**/graphql', (req) => {
-      const { body } = req
+      const { body } = req;
       if (
         body?.operationName === 'CreateUser' ||
         /mutation\s+CreateUser\b/.test(body?.query ?? '')
       ) {
-        const input = body?.variables?.input ?? {}
-        req.alias = 'createUser'
+        const input = body?.variables?.input ?? {};
+        req.alias = 'createUser';
         req.reply({
           statusCode: 200,
           body: {
@@ -56,38 +79,53 @@ describe('Admin user sign-up (Add User flow)', () => {
               },
             },
           },
-        })
-        return
+        });
+        return;
       }
-      // Pass through any unrelated GraphQL calls (e.g. the initial users fetch).
-      req.continue()
-    }).as('graphql')
-  })
+
+      // Stub the sign-in mutation so login is hermetic.
+      if (
+        body?.operationName === 'SignIn' ||
+        /mutation.*\bsignIn\b/i.test(body?.query ?? '')
+      ) {
+        req.alias = 'signIn';
+        req.reply({
+          statusCode: 200,
+          body: {
+            data: {
+              signIn: {
+                id: 'admin-001',
+                email: 'admin@admin.com',
+                account_type: 'admin',
+                accessToken: 'mock-admin-token',
+              },
+            },
+          },
+        });
+        return;
+      }
+
+      // Pass through any other GraphQL calls (e.g. users list fetch).
+      req.continue();
+    }).as('graphql');
+  });
 
   it('should sign in as Admin and land on the admin dashboard', () => {
-    cy.visit('/login')
-
-    // The LoginPage has a quick-demo section with role buttons. Click the "Admin" one.
-    cy.contains('button', 'Admin').click()
-
-    cy.location('pathname', { timeout: 10000 }).should('eq', '/admin/dashboard')
-  })
+    loginAsAdmin();
+  });
 
   it('should allow an Admin to sign up a new Researcher and show the temporary password', () => {
-    // --- Sign in as Admin ---------------------------------------------------
-    cy.visit('/login')
-    cy.contains('button', 'Admin').click()
-    cy.location('pathname').should('eq', '/admin/dashboard')
+    loginAsAdmin();
 
     // --- Navigate to User Management ---------------------------------------
-    cy.contains('button', 'Team Members').click()
-    cy.location('pathname').should('eq', '/admin/users')
+    cy.contains('button', 'Team Members').click();
+    cy.location('pathname').should('eq', '/admin/users');
 
     // --- Open the Add User modal -------------------------------------------
-    cy.contains('button', 'Add User').click()
+    cy.contains('button', 'Add User').click();
 
     // Modal title is rendered by the Modal component as an <h2>.
-    cy.get('h2').contains('Add New User').should('be.visible')
+    cy.get('h2').contains('Add New User').should('be.visible');
 
     // --- Fill the form ------------------------------------------------------
     const newUser = {
@@ -95,79 +133,74 @@ describe('Admin user sign-up (Add User flow)', () => {
       email: `ama.boateng+${Date.now()}@iser.edu`,
       staffId: 'ISER-2042',
       phone: '+233 244 555 111',
-    }
+    };
 
-    cy.get('input[name="name"]').clear().type(newUser.name)
-    cy.get('input[name="email"]').clear().type(newUser.email)
-    cy.get('input[name="staffId"]').clear().type(newUser.staffId)
-    cy.get('input[name="phoneContact"]').clear().type(newUser.phone)
+    cy.get('input[name="name"]').clear().type(newUser.name);
+    cy.get('input[name="email"]').clear().type(newUser.email);
+    cy.get('input[name="staffId"]').clear().type(newUser.staffId);
+    cy.get('input[name="phoneContact"]').clear().type(newUser.phone);
     // Role is restricted to ['Researcher', 'Finance Officer'] by the page.
-    cy.get('select[name="role"]').select('Researcher')
+    cy.get('select[name="role"]').select('Researcher');
 
     // --- Submit and wait for the GraphQL mutation --------------------------
-    cy.contains('button', 'Create User').click()
-    cy.wait('@createUser')
+    cy.contains('button', 'Create User').click();
+    cy.wait('@createUser');
 
     // --- Assert: the TemporaryPasswordModal appears with the temp password
-    cy.get('h2').contains('User Created Successfully').should('be.visible')
-    cy.contains('Ama Boateng').should('be.visible')
-    cy.contains(newUser.email).should('be.visible')
-    cy.contains('Tmp#9kQ2xvR').should('be.visible')
+    cy.get('h2').contains('User Created Successfully').should('be.visible');
+    cy.contains('Ama Boateng').should('be.visible');
+    cy.contains(newUser.email).should('be.visible');
+    cy.contains('Tmp#9kQ2xvR').should('be.visible');
 
     // Close the modal and assert the new user is in the table.
-    cy.contains('button', 'Close').click()
+    cy.contains('button', 'Close').click();
 
     // The table renders the new user's name + email in a single <tr>.
     cy.contains('tr', newUser.name).within(() => {
-      cy.contains(newUser.email).should('be.visible')
-      cy.contains('Researcher').should('be.visible')
-      cy.contains('Active').should('be.visible')
-    })
-  })
+      cy.contains(newUser.email).should('be.visible');
+      cy.contains('Researcher').should('be.visible');
+      cy.contains('Active').should('be.visible');
+    });
+  });
 
   it('should reject a duplicate email with a friendly error', () => {
-    const existingEmail = `existing+${Date.now()}@iser.edu`
+    const existingEmail = `existing+${Date.now()}@iser.edu`;
 
-    // Sign in and create the first user.
-    cy.visit('/login')
-    cy.contains('button', 'Admin').click()
-    cy.location('pathname').should('eq', '/admin/dashboard')
+    loginAsAdmin();
 
-    cy.contains('button', 'Team Members').click()
-    cy.location('pathname').should('eq', '/admin/users')
+    cy.contains('button', 'Team Members').click();
+    cy.location('pathname').should('eq', '/admin/users');
 
-    cy.contains('button', 'Add User').click()
-    cy.get('input[name="name"]').type('First Try')
-    cy.get('input[name="email"]').type(existingEmail)
-    cy.get('input[name="staffId"]').type('ISER-1001')
-    cy.get('input[name="phoneContact"]').type('+233 200 000 000')
-    cy.contains('button', 'Create User').click()
-    cy.wait('@createUser')
+    cy.contains('button', 'Add User').click();
+    cy.get('input[name="name"]').type('First Try');
+    cy.get('input[name="email"]').type(existingEmail);
+    cy.get('input[name="staffId"]').type('ISER-1001');
+    cy.get('input[name="phoneContact"]').type('+233 200 000 000');
+    cy.contains('button', 'Create User').click();
+    cy.wait('@createUser');
 
-    cy.get('h2').contains('User Created Successfully').should('be.visible')
-    cy.contains('button', 'Close').click()
+    cy.get('h2').contains('User Created Successfully').should('be.visible');
+    cy.contains('button', 'Close').click();
 
     // Second attempt with the same email — the page-level guard should fire
     // BEFORE the mutation is dispatched.
-    cy.contains('button', 'Add User').click()
-    cy.get('input[name="name"]').type('Second Try')
-    cy.get('input[name="email"]').type(existingEmail)
-    cy.get('input[name="staffId"]').type('ISER-1002')
-    cy.get('input[name="phoneContact"]').type('+233 200 000 001')
-    cy.contains('button', 'Create User').click()
+    cy.contains('button', 'Add User').click();
+    cy.get('input[name="name"]').type('Second Try');
+    cy.get('input[name="email"]').type(existingEmail);
+    cy.get('input[name="staffId"]').type('ISER-1002');
+    cy.get('input[name="phoneContact"]').type('+233 200 000 001');
+    cy.contains('button', 'Create User').click();
 
-    cy.contains('A user with this email already exists.').should('be.visible')
-  })
+    cy.contains('A user with this email already exists.').should('be.visible');
+  });
 
   it('should show validation errors for required fields', () => {
-    cy.visit('/login')
-    cy.contains('button', 'Admin').click()
-    cy.location('pathname').should('eq', '/admin/dashboard')
+    loginAsAdmin();
 
-    cy.contains('button', 'Team Members').click()
-    cy.location('pathname').should('eq', '/admin/users')
+    cy.contains('button', 'Team Members').click();
+    cy.location('pathname').should('eq', '/admin/users');
 
-    cy.contains('button', 'Add User').click()
+    cy.contains('button', 'Add User').click();
 
     // Touch each required field by typing then clearing, then blur.
     const requiredFields = [
@@ -175,30 +208,28 @@ describe('Admin user sign-up (Add User flow)', () => {
       { name: 'email', message: 'Email is required' },
       { name: 'staffId', message: 'Staff ID is required' },
       { name: 'phoneContact', message: 'Phone contact is required' },
-    ]
+    ];
 
     requiredFields.forEach(({ name, message }) => {
-      cy.get(`input[name="${name}"]`).type('x')
-      cy.get(`input[name="${name}"]`).clear()
-      cy.get(`input[name="${name}"]`).blur()
+      cy.get(`input[name="${name}"]`).type('x');
+      cy.get(`input[name="${name}"]`).clear();
+      cy.get(`input[name="${name}"]`).blur();
       // The error is rendered as a <p> right under the input.
-      cy.contains('p', message).should('be.visible')
-    })
-  })
+      cy.contains('p', message).should('be.visible');
+    });
+  });
 
   it('should show an invalid-email error when the email format is wrong', () => {
-    cy.visit('/login')
-    cy.contains('button', 'Admin').click()
-    cy.location('pathname').should('eq', '/admin/dashboard')
+    loginAsAdmin();
 
-    cy.contains('button', 'Team Members').click()
-    cy.location('pathname').should('eq', '/admin/users')
+    cy.contains('button', 'Team Members').click();
+    cy.location('pathname').should('eq', '/admin/users');
 
-    cy.contains('button', 'Add User').click()
-    cy.get('input[name="name"]').type('Bad Email User')
-    cy.get('input[name="email"]').type('not-an-email').blur()
+    cy.contains('button', 'Add User').click();
+    cy.get('input[name="name"]').type('Bad Email User');
+    cy.get('input[name="email"]').type('not-an-email').blur();
 
     // The error should appear immediately after blur, before filling other fields.
-    cy.contains('p', 'Invalid email address').should('be.visible')
-  })
-})
+    cy.contains('p', 'Invalid email address').should('be.visible');
+  });
+});

@@ -22,6 +22,7 @@ export type DisplayRole =
   | 'Researcher'
   | 'Assistant Researcher'
   | 'Finance Officer'
+  | 'Director'
 
 /** Map backend enum → display label */
 export const ROLE_DISPLAY: Record<string, DisplayRole> = {
@@ -29,6 +30,7 @@ export const ROLE_DISPLAY: Record<string, DisplayRole> = {
   researcher: 'Researcher',
   assistant_researcher: 'Assistant Researcher',
   finance_officer: 'Finance Officer',
+  director: 'Director',
 }
 
 /** Map display label → backend enum */
@@ -37,6 +39,7 @@ export const ROLE_ENUM: Record<DisplayRole, string> = {
   Researcher: 'researcher',
   'Assistant Researcher': 'assistant_researcher',
   'Finance Officer': 'finance_officer',
+  Director: 'director',
 }
 
 /** Role-to-base-path mapping for routing */
@@ -45,4 +48,5 @@ export const ROLE_BASE_PATH: Record<string, string> = {
   researcher: '/researcher',
   assistant_researcher: '/assistant',
   finance_officer: '/finance',
+  director: '/director',
 }

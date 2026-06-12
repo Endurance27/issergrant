@@ -1,11 +1,11 @@
-import { defineConfig } from "cypress";
+import { defineConfig } from 'cypress';
 
 export default defineConfig({
   allowCypressEnv: false,
 
   e2e: {
-    baseUrl: "http://localhost:5174",
-    specPattern: "cypress/e2e/**/*.spec.cy.{js,jsx,ts,tsx}",
+    baseUrl: 'http://localhost:5173',
+    specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
     setupNodeEvents(on, config) {
       // implement node event listeners here
     },
@@ -13,8 +13,8 @@ export default defineConfig({
 
   component: {
     devServer: {
-      framework: "react",
-      bundler: "vite",
+      framework: 'react',
+      bundler: 'vite',
     },
   },
 });

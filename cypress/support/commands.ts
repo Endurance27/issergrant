@@ -1,52 +1,33 @@
 /// <reference types="cypress" />
-// ***********************************************
-// This example commands.ts shows you how to
-// create various custom commands and overwrite
-// existing commands.
-//
-// For more comprehensive examples of custom
-// commands please read more here:
-// https://on.cypress.io/custom-commands
-// ***********************************************
-//
-//
-// -- This is a parent command --
-// Cypress.Commands.add('login', (email, password) => { ... })
-//
-//
-// -- This is a child command --
-// Cypress.Commands.add('drag', { prevSubject: 'element'}, (subject, options) => { ... })
-//
-//
-// -- This is a dual command --
-// Cypress.Commands.add('dismiss', { prevSubject: 'optional'}, (subject, options) => { ... })
-//
-//
-// -- This will overwrite an existing command --
-// Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
-//
-// declare global {
-//   namespace Cypress {
-//     interface Chainable {
-//       login(email: string, password: string): Chainable<void>
-//       drag(subject: string, options?: Partial<TypeOptions>): Chainable<Element>
-//       dismiss(subject: string, options?: Partial<TypeOptions>): Chainable<Element>
-//       visit(originalFn: CommandOriginalFn, url: string, options: Partial<VisitOptions>): Chainable<Element>
-//     }
-//   }
-// }
 
 import '@testing-library/cypress/add-commands';
-Cypress.Commands.add('graphql', (query, variables = {}) => {
+
+declare global {
+  namespace Cypress {
+    interface Chainable {
+      login(email: string, password: string): Chainable<void>;
+      graphql(query: string, variables?: Record<string, unknown>): Chainable<Cypress.Response<unknown>>;
+    }
+  }
+}
+
+const GRAPHQL_URL = 'http://197.255.123.247/graphql';
+
+Cypress.Commands.add('graphql', (query: string, variables = {}) => {
   cy.request({
     method: 'POST',
-    url: Cypress.env('GRAPHQL_URL'), // replace with your GraphQL endpoint
-    body: {
-      query,
-      variables,
-    },
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    url: GRAPHQL_URL,
+    body: { query, variables },
+    headers: { 'Content-Type': 'application/json' },
   });
+});
+
+Cypress.Commands.add('login', (email: string, password: string) => {
+  cy.visit('/login');
+  cy.get('[data-testid="email-input"]').type(email);
+  cy.get('[data-testid="password-input"]').type(password);
+  cy.intercept('POST', '**/graphql').as('signInMutation');
+  cy.get('[data-testid="login-button"]').click();
+  cy.wait('@signInMutation');
+  cy.url().should('not.include', '/login');
 });

@@ -119,6 +119,26 @@ export interface UpdateUserVariables {
   department?: string;
 }
 
+export interface SignInContent {
+  email: string;
+  password: string;
+}
+
+export interface SignInVariables {
+  content: SignInContent;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  accessToken: string;
+  account_type: UserRoleEnum;
+}
+
+export interface SignInResponse {
+  signIn: AuthUser;
+}
+
 export interface CreateProposalVariables {
   title: string;
   grantCallId: string;
@@ -133,10 +153,10 @@ export interface UpdateProposalVariables {
 }
 
 // Frontend display roles
-export type UserRole = 'Admin' | 'Researcher' | 'Assistant Researcher' | 'Finance Officer'
+export type UserRole = 'Admin' | 'Researcher' | 'Assistant Researcher' | 'Finance Officer' | 'Director'
 
 // Backend GraphQL enum values (lowercase)
-export type UserRoleEnum = 'admin' | 'researcher' | 'assistant_researcher' | 'finance_officer'
+export type UserRoleEnum = 'admin' | 'researcher' | 'assistant_researcher' | 'finance_officer' | 'director'
 
 export interface CreateUserInput {
   name: string

@@ -1,40 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
-import { ArrowRight, CheckCircle2, TrendingUp, Clock, Award, X } from "lucide-react";
-import { supabase } from "../../../lib/supabase";
+import { ArrowRight, CheckCircle2, TrendingUp, Clock, Award, X, Eye, EyeOff } from "lucide-react";
 import { loginSchema } from "../../../schemas/auth.schema";
 import type { LoginFormValues } from "../../../types/forms";
 import { IsserLogo } from "../ui/IsserLogo";
-import { useAuthStore } from "../../../store/auth.store";
-import { ROLE_BASE_PATH, ROLE_ENUM } from "../../../types/user.types";
-import type { User, DisplayRole } from "../../../types/user.types";
-
-// ─── Demo account data ────────────────────────────────────────────────────────
-
-type DemoRole = DisplayRole
-
-const roleColors: Record<DemoRole, string> = {
-  'Admin': 'var(--primary)',
-  'Researcher': '#2D6EA8',
-  'Assistant Researcher': '#B79A64',
-  'Finance Officer': '#403C3A',
-};
-
-const demoAccounts: { role: DemoRole; email: string; hint: string }[] = [
-  { role: 'Admin',              email: 'sarah.ahmad@iser.edu',    hint: 'System administrator' },
-  { role: 'Researcher',         email: 'james.okonkwo@iser.edu',  hint: 'Principal Investigator' },
-  { role: 'Assistant Researcher', email: 'chen.wei@iser.edu',     hint: 'Research assistant' },
-  { role: 'Finance Officer',    email: 'fatima.rashid@iser.edu',  hint: 'Finance & Accounts' },
-];
-
-/** Email → backend enum role */
-const roleByEmail: Record<string, string> = {
-  'sarah.ahmad@iser.edu':    'admin',
-  'james.okonkwo@iser.edu':  'researcher',
-  'chen.wei@iser.edu':       'assistant_researcher',
-  'fatima.rashid@iser.edu':  'finance_officer',
-};
+import { ROLE_BASE_PATH } from "../../../types/user.types";
+import { useLogin } from "../../../hooks";
 
 // ─── Visuals ──────────────────────────────────────────────────────────────────
 
@@ -55,113 +27,42 @@ const GLASS = {
 const GLASS_CARD_TEXT = { color: 'rgba(255,255,255,0.95)' };
 const GLASS_SUB = { color: 'rgba(255,255,255,0.6)' };
 
-// ─── Helper — navigate by backend enum role ───────────────────────────────────
-
 function dashboardPathForRole(enumRole: string): string {
   const base = ROLE_BASE_PATH[enumRole] ?? '/login';
   return `${base}/dashboard`;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-/**
- * LoginPage is now self-contained:
- *  • Calls `useAuthStore().login()` after a successful auth
- *  • Navigates automatically based on `user.role` (backend enum)
- *  • No `onLogin` prop required from the parent
- */
 export function LoginPage() {
   const navigate = useNavigate();
-  const storeLogin = useAuthStore((s) => s.login);
+  const { login, loading } = useLogin();
 
-  const SHARED_EMAIL = 'smensah03@ug.edu.gh';
-  const SHARED_PASSWORD = 'Blessing1';
-
+  const [showPassword, setShowPassword] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // ── Shared login logic ────────────────────────────────────────────────────
-
-  const commitLogin = (enumRole: string, userId: string, email: string, accessToken: string) => {
-    const user: User = {
-      id: userId,
-      authUserId: userId,
-      name: email.split('@')[0].replace(/\./g, ' '),
-      email,
-      role: enumRole,
-      status: 'Active',
-      department: '',
-      staffId: '',
-      phoneContact: '',
-      avatar: null,
-      lastLogin: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // ── DEBUG (remove before production) ─────────────────────────────────
-    console.log('🔐 Login committed');
-    console.log('Current User:', user);
-    console.log('Role:', user.role);
-    console.log('Authenticated:', true);
-    // ─────────────────────────────────────────────────────────────────────
-
-    storeLogin(user, accessToken);
-    navigate(dashboardPathForRole(enumRole), { replace: true });
-  };
-
-  // ── Formik ───────────────────────────────────────────────────────────────
-
   const formik = useFormik<LoginFormValues>({
-    initialValues: { email: SHARED_EMAIL, password: '' },
+    initialValues: { email: '', password: '' },
     validationSchema: loginSchema,
     onSubmit: async (values, { setSubmitting }) => {
       setLoginError('');
-      const emailLower = values.email.toLowerCase();
-      const enumRole = roleByEmail[emailLower] ?? 'researcher';
-
       try {
-        // Attempt real Supabase auth first
-        const { data, error: authError } = await supabase.auth.signInWithPassword({
-          email: SHARED_EMAIL,
-          password: SHARED_PASSWORD,
-        });
-
-        if (!authError && data.session) {
-          commitLogin(
-            enumRole,
-            data.session.user.id,
-            values.email,
-            data.session.access_token
-          );
+        const authUser = await login({ email: values.email, password: values.password });
+        if (authUser) {
+          navigate(dashboardPathForRole(authUser.account_type), { replace: true });
         } else {
-          // Supabase not wired yet — fall back to demo mode
-          commitLogin(enumRole, `demo-${enumRole}`, values.email, '');
+          setLoginError('Invalid email or password. Please try again.');
         }
       } catch {
-        commitLogin(enumRole, `demo-${enumRole}`, values.email, '');
+        setLoginError('An unexpected error occurred. Please try again.');
       } finally {
         setSubmitting(false);
       }
     },
   });
 
-  // ── Quick-login buttons ───────────────────────────────────────────────────
-
-  const quickLogin = (displayRole: DemoRole) => {
-    setLoginError('');
-    formik.setSubmitting(true);
-    const enumRole = ROLE_ENUM[displayRole];
-    const acc = demoAccounts.find((a) => a.role === displayRole)!;
-    setTimeout(() => {
-      commitLogin(enumRole, `demo-${enumRole}`, acc.email, '');
-      formik.setSubmitting(false);
-    }, 400);
-  };
-
-  // ─── Render ───────────────────────────────────────────────────────────────
+  const isSubmitting = formik.isSubmitting || loading;
 
   return (
     <div className="h-screen flex bg-background overflow-hidden">
@@ -278,9 +179,9 @@ export function LoginPage() {
         {/* Stats */}
         <div className="relative space-y-2">
           {[
-            { stat: '247',      label: 'Research Projects Funded' },
+            { stat: '247',       label: 'Research Projects Funded' },
             { stat: 'GHS 12.4M', label: 'Total Grants Awarded' },
-            { stat: '94%',      label: 'Researcher Satisfaction' },
+            { stat: '94%',       label: 'Researcher Satisfaction' },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-4 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <span className="font-black text-[20px] min-w-[72px]" style={{ color: '#B79A64' }}>{item.stat}</span>
@@ -303,75 +204,75 @@ export function LoginPage() {
           </div>
 
           {loginError && (
-            <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px] flex items-center gap-2">
+            <div data-testid="login-error" className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px] flex items-center gap-2">
               <X size={14} className="flex-shrink-0" />
               {loginError}
             </div>
           )}
 
-          <div className="space-y-4">
+          <form onSubmit={formik.handleSubmit} noValidate className="space-y-4">
             <div>
               <label className="block font-semibold text-[13px] text-foreground mb-2">Email Address</label>
               <input
                 type="email"
                 name="email"
+                autoComplete="email"
+                data-testid="email-input"
                 value={formik.values.email}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
+                placeholder="you@institution.edu"
                 className="w-full px-4 py-3 rounded-xl outline-none transition-all bg-card text-sm text-foreground border border-border focus:border-primary/50"
-                onKeyDown={e => e.key === 'Enter' && formik.handleSubmit()}
               />
               {formik.touched.email && formik.errors.email && (
                 <p className="text-xs text-red-500 mt-1">{formik.errors.email}</p>
               )}
             </div>
+
+            <div>
+              <label className="block font-semibold text-[13px] text-foreground mb-2">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  autoComplete="current-password"
+                  data-testid="password-input"
+                  value={formik.values.password}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  placeholder="Enter your password"
+                  className="w-full px-4 py-3 pr-11 rounded-xl outline-none transition-all bg-card text-sm text-foreground border border-border focus:border-primary/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {formik.touched.password && formik.errors.password && (
+                <p className="text-xs text-red-500 mt-1">{formik.errors.password}</p>
+              )}
+            </div>
+
             <button
               type="submit"
-              onClick={() => formik.handleSubmit()}
-              disabled={formik.isSubmitting}
+              data-testid="login-button"
+              disabled={isSubmitting}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white transition-all font-bold text-sm disabled:opacity-50"
               style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}
             >
-              {formik.isSubmitting ? 'Signing in…' : <><span>Sign In</span><ArrowRight size={16} /></>}
+              {isSubmitting ? 'Signing in…' : <><span>Sign In</span><ArrowRight size={16} /></>}
             </button>
-          </div>
-
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">or quick demo access</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          {/* Demo account buttons */}
-          <div className="grid grid-cols-2 gap-2">
-            {demoAccounts.map(acc => (
-              <button
-                key={acc.role}
-                onClick={() => quickLogin(acc.role)}
-                disabled={formik.isSubmitting}
-                className="p-3 rounded-xl text-left transition-all border border-border bg-card hover:shadow-sm disabled:opacity-50"
-                onMouseEnter={e => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.borderColor = roleColors[acc.role] === 'var(--primary)' ? 'var(--primary)' : roleColors[acc.role];
-                  el.style.background = (roleColors[acc.role] === 'var(--primary)' ? '#1A3363' : roleColors[acc.role]) + '10';
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLElement;
-                  el.style.borderColor = 'var(--border)';
-                  el.style.background = 'var(--card)';
-                }}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="rounded-full inline-block w-2 h-2" style={{ background: roleColors[acc.role] }} />
-                  <span className="font-bold text-xs text-foreground">{acc.role}</span>
-                </div>
-                <div className="text-[11px] text-muted-foreground">{acc.hint}</div>
-              </button>
-            ))}
-          </div>
+          </form>
 
           {/* Forgot password */}
-          <button onClick={() => setShowForgot(true)} className="mt-6 w-full text-center text-[13px] text-muted-foreground hover:text-primary transition-colors">
+          <button
+            onClick={() => setShowForgot(true)}
+            className="mt-6 w-full text-center text-[13px] text-muted-foreground hover:text-primary transition-colors"
+          >
             Forgot your password?
           </button>
 
@@ -384,8 +285,20 @@ export function LoginPage() {
                   <>
                     <h3 className="font-extrabold text-lg text-foreground mb-1">Reset Password</h3>
                     <p className="text-[13px] text-muted-foreground mb-4">Enter your institutional email and we'll send a reset link.</p>
-                    <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="you@iser.edu" className="w-full px-4 py-3 rounded-xl outline-none bg-muted border border-border text-sm text-foreground mb-3" />
-                    <button onClick={() => { if (forgotEmail) setForgotSent(true); }} className="w-full py-3 rounded-xl text-white font-bold text-sm" style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}>Send Reset Link</button>
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)}
+                      placeholder="you@institution.edu"
+                      className="w-full px-4 py-3 rounded-xl outline-none bg-muted border border-border text-sm text-foreground mb-3"
+                    />
+                    <button
+                      onClick={() => { if (forgotEmail) setForgotSent(true); }}
+                      className="w-full py-3 rounded-xl text-white font-bold text-sm"
+                      style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}
+                    >
+                      Send Reset Link
+                    </button>
                   </>
                 ) : (
                   <div className="text-center py-4">

@@ -6,6 +6,11 @@ import { AdminLayout } from "./admin/AdminLayout";
 import { ResearcherLayout } from "./researcher/ResearcherLayout";
 import { AssistantLayout } from "./assistant/AssistantLayout";
 import { FinanceLayout } from "./finance/FinanceLayout";
+import { DirectorLayout } from "./director/DirectorLayout";
+import {
+  DirectorDashboard, DirectorReportsPage, DirectorAnalyticsPage,
+  DirectorNotificationsPage, DirectorCalendarPage,
+} from "./director/DirectorRoutes";
 import {
   AdminDashboardPage, AdminGrantCallsPage, AdminProposalsPage,
   AdminAwardsPage, AdminMilestonesPage, AdminFinancialPage,
@@ -132,6 +137,18 @@ export function AppRoutes() {
           <Route path="notifications" element={<FinanceNotificationsPage />} />
           <Route path="calendar"      element={<FinanceCalendarPage />} />
           <Route path="settings"      element={<FinanceSettingsPage />} />
+        </Route>
+      </Route>
+
+      {/* Director — backend enum: "director" */}
+      <Route element={<ProtectedRoute allowedRoles={["director"]} />}>
+        <Route path="/director" element={<DirectorLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard"     element={<DirectorDashboard />} />
+          <Route path="reports"       element={<DirectorReportsPage />} />
+          <Route path="analytics"     element={<DirectorAnalyticsPage />} />
+          <Route path="notifications" element={<DirectorNotificationsPage />} />
+          <Route path="calendar"      element={<DirectorCalendarPage />} />
         </Route>
       </Route>
 
