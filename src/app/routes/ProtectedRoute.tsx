@@ -1,37 +1,59 @@
 /**
- * Route-level protected route — now powered by Zustand.
- * Kept in src/app/routes/ for the existing AppRoutes wiring.
- * The canonical version at src/app/components/auth/ProtectedRoute.tsx
- * uses the `roles` array API; this one preserves the `allowedRole` prop
- * so existing <Route element={<ProtectedRoute allowedRole="Admin" />}> calls
- * keep working without touching every route definition.
+ * Route-level ProtectedRoute — powered entirely by Zustand.
+ *
+ * Behaviour:
+ *   1. !isAuthenticated  → /login
+ *   2. role mismatch     → /unauthorized
+ *   3. authorised        → <Outlet />
+ *
+ * Usage (backend enum strings):
+ *   <ProtectedRoute allowedRoles={["admin"]} />
+ *   <ProtectedRoute allowedRoles={["researcher"]} />
+ *   <ProtectedRoute allowedRoles={["assistant_researcher"]} />
+ *   <ProtectedRoute allowedRoles={["finance_officer"]} />
+ *
+ * The legacy single-string prop `allowedRole` (DisplayRole) is also
+ * supported for backwards compatibility with existing route definitions.
  */
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth.store'
-import { ROLE_DISPLAY, ROLE_BASE_PATH } from '../../types/user.types'
+import { ROLE_ENUM } from '../../types/user.types'
 import type { DisplayRole } from '../../types/user.types'
 
 interface ProtectedRouteProps {
-  allowedRole: DisplayRole
+  /** Backend enum roles, e.g. ["admin"] */
+  allowedRoles?: string[]
+  /** Legacy display-label prop, e.g. "Admin" — converted to enum internally */
+  allowedRole?: DisplayRole
 }
 
-export function ProtectedRoute({ allowedRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ allowedRoles, allowedRole }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const userRole = useAuthStore((s) => s.user?.role ?? null)
 
+  // ── 1. Not logged in ────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
 
-  // Convert backend enum role to display label for comparison
-  const displayRole: DisplayRole | null = userRole
-    ? (ROLE_DISPLAY[userRole] ?? null)
-    : null
+  // ── Build the allowed set (supports both API styles) ───────────────────
+  const allowed: string[] = [
+    ...(allowedRoles ?? []),
+    ...(allowedRole ? [ROLE_ENUM[allowedRole]] : []),
+  ]
 
-  if (displayRole !== allowedRole) {
-    const basePath = userRole ? (ROLE_BASE_PATH[userRole] ?? '/login') : '/login'
-    return <Navigate to={`${basePath}/dashboard`} replace />
+  // ── 2. Role not permitted ───────────────────────────────────────────────
+  if (allowed.length > 0 && userRole && !allowed.includes(userRole)) {
+    return <Navigate to="/unauthorized" replace />
   }
 
+  // ── DEBUG (dev only — remove before going live) ─────────────────────────
+  if (import.meta.env.DEV) {
+    console.log('[ProtectedRoute] Authenticated:', isAuthenticated)
+    console.log('[ProtectedRoute] User role:', userRole)
+    console.log('[ProtectedRoute] Allowed:', allowed)
+  }
+
+  // ── 3. Authorised ──────────────────────────────────────────────────────
   return <Outlet />
 }
