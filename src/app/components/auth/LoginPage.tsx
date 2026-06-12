@@ -1,32 +1,42 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import { ArrowRight, CheckCircle2, TrendingUp, Clock, Award, X } from "lucide-react";
-import type { Role } from "../../data/mockData";
-import { IsserLogo } from "../ui/IsserLogo";
 import { supabase } from "../../../lib/supabase";
 import { loginSchema } from "../../../schemas/auth.schema";
 import type { LoginFormValues } from "../../../types/forms";
+import { IsserLogo } from "../ui/IsserLogo";
+import { useAuthStore } from "../../../store/auth.store";
+import { ROLE_BASE_PATH, ROLE_ENUM } from "../../../types/user.types";
+import type { User, DisplayRole } from "../../../types/user.types";
 
-const roleColors: Record<Role, string> = {
+// ─── Demo account data ────────────────────────────────────────────────────────
+
+type DemoRole = DisplayRole
+
+const roleColors: Record<DemoRole, string> = {
   'Admin': 'var(--primary)',
   'Researcher': '#2D6EA8',
   'Assistant Researcher': '#B79A64',
   'Finance Officer': '#403C3A',
 };
 
-const demoAccounts: { role: Role; email: string; password: string; hint: string }[] = [
-  { role: 'Admin', email: 'sarah.ahmad@iser.edu', password: 'Admin1234!', hint: 'System administrator' },
-  { role: 'Researcher', email: 'james.okonkwo@iser.edu', password: 'Research1234!', hint: 'Principal Investigator' },
-  { role: 'Assistant Researcher', email: 'chen.wei@iser.edu', password: 'Assist1234!', hint: 'Research assistant' },
-  { role: 'Finance Officer', email: 'fatima.rashid@iser.edu', password: 'Finance1234!', hint: 'Finance & Accounts' },
+const demoAccounts: { role: DemoRole; email: string; hint: string }[] = [
+  { role: 'Admin',              email: 'sarah.ahmad@iser.edu',    hint: 'System administrator' },
+  { role: 'Researcher',         email: 'james.okonkwo@iser.edu',  hint: 'Principal Investigator' },
+  { role: 'Assistant Researcher', email: 'chen.wei@iser.edu',     hint: 'Research assistant' },
+  { role: 'Finance Officer',    email: 'fatima.rashid@iser.edu',  hint: 'Finance & Accounts' },
 ];
 
-const roleByEmail: Record<string, Role> = {
-  'sarah.ahmad@iser.edu': 'Admin',
-  'james.okonkwo@iser.edu': 'Researcher',
-  'chen.wei@iser.edu': 'Assistant Researcher',
-  'fatima.rashid@iser.edu': 'Finance Officer',
+/** Email → backend enum role */
+const roleByEmail: Record<string, string> = {
+  'sarah.ahmad@iser.edu':    'admin',
+  'james.okonkwo@iser.edu':  'researcher',
+  'chen.wei@iser.edu':       'assistant_researcher',
+  'fatima.rashid@iser.edu':  'finance_officer',
 };
+
+// ─── Visuals ──────────────────────────────────────────────────────────────────
 
 const PHOTOS = [
   'https://picsum.photos/seed/labscience/800/600',
@@ -45,118 +55,152 @@ const GLASS = {
 const GLASS_CARD_TEXT = { color: 'rgba(255,255,255,0.95)' };
 const GLASS_SUB = { color: 'rgba(255,255,255,0.6)' };
 
-interface LoginPageProps {
-  onLogin: (role: Role) => void;
+// ─── Helper — navigate by backend enum role ───────────────────────────────────
+
+function dashboardPathForRole(enumRole: string): string {
+  const base = ROLE_BASE_PATH[enumRole] ?? '/login';
+  return `${base}/dashboard`;
 }
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+// ─── Component ────────────────────────────────────────────────────────────────
+
+/**
+ * LoginPage is now self-contained:
+ *  • Calls `useAuthStore().login()` after a successful auth
+ *  • Navigates automatically based on `user.role` (backend enum)
+ *  • No `onLogin` prop required from the parent
+ */
+export function LoginPage() {
+  const navigate = useNavigate();
+  const storeLogin = useAuthStore((s) => s.login);
+
   const SHARED_EMAIL = 'smensah03@ug.edu.gh';
   const SHARED_PASSWORD = 'Blessing1';
 
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  // ── Shared login logic ────────────────────────────────────────────────────
+
+  const commitLogin = (enumRole: string, userId: string, email: string, accessToken: string) => {
+    const user: User = {
+      id: userId,
+      authUserId: userId,
+      name: email.split('@')[0].replace(/\./g, ' '),
+      email,
+      role: enumRole,
+      status: 'Active',
+      department: '',
+      staffId: '',
+      phoneContact: '',
+      avatar: null,
+      lastLogin: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // ── DEBUG (remove before production) ─────────────────────────────────
+    console.log('🔐 Login committed');
+    console.log('Current User:', user);
+    console.log('Role:', user.role);
+    console.log('Authenticated:', true);
+    // ─────────────────────────────────────────────────────────────────────
+
+    storeLogin(user, accessToken);
+    navigate(dashboardPathForRole(enumRole), { replace: true });
+  };
+
+  // ── Formik ───────────────────────────────────────────────────────────────
 
   const formik = useFormik<LoginFormValues>({
     initialValues: { email: SHARED_EMAIL, password: '' },
     validationSchema: loginSchema,
-    onSubmit: async (values) => {
+    onSubmit: async (values, { setSubmitting }) => {
+      setLoginError('');
+      const emailLower = values.email.toLowerCase();
+      const enumRole = roleByEmail[emailLower] ?? 'researcher';
+
       try {
-        const { error: authError } = await supabase.auth.signInWithPassword({ email: SHARED_EMAIL, password: SHARED_PASSWORD });
-        if (authError) {
-          // Supabase auth not configured — fall through to local demo login
+        // Attempt real Supabase auth first
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+          email: SHARED_EMAIL,
+          password: SHARED_PASSWORD,
+        });
+
+        if (!authError && data.session) {
+          commitLogin(
+            enumRole,
+            data.session.user.id,
+            values.email,
+            data.session.access_token
+          );
+        } else {
+          // Supabase not wired yet — fall back to demo mode
+          commitLogin(enumRole, `demo-${enumRole}`, values.email, '');
         }
-        const role: Role = roleByEmail[values.email.toLowerCase()] ?? 'Researcher';
-        onLogin(role);
       } catch {
-        const role: Role = roleByEmail[values.email.toLowerCase()] ?? 'Researcher';
-        onLogin(role);
+        commitLogin(enumRole, `demo-${enumRole}`, values.email, '');
+      } finally {
+        setSubmitting(false);
       }
     },
   });
 
-  const quickLogin = (role: Role) => {
+  // ── Quick-login buttons ───────────────────────────────────────────────────
+
+  const quickLogin = (displayRole: DemoRole) => {
+    setLoginError('');
     formik.setSubmitting(true);
-    setTimeout(() => { formik.setSubmitting(false); onLogin(role); }, 500);
+    const enumRole = ROLE_ENUM[displayRole];
+    const acc = demoAccounts.find((a) => a.role === displayRole)!;
+    setTimeout(() => {
+      commitLogin(enumRole, `demo-${enumRole}`, acc.email, '');
+      formik.setSubmitting(false);
+    }, 400);
   };
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       <style>{`
-        @keyframes float-a {
-          0%, 100% { transform: translateY(0px) rotate(-1deg); }
-          50%       { transform: translateY(-16px) rotate(1deg); }
-        }
-        @keyframes float-b {
-          0%, 100% { transform: translateY(0px) rotate(1deg); }
-          50%       { transform: translateY(-10px) rotate(-1deg); }
-        }
-        @keyframes float-c {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50%       { transform: translateY(-20px) rotate(1.5deg); }
-        }
-        @keyframes float-d {
-          0%, 100% { transform: translateY(0px) rotate(-0.5deg); }
-          50%       { transform: translateY(-12px) rotate(0.5deg); }
-        }
-        @keyframes drift-in {
-          from { opacity: 0; transform: translateY(24px) scale(0.95); }
-          to   { opacity: 1; transform: translateY(0)    scale(1); }
-        }
-        @keyframes photo-zoom {
-          from { transform: scale(1.08); }
-          to   { transform: scale(1); }
-        }
-        .card-a { animation: float-a 5s ease-in-out infinite; }
-        .card-b { animation: float-b 6s ease-in-out infinite 0.8s; }
-        .card-c { animation: float-c 7s ease-in-out infinite 1.6s; }
-        .card-d { animation: float-d 5.5s ease-in-out infinite 0.4s; }
-        .drift-in-1 { animation: drift-in 0.6s ease-out 0.1s both; }
-        .drift-in-2 { animation: drift-in 0.6s ease-out 0.3s both; }
-        .drift-in-3 { animation: drift-in 0.6s ease-out 0.5s both; }
-        .drift-in-4 { animation: drift-in 0.6s ease-out 0.7s both; }
-        .photo-zoom  { animation: photo-zoom 1.2s ease-out both; }
+        @keyframes float-a { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-16px) rotate(1deg)} }
+        @keyframes float-b { 0%,100%{transform:translateY(0) rotate(1deg)}  50%{transform:translateY(-10px) rotate(-1deg)} }
+        @keyframes float-c { 0%,100%{transform:translateY(0) rotate(0)}     50%{transform:translateY(-20px) rotate(1.5deg)} }
+        @keyframes float-d { 0%,100%{transform:translateY(0) rotate(-0.5deg)} 50%{transform:translateY(-12px) rotate(0.5deg)} }
+        @keyframes drift-in { from{opacity:0;transform:translateY(24px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes photo-zoom { from{transform:scale(1.08)} to{transform:scale(1)} }
+        .card-a{animation:float-a 5s ease-in-out infinite}
+        .card-b{animation:float-b 6s ease-in-out infinite 0.8s}
+        .card-c{animation:float-c 7s ease-in-out infinite 1.6s}
+        .card-d{animation:float-d 5.5s ease-in-out infinite 0.4s}
+        .drift-in-1{animation:drift-in 0.6s ease-out 0.1s both}
+        .drift-in-2{animation:drift-in 0.6s ease-out 0.3s both}
+        .drift-in-3{animation:drift-in 0.6s ease-out 0.5s both}
+        .drift-in-4{animation:drift-in 0.6s ease-out 0.7s both}
+        .photo-zoom{animation:photo-zoom 1.2s ease-out both}
       `}</style>
 
-      {/* ── Left panel ── */}
+      {/* ── Left panel ─────────────────────────────────────────────────── */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden h-full">
-
-        {/* Layer 1 — photo mosaic */}
         <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[2px]">
           {PHOTOS.map((src, i) => (
             <div key={i} className="overflow-hidden relative min-h-0">
-              <img
-                src={src}
-                alt=""
-                className="photo-zoom w-full h-full object-cover block"
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
+              <img src={src} alt="" className="photo-zoom w-full h-full object-cover block" style={{ animationDelay: `${i * 0.15}s` }} />
             </div>
           ))}
         </div>
-
-        {/* Layer 2 — blue brand overlay */}
-        <div className="absolute inset-0" style={{
-          background: 'linear-gradient(135deg, rgba(26,51,99,0.92) 0%, rgba(18,40,80,0.88) 50%, rgba(26,51,99,0.94) 100%)',
-        }} />
-
-        {/* Layer 3 — subtle grid on top of overlay */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg,rgba(26,51,99,0.92) 0%,rgba(18,40,80,0.88) 50%,rgba(26,51,99,0.94) 100%)' }} />
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="lgrid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
-            </pattern>
-          </defs>
+          <defs><pattern id="lgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/></pattern></defs>
           <rect width="100%" height="100%" fill="url(#lgrid)" />
         </svg>
 
-        {/* Layer 4 — content */}
-
-        {/* Top: logo + headline */}
+        {/* Logo + headline */}
         <div className="relative">
-          <div className="flex items-center mb-10">
-            <IsserLogo height={100} />
-          </div>
+          <div className="flex items-center mb-10"><IsserLogo height={100} /></div>
           <h1 className="font-black text-[34px] text-white leading-snug mb-3">
             Manage your<br />research grants<br /><span style={{ color: '#B79A64' }}>with precision.</span>
           </h1>
@@ -165,10 +209,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </p>
         </div>
 
-        {/* Middle: floating UI preview cards */}
+        {/* Floating preview cards */}
         <div className="relative flex-1 my-8 min-h-[220px]">
-
-          {/* Card 1 — Proposal approved (top-left) */}
           <div className="card-a drift-in-1 absolute" style={{ ...GLASS, top: 0, left: 0, padding: '14px 16px', width: 230 }}>
             <div className="flex items-center gap-2.5 mb-2">
               <div className="flex items-center justify-center rounded-full shrink-0 size-[28px]" style={{ background: 'rgba(34,197,94,0.25)' }}>
@@ -186,7 +228,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </div>
           </div>
 
-          {/* Card 2 — Disbursement progress (right side) */}
           <div className="card-b drift-in-2 absolute" style={{ ...GLASS, top: 16, right: 0, padding: '14px 16px', width: 210 }}>
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center justify-center rounded-full shrink-0 size-[26px]" style={{ background: 'rgba(183,154,100,0.3)' }}>
@@ -196,7 +237,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </div>
             <div className="text-[11px] mb-1.5" style={GLASS_SUB}>Nanoparticle Research</div>
             <div className="rounded-full overflow-hidden mb-1.5 h-[5px]" style={{ background: 'rgba(255,255,255,0.15)' }}>
-              <div className="h-full rounded-full" style={{ width: '65%', background: 'linear-gradient(to right, #60A5FA, #93C5FD)' }} />
+              <div className="h-full rounded-full" style={{ width: '65%', background: 'linear-gradient(to right,#60A5FA,#93C5FD)' }} />
             </div>
             <div className="flex justify-between">
               <span className="text-[10px]" style={GLASS_SUB}>65% released</span>
@@ -204,7 +245,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </div>
           </div>
 
-          {/* Card 3 — Milestone (bottom-left) */}
           <div className="card-c drift-in-3 absolute" style={{ ...GLASS, bottom: 0, left: 20, padding: '14px 16px', width: 200 }}>
             <div className="flex items-center gap-2 mb-2">
               <div className="flex items-center justify-center rounded-full shrink-0 size-[26px]" style={{ background: 'rgba(251,146,60,0.25)' }}>
@@ -220,7 +260,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </div>
           </div>
 
-          {/* Card 4 — Approval rate (bottom-right) */}
           <div className="card-d drift-in-4 absolute" style={{ ...GLASS, bottom: 10, right: 10, padding: '12px 16px', width: 160 }}>
             <div className="flex items-center gap-2 mb-1">
               <Award size={13} style={{ color: '#F0C674' }} />
@@ -236,12 +275,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </div>
         </div>
 
-        {/* Bottom: stats */}
+        {/* Stats */}
         <div className="relative space-y-2">
           {[
-            { stat: '247', label: 'Research Projects Funded' },
+            { stat: '247',      label: 'Research Projects Funded' },
             { stat: 'GHS 12.4M', label: 'Total Grants Awarded' },
-            { stat: '94%', label: 'Researcher Satisfaction' },
+            { stat: '94%',      label: 'Researcher Satisfaction' },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-4 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <span className="font-black text-[20px] min-w-[72px]" style={{ color: '#B79A64' }}>{item.stat}</span>
@@ -251,7 +290,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </div>
       </div>
 
-      {/* ── Right panel (login form) ── */}
+      {/* ── Right panel (form) ──────────────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-md">
           <div className="flex items-center mb-8 lg:hidden">
@@ -260,8 +299,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
           <div className="mb-8">
             <h2 className="font-extrabold text-[26px] text-foreground leading-snug mb-1.5">Sign in to your account</h2>
-            <p className="text-sm text-muted-foreground">Use your email to access the portal</p>
+            <p className="text-sm text-muted-foreground">Use your institutional email to access the portal</p>
           </div>
+
+          {loginError && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px] flex items-center gap-2">
+              <X size={14} className="flex-shrink-0" />
+              {loginError}
+            </div>
+          )}
 
           <div className="space-y-4">
             <div>
@@ -272,7 +318,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 value={formik.values.email}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className="w-full px-4 py-3 rounded-xl outline-none transition-all bg-card text-sm text-foreground border border-border"
+                className="w-full px-4 py-3 rounded-xl outline-none transition-all bg-card text-sm text-foreground border border-border focus:border-primary/50"
                 onKeyDown={e => e.key === 'Enter' && formik.handleSubmit()}
               />
               {formik.touched.email && formik.errors.email && (
@@ -284,8 +330,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               onClick={() => formik.handleSubmit()}
               disabled={formik.isSubmitting}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white transition-all font-bold text-sm disabled:opacity-50"
-              style={{ background: formik.isSubmitting ? '#90A8C4' : 'var(--primary)', cursor: formik.isSubmitting ? 'not-allowed' : 'pointer' }}>
-              {formik.isSubmitting ? 'Signing in...' : <><span>Sign In</span><ArrowRight size={16} /></>}
+              style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}
+            >
+              {formik.isSubmitting ? 'Signing in…' : <><span>Sign In</span><ArrowRight size={16} /></>}
             </button>
           </div>
 
@@ -295,7 +342,39 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          {/* Forgot Password modal */}
+          {/* Demo account buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            {demoAccounts.map(acc => (
+              <button
+                key={acc.role}
+                onClick={() => quickLogin(acc.role)}
+                disabled={formik.isSubmitting}
+                className="p-3 rounded-xl text-left transition-all border border-border bg-card hover:shadow-sm disabled:opacity-50"
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = roleColors[acc.role] === 'var(--primary)' ? 'var(--primary)' : roleColors[acc.role];
+                  el.style.background = (roleColors[acc.role] === 'var(--primary)' ? '#1A3363' : roleColors[acc.role]) + '10';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = 'var(--border)';
+                  el.style.background = 'var(--card)';
+                }}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="rounded-full inline-block w-2 h-2" style={{ background: roleColors[acc.role] }} />
+                  <span className="font-bold text-xs text-foreground">{acc.role}</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">{acc.hint}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Forgot password */}
+          <button onClick={() => setShowForgot(true)} className="mt-6 w-full text-center text-[13px] text-muted-foreground hover:text-primary transition-colors">
+            Forgot your password?
+          </button>
+
           {showForgot && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowForgot(false)}>
               <div className="absolute inset-0 bg-black/40" />
@@ -312,29 +391,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   <div className="text-center py-4">
                     <CheckCircle2 size={40} className="mx-auto mb-3 text-green-500" />
                     <h3 className="font-extrabold text-lg text-foreground mb-2">Email Sent!</h3>
-                    <p className="text-[13px] text-muted-foreground">Check <strong>{forgotEmail}</strong> for the password reset link.</p>
+                    <p className="text-[13px] text-muted-foreground">Check <strong>{forgotEmail}</strong> for the reset link.</p>
                     <button onClick={() => setShowForgot(false)} className="mt-4 text-[13px] font-semibold text-primary hover:opacity-75 transition-opacity">Back to Login</button>
                   </div>
                 )}
               </div>
             </div>
           )}
-
-          <div className="grid grid-cols-2 gap-2">
-            {demoAccounts.map(acc => (
-              <button
-                key={acc.role} onClick={() => quickLogin(acc.role)} disabled={formik.isSubmitting}
-                className="p-3 rounded-xl text-left transition-all border border-border bg-card hover:shadow-sm"
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = roleColors[acc.role] === 'var(--primary)' ? 'var(--primary)' : roleColors[acc.role]; (e.currentTarget as HTMLElement).style.background = (roleColors[acc.role] === 'var(--primary)' ? '#1A3363' : roleColors[acc.role]) + '10'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--card)'; }}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="rounded-full inline-block w-2 h-2" style={{ background: roleColors[acc.role] }} />
-                  <span className="font-bold text-xs text-foreground">{acc.role}</span>
-                </div>
-                <div className="text-[11px] text-muted-foreground">{acc.hint}</div>
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </div>

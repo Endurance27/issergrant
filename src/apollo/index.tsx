@@ -8,6 +8,7 @@ import {
 import { ApolloProvider } from '@apollo/client/react';
 import { ErrorLink } from '@apollo/client/link/error';
 import React from 'react';
+import { useAuthStore } from '../store/auth.store';
 
 // Use Vercel proxy in production to avoid mixed content (HTTP vs HTTPS)
 // In development, call the GraphQL server directly
@@ -18,21 +19,35 @@ const httpLink = new HttpLink({
   uri: GRAPHQL_URI,
 });
 
+/**
+ * Auth link — reads the access token directly from the Zustand store's
+ * persisted localStorage entry on every request so it is always current.
+ *
+ * We read from the store state (not a React hook) because Apollo links run
+ * outside of the React render cycle. `useAuthStore.getState()` is the
+ * Zustand escape-hatch for imperative / non-hook access.
+ */
 const authLink = new ApolloLink((operation, forward) => {
-  const token = localStorage.getItem('auth_token');
+  const token = useAuthStore.getState().accessToken;
   operation.setContext(({ headers = {} }: { headers?: Record<string, string> }) => ({
     headers: {
       ...headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: token ? `Bearer ${token}` : '',
     },
   }));
   return forward(operation);
 });
 
+/**
+ * Error link — logs GraphQL and network errors to the console.
+ * In production this could be replaced with a Sentry/Datadog reporter.
+ */
 const errorLink = new ErrorLink(({ error }) => {
   if (CombinedGraphQLErrors.is(error)) {
     error.errors.forEach(({ message, locations, path }) => {
-      console.error(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
+      console.error(
+        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
+      );
     });
   } else {
     console.error(`[Network error]: ${error}`);

@@ -1,6 +1,6 @@
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { useCallback } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPage } from "../components/auth/LoginPage";
+import { UnauthorizedPage } from "../components/auth/UnauthorizedPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminLayout } from "./admin/AdminLayout";
 import { ResearcherLayout } from "./researcher/ResearcherLayout";
@@ -28,102 +28,110 @@ import {
   FinanceReportsPage, FinanceAnalyticsPage, FinanceNotificationsPage,
   FinanceCalendarPage, FinanceSettingsPage,
 } from "./finance/FinanceRoutes";
-import { useAuthContext, roleToBasePath } from "../context/AuthContext";
-import type { Role } from "../data/mockData";
+import { useAuthStore } from "../../store/auth.store";
+import { ROLE_BASE_PATH } from "../../types/user.types";
 
+// ── Root redirect — reads Zustand, no Context ─────────────────────────────────
 function RootRedirect() {
-  const { loggedIn, currentRole } = useAuthContext();
-  if (!loggedIn) return <Navigate to="/login" replace />;
-  return <Navigate to={roleToBasePath(currentRole) + '/dashboard'} replace />;
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userRole = useAuthStore((s) => s.user?.role ?? null);
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  const basePath = userRole ? (ROLE_BASE_PATH[userRole] ?? '/login') : '/login';
+  return <Navigate to={`${basePath}/dashboard`} replace />;
 }
 
-// Redirects to the correct dashboard immediately after login
+// ── Login route — if already authenticated, skip to dashboard ────────────────
 function LoginRoute() {
-  const { loggedIn, currentRole, handleLogin } = useAuthContext();
-  const navigate = useNavigate();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userRole = useAuthStore((s) => s.user?.role ?? null);
 
-  const onLogin = useCallback((role: Role) => {
-    handleLogin(role);
-    navigate(roleToBasePath(role) + '/dashboard', { replace: true });
-  }, [handleLogin, navigate]);
-
-  if (loggedIn) {
-    return <Navigate to={roleToBasePath(currentRole) + '/dashboard'} replace />;
+  if (isAuthenticated) {
+    const basePath = userRole ? (ROLE_BASE_PATH[userRole] ?? '/login') : '/login';
+    return <Navigate to={`${basePath}/dashboard`} replace />;
   }
 
-  return <LoginPage onLogin={onLogin} />;
+  // LoginPage is now self-contained — no onLogin prop needed
+  return <LoginPage />;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Route tree
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function AppRoutes() {
   return (
     <Routes>
+      {/* Public */}
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* Admin routes */}
-      <Route element={<ProtectedRoute allowedRole="Admin" />}>
+      {/* Admin — backend enum: "admin" */}
+      <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<AdminDashboardPage />} />
-          <Route path="grant-calls" element={<AdminGrantCallsPage />} />
-          <Route path="proposals" element={<AdminProposalsPage />} />
-          <Route path="awards" element={<AdminAwardsPage />} />
-          <Route path="milestones" element={<AdminMilestonesPage />} />
-          <Route path="financial" element={<AdminFinancialPage />} />
-          <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="dashboard"     element={<AdminDashboardPage />} />
+          <Route path="grant-calls"   element={<AdminGrantCallsPage />} />
+          <Route path="proposals"     element={<AdminProposalsPage />} />
+          <Route path="awards"        element={<AdminAwardsPage />} />
+          <Route path="milestones"    element={<AdminMilestonesPage />} />
+          <Route path="financial"     element={<AdminFinancialPage />} />
+          <Route path="reports"       element={<AdminReportsPage />} />
           <Route path="notifications" element={<AdminNotificationsPage />} />
-          <Route path="analytics" element={<AdminAnalyticsPage />} />
-          <Route path="users" element={<AdminUsersPage />} />
-          <Route path="audit" element={<AdminAuditPage />} />
-          <Route path="calendar" element={<AdminCalendarPage />} />
-          <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="analytics"     element={<AdminAnalyticsPage />} />
+          <Route path="users"         element={<AdminUsersPage />} />
+          <Route path="audit"         element={<AdminAuditPage />} />
+          <Route path="calendar"      element={<AdminCalendarPage />} />
+          <Route path="settings"      element={<AdminSettingsPage />} />
         </Route>
       </Route>
 
-      {/* Researcher routes */}
-      <Route element={<ProtectedRoute allowedRole="Researcher" />}>
+      {/* Researcher — backend enum: "researcher" */}
+      <Route element={<ProtectedRoute allowedRoles={["researcher"]} />}>
         <Route path="/researcher" element={<ResearcherLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<ResearcherDashboardPage />} />
-          <Route path="grant-calls" element={<ResearcherGrantCallsPage />} />
-          <Route path="proposals" element={<ResearcherProposalsPage />} />
-          <Route path="awards" element={<ResearcherAwardsPage />} />
-          <Route path="milestones" element={<ResearcherMilestonesPage />} />
-          <Route path="reports" element={<ResearcherReportsPage />} />
+          <Route path="dashboard"     element={<ResearcherDashboardPage />} />
+          <Route path="grant-calls"   element={<ResearcherGrantCallsPage />} />
+          <Route path="proposals"     element={<ResearcherProposalsPage />} />
+          <Route path="awards"        element={<ResearcherAwardsPage />} />
+          <Route path="milestones"    element={<ResearcherMilestonesPage />} />
+          <Route path="reports"       element={<ResearcherReportsPage />} />
           <Route path="notifications" element={<ResearcherNotificationsPage />} />
-          <Route path="calendar" element={<ResearcherCalendarPage />} />
-          <Route path="settings" element={<ResearcherSettingsPage />} />
-          <Route path="users" element={<ResearcherTeamMembersPage />} />
+          <Route path="calendar"      element={<ResearcherCalendarPage />} />
+          <Route path="settings"      element={<ResearcherSettingsPage />} />
+          <Route path="users"         element={<ResearcherTeamMembersPage />} />
         </Route>
       </Route>
 
-      {/* Assistant Researcher routes */}
-      <Route element={<ProtectedRoute allowedRole="Assistant Researcher" />}>
+      {/* Assistant Researcher — backend enum: "assistant_researcher" */}
+      <Route element={<ProtectedRoute allowedRoles={["assistant_researcher"]} />}>
         <Route path="/assistant" element={<AssistantLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<AssistantDashboardPage />} />
-          <Route path="grant-calls" element={<AssistantGrantCallsPage />} />
-          <Route path="proposals" element={<AssistantProposalsPage />} />
-          <Route path="milestones" element={<AssistantMilestonesPage />} />
-          <Route path="reports" element={<AssistantReportsPage />} />
+          <Route path="dashboard"     element={<AssistantDashboardPage />} />
+          <Route path="grant-calls"   element={<AssistantGrantCallsPage />} />
+          <Route path="proposals"     element={<AssistantProposalsPage />} />
+          <Route path="milestones"    element={<AssistantMilestonesPage />} />
+          <Route path="reports"       element={<AssistantReportsPage />} />
           <Route path="notifications" element={<AssistantNotificationsPage />} />
-          <Route path="calendar" element={<AssistantCalendarPage />} />
-          <Route path="settings" element={<AssistantSettingsPage />} />
+          <Route path="calendar"      element={<AssistantCalendarPage />} />
+          <Route path="settings"      element={<AssistantSettingsPage />} />
         </Route>
       </Route>
 
-      {/* Finance Officer routes */}
-      <Route element={<ProtectedRoute allowedRole="Finance Officer" />}>
+      {/* Finance Officer — backend enum: "finance_officer" */}
+      <Route element={<ProtectedRoute allowedRoles={["finance_officer"]} />}>
         <Route path="/finance" element={<FinanceLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<FinanceDashboardPage />} />
-          <Route path="awards" element={<FinanceAwardsPage />} />
-          <Route path="financial" element={<FinanceFinancialPage />} />
-          <Route path="reports" element={<FinanceReportsPage />} />
-          <Route path="analytics" element={<FinanceAnalyticsPage />} />
+          <Route path="dashboard"     element={<FinanceDashboardPage />} />
+          <Route path="awards"        element={<FinanceAwardsPage />} />
+          <Route path="financial"     element={<FinanceFinancialPage />} />
+          <Route path="reports"       element={<FinanceReportsPage />} />
+          <Route path="analytics"     element={<FinanceAnalyticsPage />} />
           <Route path="notifications" element={<FinanceNotificationsPage />} />
-          <Route path="calendar" element={<FinanceCalendarPage />} />
-          <Route path="settings" element={<FinanceSettingsPage />} />
+          <Route path="calendar"      element={<FinanceCalendarPage />} />
+          <Route path="settings"      element={<FinanceSettingsPage />} />
         </Route>
       </Route>
 

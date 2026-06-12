@@ -3,7 +3,7 @@ import { useFormik } from 'formik'
 import { Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react'
 import { createProposalSchema } from '../../../schemas/proposal.schema'
 import { useCreateProposal } from '../../../hooks/useCreateProposal'
-import { useAuthContext } from '../../context/AuthContext'
+import { useAuthStore } from '../../../store/auth.store'
 import { useToast } from '../ui/Toast'
 import { supabase } from '../../../lib/supabase'
 import type { CreateProposalFormValues } from '../../../types/proposal.types'
@@ -47,7 +47,7 @@ export function CreateProposalForm({
   onSuccess,
   onCancel,
 }: CreateProposalFormProps) {
-  const { currentUserId } = useAuthContext()
+  const currentUserId = useAuthStore((s) => s.user?.id ?? '')
   const { createProposal, loading } = useCreateProposal()
   const { toast } = useToast()
 

@@ -1,7 +1,7 @@
 import { useFormik } from 'formik'
 import { Modal } from '../ui/Modal'
 import { useToast } from '../ui/Toast'
-import { useAuthContext } from '../../context/AuthContext'
+import { useAuthStore } from '../../../store/auth.store'
 import { useCreateAssistantResearcher } from '../../../hooks/useCreateAssistantResearcher'
 import { assistantResearcherSchema } from '../../../schemas/assistantResearcher.schema'
 
@@ -31,9 +31,10 @@ interface AssistantResearcherFormProps {
 }
 
 export function AssistantResearcherForm({ open, onClose }: AssistantResearcherFormProps) {
-  const { currentRole } = useAuthContext()
-  // AuthContext does not expose a user id; use placeholder for now
-  const assignedTo = 'current-researcher'
+  const currentUser = useAuthStore((s) => s.user)
+  const currentRole = currentUser?.role ?? 'researcher'
+  // Auto-bind the logged-in researcher's real ID from Zustand
+  const assignedTo = currentUser?.id ?? 'current-researcher'
 
   const { toast } = useToast()
   const { createAssistantResearcher, loading, error } = useCreateAssistantResearcher()
