@@ -14,8 +14,8 @@ import { useAuthStore } from "../store/auth.store";
 // In development, call the GraphQL server directly
 // const GRAPHQL_URI = import.meta.env.VITE_GRAPHQL_URL ??
 //   (import.meta.env.PROD ? '/api/graphql' : 'http://197.255.123.247/graphql');
-// const GRAPHQL_URI = "http://197.255.123.247/graphql";
-const GRAPHQL_URI = "http://localhost:8095/graphql";
+const GRAPHQL_URI = "http://197.255.123.247/graphql";
+// const GRAPHQL_URI = "http://localhost:8095/graphql";
 
 const httpLink = new HttpLink({
   uri: GRAPHQL_URI,
