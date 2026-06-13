@@ -1,180 +1,222 @@
-// Domain interfaces
+/* eslint-disable */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core';
+export type Account_Type =
+  | 'admin'
+  | 'assistant_researcher'
+  | 'director'
+  | 'finance_officer'
+  | 'researcher';
 
-export interface User {
-  id: string;
-  name: string;
+export type AssignmentType =
+  | 'milestone'
+  | 'project'
+  | 'proposal'
+  | 'report';
+
+export type CreateAssistantUserContent = {
+  assignedTo: string | number;
+  assignmentType?: AssignmentType | null | undefined;
+  department: string;
   email: string;
-  role: string;
-  status: string;
-  department: string;
-  joined: string;
-  avatar?: string;
-}
-
-export interface GrantCall {
-  id: string;
-  title: string;
-  deadline: string;
-  totalBudget: number;
-  applications: number;
-  status: string;
-  category: string;
-  description: string;
-  eligibility: string;
-}
-
-export interface Proposal {
-  id: string;
-  title: string;
-  researcher: string;
-  grantCallId: string;
-  status: string;
-  requestedAmount: number;
-  department: string;
-}
-
-export interface Award {
-  id: string;
-  title: string;
-  researcher: string;
-  awardedAmount: number;
-  status: string;
-}
-
-export interface Milestone {
-  id: string;
-  title: string;
-  projectTitle: string;
-  dueDate: string;
-  status: string;
-  researcher: string;
-}
-
-export interface Transaction {
-  id: string;
-  type: string;
-  amount: number;
-  date: string;
-  status: string;
-  description: string;
-}
-
-// Query variable types
-
-export interface UsersQueryVariables {
-  page?: number;
-  limit?: number;
-  role?: string;
-  status?: string;
-}
-
-export interface GrantCallsQueryVariables {
-  page?: number;
-  limit?: number;
-  status?: string;
-  category?: string;
-}
-
-export interface ProposalsQueryVariables {
-  page?: number;
-  limit?: number;
-  status?: string;
-  grantCallId?: string;
-}
-
-export interface AwardsQueryVariables {
-  page?: number;
-  limit?: number;
-  status?: string;
-}
-
-export interface MilestonesQueryVariables {
-  page?: number;
-  limit?: number;
-  status?: string;
-}
-
-export interface TransactionsQueryVariables {
-  page?: number;
-  limit?: number;
-  type?: string;
-  status?: string;
-}
-
-// Mutation variable types
-
-export interface CreateUserVariables {
   name: string;
+  notes?: string | null | undefined;
+  phoneContact: string;
+  resourceId?: string | null | undefined;
+  resourceTitle?: string | null | undefined;
+  role?: UserRole | null | undefined;
+  staffId: string;
+};
+
+export type CreateFundingCallInput = {
+  allowsMultipleApplications: MultipleApplicationsAllowed;
+  createdby: string | number;
+  description?: string | null | undefined;
+  eligibility?: Array<string> | null | undefined;
+  funder: string;
+  hasMinMaxAward: boolean;
+  maximumAward: number;
+  minimumAward?: number | null | undefined;
+  openDate: string;
+  originalCallLink?: string | null | undefined;
+  theme?: string | null | undefined;
+  totalAvailable: number;
+};
+
+export type CreateProposalInput = {
+  abstract: string;
+  department?: string | null | undefined;
+  fundingCallId: string | number;
+  requestedAmount?: number | null | undefined;
+  title: string;
+  userID: string | number;
+};
+
+export type CreateUserInput = {
+  department?: string | null | undefined;
   email: string;
-  role: string;
-  department: string;
-}
+  name: string;
+  phoneContact?: string | null | undefined;
+  role: UserRole;
+  staffId?: string | null | undefined;
+};
 
-export interface UpdateUserVariables {
-  id: string;
-  name?: string;
-  email?: string;
-  role?: string;
-  status?: string;
-  department?: string;
-}
+export type MultipleApplicationsAllowed =
+  | 'no'
+  | 'yes';
 
-export interface SignInContent {
+export type ProposalStatus =
+  | 'APPROVED'
+  | 'ARCHIVED'
+  | 'DRAFT'
+  | 'FUNDED'
+  | 'REJECTED'
+  | 'SUBMITTED'
+  | 'UNDER_REVIEW';
+
+export type SignInContent = {
   email: string;
   password: string;
-}
+};
 
-export interface SignInVariables {
-  content: SignInContent;
-}
+export type UpdateFundingCallInput = {
+  allowsMultipleApplications?: MultipleApplicationsAllowed | null | undefined;
+  description?: string | null | undefined;
+  eligibility?: Array<string> | null | undefined;
+  funder?: string | null | undefined;
+  hasMinMaxAward?: boolean | null | undefined;
+  id: string | number;
+  maximumAward?: number | null | undefined;
+  minimumAward?: number | null | undefined;
+  openDate?: string | null | undefined;
+  originalCallLink?: string | null | undefined;
+  theme?: string | null | undefined;
+  totalAvailable?: number | null | undefined;
+};
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  accessToken: string;
-  account_type: UserRoleEnum;
-}
+export type UpdateUserInput = {
+  department?: string | null | undefined;
+  email?: string | null | undefined;
+  id: string | number;
+  name?: string | null | undefined;
+  phoneContact?: string | null | undefined;
+  role?: UserRole | null | undefined;
+  staffId?: string | null | undefined;
+};
 
-export interface SignInResponse {
-  signIn: AuthUser;
-}
+export type UserRole =
+  | 'admin'
+  | 'assistant_researcher'
+  | 'director'
+  | 'finance_officer'
+  | 'researcher';
 
-export interface CreateProposalVariables {
-  title: string;
-  grantCallId: string;
-  requestedAmount: number;
-  department: string;
-}
+export type UserStatus =
+  | 'active'
+  | 'inactive'
+  | 'suspended';
 
-export interface UpdateProposalVariables {
-  id: string;
-  status?: string;
-  requestedAmount?: number;
-}
+export type UserStatusInput = {
+  status: UserStatus;
+  userId: string | number;
+};
 
-// Frontend display roles
-export type UserRole = 'Admin' | 'Researcher' | 'Assistant Researcher' | 'Finance Officer' | 'Director'
+export type UserFieldsFragment = { id: string | null, authUserId: string | null, name: string | null, email: string | null, role: UserRole | null, status: UserStatus | null, department: string | null, staffId: string | null, phoneContact: string | null, avatar: string | null, lastLogin: string | null, createdAt: string | null, updatedAt: string | null } & { ' $fragmentName'?: 'UserFieldsFragment' };
 
-// Backend GraphQL enum values (lowercase)
-export type UserRoleEnum = 'admin' | 'researcher' | 'assistant_researcher' | 'finance_officer' | 'director'
+export type CreateUserMutationVariables = Exact<{
+  input: CreateUserInput;
+}>;
 
-export interface CreateUserInput {
-  name: string
-  email: string
-  role: UserRoleEnum
-  department: string
-  staffId: string
-  phoneContact: string
-}
 
-export interface CreateUserResponse {
-  createUser: {
-    temporaryPassword: string
-    user: {
-      id: string
-      authUserId: string
-      avatar?: string
-      lastLogin?: string
-    }
-  }
-}
+export type CreateUserMutation = { createUser: { temporaryPassword: string, user: { ' $fragmentRefs'?: { 'UserFieldsFragment': UserFieldsFragment } } } };
+
+export type UpdateUserMutationVariables = Exact<{
+  input: UpdateUserInput;
+}>;
+
+
+export type UpdateUserMutation = { updateUser: { ' $fragmentRefs'?: { 'UserFieldsFragment': UserFieldsFragment } } | null };
+
+export type UpdateUserStatusMutationVariables = Exact<{
+  input: UserStatusInput;
+}>;
+
+
+export type UpdateUserStatusMutation = { updateUserStatus: { id: string | null, status: UserStatus | null } | null };
+
+export type SignInMutationVariables = Exact<{
+  content?: SignInContent | null | undefined;
+}>;
+
+
+export type SignInMutation = { signIn: { accessToken: string | null, account_type: Account_Type | null, email: string | null, id: string | null } | null };
+
+export type BookmarkGrantCallMutationVariables = Exact<{
+  fundingCallId: string | number;
+  userID: string | number;
+  notes?: string | null | undefined;
+}>;
+
+
+export type BookmarkGrantCallMutation = { bookmarkGrantCall: { success: boolean, message: string, grantCall: { id: string, title: string, description: string | null, category: string, totalBudget: number, deadline: string, eligibility: string | null, status: string, applicationCount: number, isBookmarked: boolean, bookmarkNotes: string | null } | null, bookmark: { id: string, userID: string, fundingCallId: string, fundingCallTitle: string, notes: string | null, bookmarkedAt: string } | null } };
+
+export type CreateFundingCallMutationVariables = Exact<{
+  content: CreateFundingCallInput;
+}>;
+
+
+export type CreateFundingCallMutation = { createFundingCall: { id: string, funder: string, theme: string | null, totalAvailable: number, maximumAward: number, minimumAward: number | null, hasMinMaxAward: boolean, allowsMultipleApplications: MultipleApplicationsAllowed, openDate: string, originalCallLink: string | null, eligibility: Array<string> | null, createdBy: string } };
+
+export type UpdateFundingCallMutationVariables = Exact<{
+  content: UpdateFundingCallInput;
+}>;
+
+
+export type UpdateFundingCallMutation = { updateFundingCall: { id: string, funder: string, totalAvailable: number, maximumAward: number, theme: string | null, description: string | null, hasMinMaxAward: boolean, minimumAward: number | null, allowsMultipleApplications: MultipleApplicationsAllowed, openDate: string, originalCallLink: string | null, eligibility: Array<string> | null, createdBy: string, createdAt: string | null, updatedAt: string | null } };
+
+export type CreateProposalMutationVariables = Exact<{
+  input: CreateProposalInput;
+}>;
+
+
+export type CreateProposalMutation = { createProposal: { success: boolean, message: string, errors: Array<string> | null, proposal: { id: string, title: string, abstract: string | null, userID: string, fundingCallId: string, fundingCallTitle: string, status: ProposalStatus, requestedAmount: number | null, department: string | null, submitted: string, user: { id: string | null, authUserId: string | null, name: string | null, email: string | null, role: UserRole | null, status: UserStatus | null, department: string | null, staffId: string | null, phoneContact: string | null, avatar: string | null, lastLogin: string | null, createdAt: string | null, updatedAt: string | null } | null, fundingCall: { id: string, funder: string, totalAvailable: number, maximumAward: number, theme: string | null, description: string | null, hasMinMaxAward: boolean, minimumAward: number | null, allowsMultipleApplications: MultipleApplicationsAllowed, openDate: string, originalCallLink: string | null, eligibility: Array<string> | null, createdBy: string, createdAt: string | null, updatedAt: string | null } | null } | null } };
+
+export type SignUpAssistantResearcherMutationVariables = Exact<{
+  content: CreateAssistantUserContent;
+}>;
+
+
+export type SignUpAssistantResearcherMutation = { signUpAssistantResearcher: { temporaryPassword: string, user: { ' $fragmentRefs'?: { 'UserFieldsFragment': UserFieldsFragment } } } };
+
+export type GetUsersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetUsersQuery = { getUsers: { totalCount: number, users: Array<{ id: string | null, authUserId: string | null, name: string | null, email: string | null, role: UserRole | null, status: UserStatus | null, department: string | null, staffId: string | null, phoneContact: string | null, avatar: string | null, lastLogin: string | null, createdAt: string | null, updatedAt: string | null }> } };
+
+export type GetGrantCallsQueryVariables = Exact<{
+  search?: string | null | undefined;
+  status?: string | null | undefined;
+  category?: string | null | undefined;
+  limit?: number | null | undefined;
+  offset?: number | null | undefined;
+  userID?: string | number | null | undefined;
+}>;
+
+
+export type GetGrantCallsQuery = { grantCalls: { totalCount: number, edges: Array<{ node: { id: string, title: string, description: string | null, category: string, totalBudget: number, deadline: string, eligibility: string | null, status: string, applicationCount: number, isBookmarked: boolean, bookmarkNotes: string | null } }> } };
+
+export const UserFieldsFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"UserFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"authUserId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"department"}},{"kind":"Field","name":{"kind":"Name","value":"staffId"}},{"kind":"Field","name":{"kind":"Name","value":"phoneContact"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"lastLogin"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]} as unknown as DocumentNode<UserFieldsFragment, unknown>;
+export const CreateUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateUser"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateUserInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"temporaryPassword"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"UserFields"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"UserFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"authUserId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"department"}},{"kind":"Field","name":{"kind":"Name","value":"staffId"}},{"kind":"Field","name":{"kind":"Name","value":"phoneContact"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"lastLogin"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]} as unknown as DocumentNode<CreateUserMutation, CreateUserMutationVariables>;
+export const UpdateUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateUser"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateUserInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"UserFields"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"UserFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"authUserId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"department"}},{"kind":"Field","name":{"kind":"Name","value":"staffId"}},{"kind":"Field","name":{"kind":"Name","value":"phoneContact"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"lastLogin"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]} as unknown as DocumentNode<UpdateUserMutation, UpdateUserMutationVariables>;
+export const UpdateUserStatusDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateUserStatus"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UserStatusInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateUserStatus"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}}]}}]} as unknown as DocumentNode<UpdateUserStatusMutation, UpdateUserStatusMutationVariables>;
+export const SignInDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SignIn"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"content"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"SignInContent"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"signIn"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"content"},"value":{"kind":"Variable","name":{"kind":"Name","value":"content"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"accessToken"}},{"kind":"Field","name":{"kind":"Name","value":"account_type"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]} as unknown as DocumentNode<SignInMutation, SignInMutationVariables>;
+export const BookmarkGrantCallDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"BookmarkGrantCall"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"fundingCallId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userID"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"notes"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"bookmarkGrantCall"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"fundingCallId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"fundingCallId"}}},{"kind":"Argument","name":{"kind":"Name","value":"userID"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userID"}}},{"kind":"Argument","name":{"kind":"Name","value":"notes"},"value":{"kind":"Variable","name":{"kind":"Name","value":"notes"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}},{"kind":"Field","name":{"kind":"Name","value":"message"}},{"kind":"Field","name":{"kind":"Name","value":"grantCall"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"category"}},{"kind":"Field","name":{"kind":"Name","value":"totalBudget"}},{"kind":"Field","name":{"kind":"Name","value":"deadline"}},{"kind":"Field","name":{"kind":"Name","value":"eligibility"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"applicationCount"}},{"kind":"Field","name":{"kind":"Name","value":"isBookmarked"}},{"kind":"Field","name":{"kind":"Name","value":"bookmarkNotes"}}]}},{"kind":"Field","name":{"kind":"Name","value":"bookmark"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"userID"}},{"kind":"Field","name":{"kind":"Name","value":"fundingCallId"}},{"kind":"Field","name":{"kind":"Name","value":"fundingCallTitle"}},{"kind":"Field","name":{"kind":"Name","value":"notes"}},{"kind":"Field","name":{"kind":"Name","value":"bookmarkedAt"}}]}}]}}]}}]} as unknown as DocumentNode<BookmarkGrantCallMutation, BookmarkGrantCallMutationVariables>;
+export const CreateFundingCallDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateFundingCall"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"content"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateFundingCallInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createFundingCall"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"content"},"value":{"kind":"Variable","name":{"kind":"Name","value":"content"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"funder"}},{"kind":"Field","name":{"kind":"Name","value":"theme"}},{"kind":"Field","name":{"kind":"Name","value":"totalAvailable"}},{"kind":"Field","name":{"kind":"Name","value":"maximumAward"}},{"kind":"Field","name":{"kind":"Name","value":"minimumAward"}},{"kind":"Field","name":{"kind":"Name","value":"hasMinMaxAward"}},{"kind":"Field","name":{"kind":"Name","value":"allowsMultipleApplications"}},{"kind":"Field","name":{"kind":"Name","value":"openDate"}},{"kind":"Field","name":{"kind":"Name","value":"originalCallLink"}},{"kind":"Field","name":{"kind":"Name","value":"eligibility"}},{"kind":"Field","name":{"kind":"Name","value":"createdBy"}}]}}]}}]} as unknown as DocumentNode<CreateFundingCallMutation, CreateFundingCallMutationVariables>;
+export const UpdateFundingCallDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateFundingCall"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"content"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateFundingCallInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateFundingCall"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"content"},"value":{"kind":"Variable","name":{"kind":"Name","value":"content"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"funder"}},{"kind":"Field","name":{"kind":"Name","value":"totalAvailable"}},{"kind":"Field","name":{"kind":"Name","value":"maximumAward"}},{"kind":"Field","name":{"kind":"Name","value":"theme"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"hasMinMaxAward"}},{"kind":"Field","name":{"kind":"Name","value":"minimumAward"}},{"kind":"Field","name":{"kind":"Name","value":"allowsMultipleApplications"}},{"kind":"Field","name":{"kind":"Name","value":"openDate"}},{"kind":"Field","name":{"kind":"Name","value":"originalCallLink"}},{"kind":"Field","name":{"kind":"Name","value":"eligibility"}},{"kind":"Field","name":{"kind":"Name","value":"createdBy"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<UpdateFundingCallMutation, UpdateFundingCallMutationVariables>;
+export const CreateProposalDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateProposal"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateProposalInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createProposal"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}},{"kind":"Field","name":{"kind":"Name","value":"message"}},{"kind":"Field","name":{"kind":"Name","value":"errors"}},{"kind":"Field","name":{"kind":"Name","value":"proposal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"abstract"}},{"kind":"Field","name":{"kind":"Name","value":"userID"}},{"kind":"Field","name":{"kind":"Name","value":"fundingCallId"}},{"kind":"Field","name":{"kind":"Name","value":"fundingCallTitle"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"requestedAmount"}},{"kind":"Field","name":{"kind":"Name","value":"department"}},{"kind":"Field","name":{"kind":"Name","value":"submitted"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"authUserId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"department"}},{"kind":"Field","name":{"kind":"Name","value":"staffId"}},{"kind":"Field","name":{"kind":"Name","value":"phoneContact"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"lastLogin"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}},{"kind":"Field","name":{"kind":"Name","value":"fundingCall"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"funder"}},{"kind":"Field","name":{"kind":"Name","value":"totalAvailable"}},{"kind":"Field","name":{"kind":"Name","value":"maximumAward"}},{"kind":"Field","name":{"kind":"Name","value":"theme"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"hasMinMaxAward"}},{"kind":"Field","name":{"kind":"Name","value":"minimumAward"}},{"kind":"Field","name":{"kind":"Name","value":"allowsMultipleApplications"}},{"kind":"Field","name":{"kind":"Name","value":"openDate"}},{"kind":"Field","name":{"kind":"Name","value":"originalCallLink"}},{"kind":"Field","name":{"kind":"Name","value":"eligibility"}},{"kind":"Field","name":{"kind":"Name","value":"createdBy"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]}}]}}]} as unknown as DocumentNode<CreateProposalMutation, CreateProposalMutationVariables>;
+export const SignUpAssistantResearcherDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SignUpAssistantResearcher"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"content"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateAssistantUserContent"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"signUpAssistantResearcher"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"content"},"value":{"kind":"Variable","name":{"kind":"Name","value":"content"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"temporaryPassword"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"UserFields"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"UserFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"authUserId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"department"}},{"kind":"Field","name":{"kind":"Name","value":"staffId"}},{"kind":"Field","name":{"kind":"Name","value":"phoneContact"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"lastLogin"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]} as unknown as DocumentNode<SignUpAssistantResearcherMutation, SignUpAssistantResearcherMutationVariables>;
+export const GetUsersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetUsers"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"getUsers"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"authUserId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"department"}},{"kind":"Field","name":{"kind":"Name","value":"staffId"}},{"kind":"Field","name":{"kind":"Name","value":"phoneContact"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"lastLogin"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<GetUsersQuery, GetUsersQueryVariables>;
+export const GetGrantCallsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetGrantCalls"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"search"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"status"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"category"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"limit"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"offset"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userID"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"grantCalls"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"search"},"value":{"kind":"Variable","name":{"kind":"Name","value":"search"}}},{"kind":"Argument","name":{"kind":"Name","value":"status"},"value":{"kind":"Variable","name":{"kind":"Name","value":"status"}}},{"kind":"Argument","name":{"kind":"Name","value":"category"},"value":{"kind":"Variable","name":{"kind":"Name","value":"category"}}},{"kind":"Argument","name":{"kind":"Name","value":"limit"},"value":{"kind":"Variable","name":{"kind":"Name","value":"limit"}}},{"kind":"Argument","name":{"kind":"Name","value":"offset"},"value":{"kind":"Variable","name":{"kind":"Name","value":"offset"}}},{"kind":"Argument","name":{"kind":"Name","value":"userID"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userID"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"category"}},{"kind":"Field","name":{"kind":"Name","value":"totalBudget"}},{"kind":"Field","name":{"kind":"Name","value":"deadline"}},{"kind":"Field","name":{"kind":"Name","value":"eligibility"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"applicationCount"}},{"kind":"Field","name":{"kind":"Name","value":"isBookmarked"}},{"kind":"Field","name":{"kind":"Name","value":"bookmarkNotes"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<GetGrantCallsQuery, GetGrantCallsQueryVariables>;

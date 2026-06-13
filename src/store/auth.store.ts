@@ -1,6 +1,6 @@
-import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
-import type { User } from '../types/user.types'
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import type { User } from '../types/user.types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -8,26 +8,26 @@ import type { User } from '../types/user.types'
 
 export interface AuthStore {
   /** Full authenticated user object — null when logged out */
-  user: User | null
+  user: User | null;
   /** JWT access token returned by the backend */
-  accessToken: string | null
+  accessToken: string | null;
   /** Whether a valid session currently exists */
-  isAuthenticated: boolean
+  isAuthenticated: boolean;
   /** True while an auth operation (login / session restore) is in progress */
-  loading: boolean
+  loading: boolean;
 
   // ── Granular setters (use selectors to read) ──────────────────────────────
-  setUser: (user: User | null) => void
-  setAccessToken: (token: string | null) => void
-  setLoading: (loading: boolean) => void
+  setUser: (user: User | null) => void;
+  setAccessToken: (token: string | null) => void;
+  setLoading: (loading: boolean) => void;
 
   // ── Auth actions ─────────────────────────────────────────────────────────
   /** Called after a successful login mutation — stores user + token together */
-  login: (user: User, token: string) => void
+  login: (user: User, token: string) => void;
   /** Clear all auth state and persisted storage */
-  logout: () => void
+  logout: () => void;
   /** Alias for logout — useful when clearing stale sessions */
-  clearAuth: () => void
+  clearAuth: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ export const useAuthStore = create<AuthStore>()(
         }),
     }),
     {
-      name: 'auth-storage',          // localStorage key
+      name: 'auth-storage', // localStorage key
       storage: createJSONStorage(() => localStorage),
       // Only persist what we need — never persist transient `loading`
       partialize: (state) => ({
@@ -81,9 +81,9 @@ export const useAuthStore = create<AuthStore>()(
         accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
       }),
-    }
-  )
-)
+    },
+  ),
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pre-built selectors  (import these instead of calling useAuthStore())
@@ -91,23 +91,24 @@ export const useAuthStore = create<AuthStore>()(
 //         const role = useUserRole()
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const useUser = () => useAuthStore((s) => s.user)
-export const useAccessToken = () => useAuthStore((s) => s.accessToken)
-export const useIsAuthenticated = () => useAuthStore((s) => s.isAuthenticated)
-export const useAuthLoading = () => useAuthStore((s) => s.loading)
+export const useUser = () => useAuthStore((s) => s.user);
+export const useAccessToken = () => useAuthStore((s) => s.accessToken);
+export const useIsAuthenticated = () => useAuthStore((s) => s.isAuthenticated);
+export const useAuthLoading = () => useAuthStore((s) => s.loading);
 
 /** Backend role enum string, e.g. "researcher" */
-export const useUserRole = () => useAuthStore((s) => s.user?.role ?? null)
+export const useUserRole = () => useAuthStore((s) => s.user?.role ?? null);
 
 /** Convenience — resolves the base route path for the current user's role */
 export const useUserBasePath = () =>
   useAuthStore((s) => {
-    const role = s.user?.role
+    const role = s.user?.role;
     const map: Record<string, string> = {
       admin: '/admin',
       researcher: '/researcher',
       assistant_researcher: '/assistant',
       finance_officer: '/finance',
-    }
-    return role ? (map[role] ?? '/login') : '/login'
-  })
+      director: '/director',
+    };
+    return role ? (map[role] ?? '/login') : '/login';
+  });

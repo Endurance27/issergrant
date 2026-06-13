@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "cy:open": "cypress open",
-  "cy:run": "env -u ELECTRON_RUN_AS_NODE cypress run"
+    "cy:run": "env -u ELECTRON_RUN_AS_NODE cypress run",
+    "codegen": "graphql-codegen"
   },
   "dependencies": {
     "@apollo/client": "^4.2.3",
