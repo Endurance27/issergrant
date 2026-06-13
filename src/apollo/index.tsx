@@ -10,12 +10,8 @@ import { ErrorLink } from "@apollo/client/link/error";
 import React from "react";
 import { useAuthStore } from "../store/auth.store";
 
-// Use Vercel proxy in production to avoid mixed content (HTTP vs HTTPS)
-// In development, call the GraphQL server directly
-// const GRAPHQL_URI = import.meta.env.VITE_GRAPHQL_URL ??
-//   (import.meta.env.PROD ? '/api/graphql' : 'http://197.255.123.247/graphql');
-const GRAPHQL_URI = "http://197.255.123.247/graphql";
-// const GRAPHQL_URI = "http://localhost:8095/graphql";
+const GRAPHQL_URI =
+  import.meta.env.VITE_GRAPHQL_URL ?? "http://197.255.123.247/graphql";
 
 const httpLink = new HttpLink({
   uri: GRAPHQL_URI,
