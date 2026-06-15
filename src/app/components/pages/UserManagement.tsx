@@ -200,9 +200,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
     onSubmit: async (values, { resetForm }) => {
       setFormError("");
       if (
-        users.find(
-          (u) => u.email.toLowerCase() === values.email.toLowerCase(),
-        )
+        users.find((u) => u.email.toLowerCase() === values.email.toLowerCase())
       ) {
         setFormError("A user with this email already exists.");
         return;
@@ -253,8 +251,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
       u.name.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q) ||
       u.department.toLowerCase().includes(q);
-    const matchRole =
-      roleFilter === "All" || toDisplay(u.role) === roleFilter;
+    const matchRole = roleFilter === "All" || toDisplay(u.role) === roleFilter;
     return matchSearch && matchRole;
   });
 
@@ -267,7 +264,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
     8,
   );
 
-  const activeCount = users.filter((u) => u.status === "Active").length;
+  const activeCount = users.filter((u) => u.status === "active").length;
   const deptCount = new Set(users.map((u) => u.department)).size;
 
   const toggleStatus = async (id: string, wasActive: boolean) => {
@@ -354,9 +351,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
           <div className="font-bold text-sm text-red-700">
             Unable to fetch users
           </div>
-          <div className="text-xs text-red-500 mt-1 mb-4">
-            {error.message}
-          </div>
+          <div className="text-xs text-red-500 mt-1 mb-4">{error.message}</div>
           <button
             onClick={() => refetch()}
             className="px-4 py-2 rounded-xl text-xs font-semibold text-white"
@@ -577,7 +572,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
                         </button>
                         {activeMenu === u.id && (
                           <div className="absolute right-0 top-full mt-1 min-w-[190px] rounded-xl shadow-xl z-30 overflow-hidden bg-card border border-border">
-                            {u.status === "Active" ?
+                            {u.status === "active" ?
                               <button
                                 onClick={() => {
                                   setConfirmSuspend(u);
@@ -620,10 +615,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
           {paginated.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-                <Users
-                  size={22}
-                  className="text-muted-foreground opacity-40"
-                />
+                <Users size={22} className="text-muted-foreground opacity-40" />
               </div>
               <div className="font-bold text-sm text-foreground">
                 No users found
@@ -693,7 +685,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2 justify-end">
-                {u.status === "Active" ?
+                {u.status === "active" ?
                   <button
                     onClick={() => setConfirmSuspend(u)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-500 bg-amber-50 border border-amber-300"
@@ -872,8 +864,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
               <div
                 className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm flex-shrink-0"
                 style={{
-                  background:
-                    ROLE_COLORS[formik.values.role] ?? "#1A3363",
+                  background: ROLE_COLORS[formik.values.role] ?? "#1A3363",
                 }}
               >
                 {formik.values.name

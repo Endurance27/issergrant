@@ -44,13 +44,20 @@ const DEPARTMENTS = [
   "Research Methods and Data Visualization",
 ];
 
+interface UserRole {
+  admin: "Admin";
+  researcher: "Researcher (PI)";
+  assistant_researcher: "Researcher (Co-PI)";
+  finance_officer: "Finance Officer";
+  director: "Director";
+}
 // Admin can only add Researcher and Finance Officer
 const ALLOWED_ROLES: Role[] = ["Researcher", "Finance Officer"];
 
-const ROLE_DISPLAY: Record<string, Role> = {
+const ROLE_DISPLAY: Record<string, UserRole[keyof UserRole]> = {
   admin: "Admin",
-  researcher: "Researcher",
-  assistant_researcher: "Assistant Researcher",
+  researcher: "Researcher (PI)",
+  assistant_researcher: "Researcher (Co-PI)",
   finance_officer: "Finance Officer",
   director: "Director",
 };
@@ -81,7 +88,7 @@ function toLocalUser(u: {
     name: u.name,
     email: u.email,
     role: ROLE_DISPLAY[u.role] ?? "Researcher",
-    status: ((u.status ?? "Active") === "Active" ? "Active" : "Suspended") as
+    status: ((u.status ?? "Active") === "active" ? "Active" : "Suspended") as
       | "Active"
       | "Suspended",
     department: u.department,
