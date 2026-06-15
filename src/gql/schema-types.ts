@@ -194,11 +194,6 @@ export type ApproveTransactionInput = {
   transactionId: Scalars['ID']['input'];
 };
 
-export type ArchiveGrantCallInput = {
-  id: Scalars['ID']['input'];
-  reason?: InputMaybe<Scalars['String']['input']>;
-};
-
 export type AssignReviewersInput = {
   proposalId: Scalars['ID']['input'];
   reviewerIds: Array<Scalars['ID']['input']>;
@@ -222,7 +217,6 @@ export type AssignmentType =
 
 export type AssistantDashboard = {
   __typename?: 'AssistantDashboard';
-  openGrantCalls: Array<GrantCall>;
   recentProposals: Array<Proposal>;
   stats: DashboardStats;
   upcomingMilestones: Array<Milestone>;
@@ -508,6 +502,7 @@ export type AuthUser = {
   account_type?: Maybe<Account_Type>;
   email?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['ID']['output']>;
+  user?: Maybe<User>;
 };
 
 export type Award = {
@@ -936,7 +931,7 @@ export type CreateFundingAllocationInput = {
 
 export type CreateFundingCallInput = {
   allowsMultipleApplications: MultipleApplicationsAllowed;
-  createdby: Scalars['ID']['input'];
+  createdBy: Scalars['ID']['input'];
   description?: InputMaybe<Scalars['String']['input']>;
   eligibility?: InputMaybe<Array<Scalars['String']['input']>>;
   funder: Scalars['String']['input'];
@@ -947,15 +942,6 @@ export type CreateFundingCallInput = {
   originalCallLink?: InputMaybe<Scalars['String']['input']>;
   theme?: InputMaybe<Scalars['String']['input']>;
   totalAvailable: Scalars['Float']['input'];
-};
-
-export type CreateGrantCallInput = {
-  category: Scalars['String']['input'];
-  deadline: Scalars['String']['input'];
-  description: Scalars['String']['input'];
-  eligibility?: InputMaybe<Scalars['String']['input']>;
-  title: Scalars['String']['input'];
-  totalBudget: Scalars['Float']['input'];
 };
 
 export type CreateMilestoneInput = {
@@ -1633,12 +1619,6 @@ export type GetFundingCallFilter = {
   theme?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type GetGrantCallsInput = {
-  filter?: InputMaybe<GrantCallFilterInput>;
-  pagination?: InputMaybe<CursorPaginationInput>;
-  sorting?: InputMaybe<GrantCallSortInput>;
-};
-
 export type GetMilestonesInput = {
   filter?: InputMaybe<MilestoneFilterInput>;
   pagination?: InputMaybe<CursorPaginationInput>;
@@ -1675,24 +1655,6 @@ export type GetUsersInput = {
   sorting?: InputMaybe<SortingInput>;
 };
 
-export type GrantCall = {
-  __typename?: 'GrantCall';
-  applicationCount: Scalars['Int']['output'];
-  archivedDate?: Maybe<Scalars['String']['output']>;
-  category: Scalars['String']['output'];
-  createdAt: Scalars['String']['output'];
-  createdBy: User;
-  deadline: Scalars['String']['output'];
-  description: Scalars['String']['output'];
-  eligibility?: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  publishDate?: Maybe<Scalars['String']['output']>;
-  status: GrantCallStatus;
-  title: Scalars['String']['output'];
-  totalBudget: Scalars['Float']['output'];
-  updatedAt: Scalars['String']['output'];
-};
-
 export type GrantCallAnalytics = {
   __typename?: 'GrantCallAnalytics';
   avgApplicationsPerCall: Scalars['Int']['output'];
@@ -1720,63 +1682,13 @@ export type GrantCallBookmarkPayload = {
   success: Scalars['Boolean']['output'];
 };
 
-export type GrantCallConnection = {
-  __typename?: 'GrantCallConnection';
-  edges: Array<GrantCallEdge>;
-  pageInfo: PageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type GrantCallEdge = {
-  __typename?: 'GrantCallEdge';
-  cursor: Scalars['String']['output'];
-  node: GrantCall;
-};
-
-export type GrantCallFilterInput = {
-  categories?: InputMaybe<Array<Scalars['String']['input']>>;
-  dateRange?: InputMaybe<DateRangeInput>;
-  search?: InputMaybe<Scalars['String']['input']>;
-  statuses?: InputMaybe<Array<GrantCallStatus>>;
-};
-
-export type GrantCallPayload = {
-  __typename?: 'GrantCallPayload';
-  errors?: Maybe<Array<Scalars['String']['output']>>;
-  grantCall?: Maybe<GrantCall>;
-  message: Scalars['String']['output'];
-  success: Scalars['Boolean']['output'];
-};
-
-export type GrantCallSortField =
-  | 'APPLICATIONS'
-  | 'CREATED_AT'
-  | 'DEADLINE'
-  | 'TITLE'
-  | 'TOTAL_BUDGET'
-  | 'UPDATED_AT';
-
-export type GrantCallSortInput = {
-  direction: SortDirection;
-  field: GrantCallSortField;
-};
-
 export type GrantCallStats = {
   __typename?: 'GrantCallStats';
-  archived: Scalars['Int']['output'];
   closed: Scalars['Int']['output'];
   draft: Scalars['Int']['output'];
-  locked: Scalars['Int']['output'];
   open: Scalars['Int']['output'];
   total: Scalars['Int']['output'];
 };
-
-export type GrantCallStatus =
-  | 'ARCHIVED'
-  | 'CLOSED'
-  | 'DRAFT'
-  | 'LOCKED'
-  | 'OPEN';
 
 export type GrowthData = {
   __typename?: 'GrowthData';
@@ -1953,7 +1865,6 @@ export type Mutation = {
   approveProposal: ProposalPayload;
   approveReport: ReportPayload;
   approveTransaction: FinancialPayload;
-  archiveGrantCall: GrantCallPayload;
   archiveNotification: NotificationPayload;
   archiveProposal: ProposalPayload;
   archiveReport: ReportPayload;
@@ -1974,7 +1885,6 @@ export type Mutation = {
   cancelMilestone: MilestonePayload;
   changePassword: GenericPayload;
   closeBudget: FinancialPayload;
-  closeGrantCall: GrantCallPayload;
   completeMilestone: MilestonePayload;
   completeMilestoneTask: MilestonePayload;
   configureReminder: EventPayload;
@@ -1987,7 +1897,6 @@ export type Mutation = {
   createFinanceEvent: FinanceEvent;
   createFundingAllocation: FundingAllocation;
   createFundingCall: FundingCall;
-  createGrantCall: GrantCallPayload;
   createMilestone: MilestonePayload;
   createProposal: ProposalPayload;
   createProposalDraft: ProposalPayload;
@@ -2001,7 +1910,6 @@ export type Mutation = {
   deleteFeatureFlag: Scalars['Boolean']['output'];
   deleteFinanceEvent: Scalars['Boolean']['output'];
   deleteFundingCall: Scalars['Boolean']['output'];
-  deleteGrantCall: Scalars['Boolean']['output'];
   deleteMilestone: Scalars['Boolean']['output'];
   deleteNotification: Scalars['Boolean']['output'];
   deleteReport: Scalars['Boolean']['output'];
@@ -2023,7 +1931,6 @@ export type Mutation = {
   markAsRead: NotificationPayload;
   markNotificationAsRead: NotificationPayload;
   processDisbursement: AwardPayload;
-  publishGrantCall: GrantCallPayload;
   publishReport: ReportPayload;
   reconcileTransaction: FinancialPayload;
   recordExpenditure: FinancialPayload;
@@ -2090,7 +1997,6 @@ export type Mutation = {
   updateFinancialPreferences: FinancialPreferences;
   updateFundingAllocation: AwardPayload;
   updateFundingCall: FundingCall;
-  updateGrantCall: GrantCallPayload;
   updateMilestone: MilestonePayload;
   updateMilestoneProgress: MilestonePayload;
   updateMilestoneStatus: MilestonePayload;
@@ -2192,11 +2098,6 @@ export type MutationApproveReportArgs = {
 
 export type MutationApproveTransactionArgs = {
   input: ApproveTransactionInput;
-};
-
-
-export type MutationArchiveGrantCallArgs = {
-  input: ArchiveGrantCallInput;
 };
 
 
@@ -2310,11 +2211,6 @@ export type MutationCloseBudgetArgs = {
 };
 
 
-export type MutationCloseGrantCallArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
 export type MutationCompleteMilestoneArgs = {
   id: Scalars['String']['input'];
   input: CompleteMilestoneInput;
@@ -2377,11 +2273,6 @@ export type MutationCreateFundingCallArgs = {
 };
 
 
-export type MutationCreateGrantCallArgs = {
-  input: CreateGrantCallInput;
-};
-
-
 export type MutationCreateMilestoneArgs = {
   input: CreateMilestoneInput;
 };
@@ -2438,11 +2329,6 @@ export type MutationDeleteFinanceEventArgs = {
 
 
 export type MutationDeleteFundingCallArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type MutationDeleteGrantCallArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -2526,11 +2412,6 @@ export type MutationMarkNotificationAsReadArgs = {
 
 export type MutationProcessDisbursementArgs = {
   input: ProcessDisbursementInput;
-};
-
-
-export type MutationPublishGrantCallArgs = {
-  input: PublishGrantCallInput;
 };
 
 
@@ -2883,11 +2764,6 @@ export type MutationUpdateFundingAllocationArgs = {
 
 export type MutationUpdateFundingCallArgs = {
   content: UpdateFundingCallInput;
-};
-
-
-export type MutationUpdateGrantCallArgs = {
-  input: UpdateGrantCallInput;
 };
 
 
@@ -3401,11 +3277,6 @@ export type ProposalStatus =
   | 'SUBMITTED'
   | 'UNDER_REVIEW';
 
-export type PublishGrantCallInput = {
-  id: Scalars['ID']['input'];
-  publishDate: Scalars['String']['input'];
-};
-
 export type Query = {
   __typename?: 'Query';
   accountSettings: AccountSettings;
@@ -3474,7 +3345,6 @@ export type Query = {
   getFinancialAnalytics: FinancialAnalytics;
   getFinancialReport: FinancialSummary;
   getFinancialSummary: FinancialSummary;
-  getFundingAgencies: Array<Scalars['String']['output']>;
   getFundingAnalytics: FundingAnalytics;
   getFundingByCategory: Array<FundingCategoryData>;
   getFundingCall?: Maybe<FundingCall>;
@@ -3482,9 +3352,7 @@ export type Query = {
   getFundingRequests: Array<FundingRequest>;
   getFundingStats: AwardStats;
   getFundingTrend: Array<TrendData>;
-  getGrantCall?: Maybe<GrantCall>;
   getGrantCallAnalytics: GrantCallAnalytics;
-  getGrantCallStats: GrantCallStats;
   getMilestone?: Maybe<Milestone>;
   getMilestoneEvidence: Array<MilestoneEvidence>;
   getMilestoneStats: MilestoneStats;
@@ -3498,7 +3366,6 @@ export type Query = {
   getNotificationPreferences: NotificationPreferences;
   getNotificationSettings: NotificationSettings;
   getNotificationStats: NotificationStats;
-  getOpenGrantCalls: GrantCallConnection;
   getOverdueMilestones: MilestoneConnection;
   getPendingProposalsForReview: Array<Proposal>;
   getPendingReports: ReportConnection;
@@ -3546,7 +3413,6 @@ export type Query = {
   listBudgets: BudgetConnection;
   listEvents: CalendarEventConnection;
   listFinanceReports: FinanceReportConnection;
-  listGrantCalls: GrantCallConnection;
   listMilestones: MilestoneConnection;
   listNotifications: NotificationConnection;
   listProposals: ProposalConnection;
@@ -3859,11 +3725,6 @@ export type QueryGetFundingTrendArgs = {
 };
 
 
-export type QueryGetGrantCallArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
 export type QueryGetGrantCallAnalyticsArgs = {
   filter?: InputMaybe<AnalyticsFilterInput>;
 };
@@ -3920,11 +3781,6 @@ export type QueryGetNotificationPreferencesArgs = {
 
 export type QueryGetNotificationStatsArgs = {
   userId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-
-export type QueryGetOpenGrantCallsArgs = {
-  pagination?: InputMaybe<CursorPaginationInput>;
 };
 
 
@@ -4154,11 +4010,6 @@ export type QueryListFinanceReportsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   status?: InputMaybe<FinanceReportStatus>;
   type?: InputMaybe<FinanceReportType>;
-};
-
-
-export type QueryListGrantCallsArgs = {
-  input: GetGrantCallsInput;
 };
 
 
@@ -4994,16 +4845,6 @@ export type UpdateFundingCallInput = {
   originalCallLink?: InputMaybe<Scalars['String']['input']>;
   theme?: InputMaybe<Scalars['String']['input']>;
   totalAvailable?: InputMaybe<Scalars['Float']['input']>;
-};
-
-export type UpdateGrantCallInput = {
-  category?: InputMaybe<Scalars['String']['input']>;
-  deadline?: InputMaybe<Scalars['String']['input']>;
-  description?: InputMaybe<Scalars['String']['input']>;
-  eligibility?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
-  title?: InputMaybe<Scalars['String']['input']>;
-  totalBudget?: InputMaybe<Scalars['Float']['input']>;
 };
 
 export type UpdateMilestoneInput = {

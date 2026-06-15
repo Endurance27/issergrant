@@ -1,19 +1,19 @@
 /** Full authenticated user record returned by the GraphQL backend */
 export interface User {
-  id: string
-  authUserId: string
-  name: string
-  email: string
+  userId: string;
+  authUserId: string;
+  name: string;
+  email: string;
   /** Backend role enum: admin | researcher | assistant_researcher | finance_officer */
-  role: string
-  status: string
-  department: string
-  staffId: string
-  phoneContact: string
-  avatar?: string | null
-  lastLogin?: string | null
-  createdAt: string
-  updatedAt: string
+  role: string;
+  status: string;
+  department: string;
+  staffId: string;
+  phoneContact: string;
+  avatar?: string | null;
+  lastLogin?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** Frontend-friendly display labels for each role */
@@ -22,7 +22,7 @@ export type DisplayRole =
   | 'Researcher'
   | 'Assistant Researcher'
   | 'Finance Officer'
-  | 'Director'
+  | 'Director';
 
 /** Map backend enum → display label */
 export const ROLE_DISPLAY: Record<string, DisplayRole> = {
@@ -31,7 +31,7 @@ export const ROLE_DISPLAY: Record<string, DisplayRole> = {
   assistant_researcher: 'Assistant Researcher',
   finance_officer: 'Finance Officer',
   director: 'Director',
-}
+};
 
 /** Map display label → backend enum */
 export const ROLE_ENUM: Record<DisplayRole, string> = {
@@ -40,7 +40,7 @@ export const ROLE_ENUM: Record<DisplayRole, string> = {
   'Assistant Researcher': 'assistant_researcher',
   'Finance Officer': 'finance_officer',
   Director: 'director',
-}
+};
 
 /** Role-to-base-path mapping for routing */
 export const ROLE_BASE_PATH: Record<string, string> = {
@@ -49,4 +49,4 @@ export const ROLE_BASE_PATH: Record<string, string> = {
   assistant_researcher: '/assistant',
   finance_officer: '/finance',
   director: '/director',
-}
+};

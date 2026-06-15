@@ -24,39 +24,22 @@ export const GET_USERS_QUERY: DocumentNode = gql`
   }
 `;
 
-const GRANT_CALLS_QUERY: DocumentNode = gql`
-  query GetGrantCalls(
-    $search: String
-    $status: String
-    $category: String
-    $limit: Int
-    $offset: Int
-    $userID: ID
-  ) {
-    grantCalls(
-      search: $search
-      status: $status
-      category: $category
-      limit: $limit
-      offset: $offset
-      userID: $userID
-    ) {
-      edges {
-        node {
-          id
-          title
-          description
-          category
-          totalBudget
-          deadline
-          eligibility
-          status
-          applicationCount
-          isBookmarked
-          bookmarkNotes
-        }
-      }
-      totalCount
+export const GET_FUNDING_CALLS_QUERY: DocumentNode = gql`
+  query GetFundingCalls($filter: GetFundingCallFilter) {
+    getFundingCalls(filter: $filter) {
+      id
+      allowsMultipleApplications
+      eligibility
+      description
+      originalCallLink
+      theme
+      totalAvailable
+      createdBy
+      funder
+      hasMinMaxAward
+      maximumAward
+      minimumAward
+      openDate
     }
   }
 `;

@@ -6,3 +6,4 @@ export { useCreateUser } from './useCreateUser';
 export { useLogin } from './useLogin';
 export { useCreateAssistantResearcher } from './useCreateAssistantResearcher';
 export { useUsers } from './useUsers';
+export { useFundingCalls } from './useFundingCall';

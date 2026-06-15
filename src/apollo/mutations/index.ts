@@ -55,6 +55,21 @@ export const SIGN_IN_MUTATION: DocumentNode = gql`
       account_type
       email
       id
+      user {
+        id
+        authUserId
+        name
+        email
+        role
+        status
+        department
+        staffId
+        phoneContact
+        avatar
+        lastLogin
+        createdAt
+        updatedAt
+      }
     }
   }
 `;

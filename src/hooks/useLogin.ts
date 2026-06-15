@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { useAuthStore } from '../store/auth.store';
-import type { User } from '../types/user.types';
 import type {} from '../gql/graphql';
 import { SIGN_IN_MUTATION } from '@/apollo/mutations';
 import {
@@ -13,16 +12,16 @@ import {
 
 function toUser(authUser: AuthUser): any {
   return {
-    id: authUser.id ?? '',
+    authUserId: authUser.id ?? '',
     name: authUser?.email?.split('@')[0].replace(/\./g, ' ') ?? '',
-    status: 'Active',
-    department: '',
-    staffId: '',
-    phoneContact: '',
-    avatar: null,
-    lastLogin: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    status: authUser?.user?.status ?? 'active',
+    department: authUser?.user?.department ?? '',
+    staffId: authUser?.user?.staffId ?? '',
+    phoneContact: authUser?.user?.phoneContact ?? '',
+    avatar: authUser?.user?.avatar ?? null,
+    lastLogin: authUser?.user?.lastLogin ?? null,
+    userId: authUser?.user?.id ?? '',
+    role: authUser?.user?.role ?? '',
   };
 }
 
