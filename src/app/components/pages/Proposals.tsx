@@ -40,6 +40,7 @@ import type {
   Award as AwardType,
 } from "../../data/mockData";
 import type { NavState } from "../../App";
+import { Account_Type } from "@/gql/schema-types";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 
@@ -53,7 +54,7 @@ interface ReviewEntry {
 type ProposalWithHistory = Proposal & { reviewHistory?: ReviewEntry[] };
 
 interface ProposalsProps {
-  role: Role;
+  role: Account_Type;
   navState?: NavState | null;
 }
 
@@ -126,7 +127,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
       title: "",
       grantCallId: navState?.grantCallId || "",
       requestedAmount: 0,
-      department: currentUsers[role].department,
+      department: currentUsers["Researcher (PI)"]?.department,
       abstract: "",
     },
     validationSchema: proposalSchema,
@@ -135,8 +136,8 @@ export function Proposals({ role, navState }: ProposalsProps) {
       const newP: ProposalWithHistory = {
         id: `PR-${Date.now()}`,
         title: values.title,
-        researcher: currentUsers[role].name,
-        researcherId: currentUsers[role].id,
+        researcher: currentUsers["Researcher (PI)"]?.name,
+        researcherId: currentUsers["Researcher (PI)"]?.id,
         grantCallId: values.grantCallId,
         grantCallTitle: gc?.title || "",
         submitted: new Date().toISOString().slice(0, 10),
@@ -150,15 +151,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
         .from("proposals")
         .insert([newP])
         .then(() => {});
-      addAuditLog({
-        action: "Proposal Submitted",
-        user: currentUsers[role].name,
-        role,
-        module: "Proposals",
-        timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
-        ip: "192.168.1.1",
-        details: `New proposal: ${values.title}`,
-      });
+
       toast("Proposal submitted successfully");
       setShowNew(false);
       resetForm();
@@ -180,8 +173,8 @@ export function Proposals({ role, navState }: ProposalsProps) {
   const { toast } = useToast();
 
   const myId =
-    role === "Researcher" ? 2
-    : role === "Assistant Researcher" ? 4
+    role === "researcher_pi" ? 2
+    : role === "researcher_co_pi" ? 4
     : null;
   const visibleProposals =
     myId ? proposals.filter((p) => p.researcherId === myId) : proposals;
@@ -293,15 +286,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
       time: "Just now",
       type: reviewAction.type === "Approved" ? "approval" : "rejection",
     });
-    addAuditLog({
-      action: `Proposal ${reviewAction.type}`,
-      user: currentUsers[role].name,
-      role,
-      module: "Proposals",
-      timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
-      ip: "192.168.1.1",
-      details: `${reviewAction.proposal.id}: ${reviewComment.trim()}`,
-    });
+
     toast(`Proposal ${reviewAction.type.toLowerCase()}`);
     setReviewAction(null);
     setReviewComment("");
@@ -371,15 +356,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
       time: "Just now",
       type: "approval",
     });
-    addAuditLog({
-      action: "Award Created",
-      user: currentUsers[role].name,
-      role,
-      module: "Proposals",
-      timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
-      ip: "192.168.1.1",
-      details: `${award.id} from ${showAwardModal.id}`,
-    });
+
     toast("Award created successfully");
     setShowAwardModal(null);
     setAwardAmount("");
@@ -393,7 +370,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
         title="Proposals"
         subtitle={`${proposals.filter((p) => p.status === "Under Review").length} proposals pending review`}
         action={
-          role === "Researcher" || role === "Assistant Researcher" ?
+          role === "researcher_pi" || role === "researcher_co_pi" ?
             <button
               onClick={() => setShowNew(true)}
               className="btn-primary flex items-center gap-2"
@@ -510,7 +487,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
           <table className="w-full">
             <thead>
               <tr className="bg-muted border-b border-border">
-                {role === "Admin" && (
+                {role === "admin" && (
                   <th className="px-4 py-3 w-8">
                     <input
                       type="checkbox"
@@ -581,7 +558,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   key={p.id}
                   className="bg-card hover:bg-muted transition-colors"
                 >
-                  {role === "Admin" && (
+                  {role === "admin" && (
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
@@ -645,7 +622,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                       >
                         <Eye size={14} />
                       </button>
-                      {role === "Admin" &&
+                      {role === "admin" &&
                         (p.status === "Under Review" ||
                           p.status === "Revised") && (
                           <>
@@ -672,7 +649,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                             </button>
                           </>
                         )}
-                      {role === "Admin" && p.status === "Approved" && (
+                      {role === "admin" && p.status === "Approved" && (
                         <button
                           onClick={() => setShowAwardModal(p)}
                           className="flex items-center justify-center rounded-md p-1.5 transition-colors text-yellow-600 hover:bg-yellow-50"
@@ -785,7 +762,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   >
                     <Eye size={14} />
                   </button>
-                  {role === "Admin" &&
+                  {role === "admin" &&
                     (p.status === "Under Review" || p.status === "Revised") && (
                       <>
                         <button
@@ -811,7 +788,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                         </button>
                       </>
                     )}
-                  {role === "Admin" && p.status === "Approved" && (
+                  {role === "admin" && p.status === "Approved" && (
                     <button
                       onClick={() => setShowAwardModal(p)}
                       className="flex items-center justify-center rounded-md p-1.5 transition-colors text-yellow-600 hover:bg-yellow-50"
@@ -935,7 +912,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                 </div>
               </div>
             )}
-            {role === "Admin" &&
+            {role === "admin" &&
               (selected.status === "Under Review" ||
                 selected.status === "Revised") && (
                 <div className="flex gap-3 pt-2">
@@ -968,7 +945,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   </button>
                 </div>
               )}
-            {role === "Admin" && selected.status === "Approved" && (
+            {role === "admin" && selected.status === "Approved" && (
               <button
                 onClick={() => {
                   setShowAwardModal(selected);

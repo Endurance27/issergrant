@@ -153,6 +153,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
   const { addNotification, addAuditLog } = useAppContext();
   const currentUser = useAuthStore((s) => s.user);
   const adminName = currentUser?.name ?? "Admin";
+  const isReadOnly = role === "Director";
 
   const { users: remoteUsers, loading, error, refetch } = useUsers();
   const [updateUserMutation] = useMutation(UPDATE_USER_MUTATION);
@@ -368,26 +369,32 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
     <div onClick={() => setActiveMenu(null)}>
       <PageHeader
         title="User Management"
-        subtitle={`${activeCount} active users across ${deptCount} departments`}
+        subtitle={
+          isReadOnly
+            ? `${activeCount} active users across ${deptCount} departments (read-only)`
+            : `${activeCount} active users across ${deptCount} departments`
+        }
         action={
-          <div className="flex items-center gap-2">
-            {role === "Researcher" && (
-              <button
-                onClick={() => setShowAssistantForm(true)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus size={16} /> Add Assistant Researcher
-              </button>
-            )}
-            {role !== "Researcher" && (
-              <button
-                onClick={openCreate}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus size={16} /> Add User
-              </button>
-            )}
-          </div>
+          isReadOnly ? undefined : (
+            <div className="flex items-center gap-2">
+              {role === "Researcher" && (
+                <button
+                  onClick={() => setShowAssistantForm(true)}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus size={16} /> Add Assistant Researcher
+                </button>
+              )}
+              {role !== "Researcher" && (
+                <button
+                  onClick={openCreate}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus size={16} /> Add User
+                </button>
+              )}
+            </div>
+          )
         }
       />
 
@@ -510,7 +517,7 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
                     dir={dir}
                     onToggle={() => toggle("status")}
                   />
-                  <TH label="" />
+                  {!isReadOnly && <TH label="" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -557,55 +564,57 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
                     <td className="px-4 py-3">
                       <Badge status={u.status} size="sm" />
                     </td>
-                    <td className="px-4 py-3">
-                      <div
-                        className="relative"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={() =>
-                            setActiveMenu(activeMenu === u.id ? null : u.id)
-                          }
-                          className="flex items-center justify-center rounded-lg p-1.5 transition-colors text-muted-foreground hover:bg-muted"
+                    {!isReadOnly && (
+                      <td className="px-4 py-3">
+                        <div
+                          className="relative"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <MoreHorizontal size={16} />
-                        </button>
-                        {activeMenu === u.id && (
-                          <div className="absolute right-0 top-full mt-1 min-w-[190px] rounded-xl shadow-xl z-30 overflow-hidden bg-card border border-border">
-                            {u.status === "active" ?
+                          <button
+                            onClick={() =>
+                              setActiveMenu(activeMenu === u.id ? null : u.id)
+                            }
+                            className="flex items-center justify-center rounded-lg p-1.5 transition-colors text-muted-foreground hover:bg-muted"
+                          >
+                            <MoreHorizontal size={16} />
+                          </button>
+                          {activeMenu === u.id && (
+                            <div className="absolute right-0 top-full mt-1 min-w-[190px] rounded-xl shadow-xl z-30 overflow-hidden bg-card border border-border">
+                              {u.status === "active" ?
+                                <button
+                                  onClick={() => {
+                                    setConfirmSuspend(u);
+                                    setActiveMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-amber-500"
+                                >
+                                  <ShieldOff size={14} /> Suspend Account
+                                </button>
+                              : <button
+                                  onClick={() => {
+                                    toggleStatus(u.id, false);
+                                    setActiveMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-green-500"
+                                >
+                                  <ShieldCheck size={14} /> Activate Account
+                                </button>
+                              }
+                              <div className="h-px bg-border mx-2" />
                               <button
                                 onClick={() => {
-                                  setConfirmSuspend(u);
+                                  setConfirmDelete(u);
                                   setActiveMenu(null);
                                 }}
-                                className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-amber-500"
+                                className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-red-500"
                               >
-                                <ShieldOff size={14} /> Suspend Account
+                                <Trash2 size={14} /> Delete User
                               </button>
-                            : <button
-                                onClick={() => {
-                                  toggleStatus(u.id, false);
-                                  setActiveMenu(null);
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-green-500"
-                              >
-                                <ShieldCheck size={14} /> Activate Account
-                              </button>
-                            }
-                            <div className="h-px bg-border mx-2" />
-                            <button
-                              onClick={() => {
-                                setConfirmDelete(u);
-                                setActiveMenu(null);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-red-500"
-                            >
-                              <Trash2 size={14} /> Delete User
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -684,28 +693,30 @@ export function UserManagement({ role = "Admin" }: UserManagementProps) {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 justify-end">
-                {u.status === "active" ?
+              {!isReadOnly && (
+                <div className="flex items-center gap-2 justify-end">
+                  {u.status === "active" ?
+                    <button
+                      onClick={() => setConfirmSuspend(u)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-500 bg-amber-50 border border-amber-300"
+                    >
+                      <ShieldOff size={12} /> Suspend
+                    </button>
+                  : <button
+                      onClick={() => toggleStatus(u.id, false)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-green-500 bg-green-50 border border-green-300"
+                    >
+                      <ShieldCheck size={12} /> Activate
+                    </button>
+                  }
                   <button
-                    onClick={() => setConfirmSuspend(u)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-500 bg-amber-50 border border-amber-300"
+                    onClick={() => setConfirmDelete(u)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 bg-red-50 border border-red-300"
                   >
-                    <ShieldOff size={12} /> Suspend
+                    <Trash2 size={12} /> Delete
                   </button>
-                : <button
-                    onClick={() => toggleStatus(u.id, false)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-green-500 bg-green-50 border border-green-300"
-                  >
-                    <ShieldCheck size={12} /> Activate
-                  </button>
-                }
-                <button
-                  onClick={() => setConfirmDelete(u)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 bg-red-50 border border-red-300"
-                >
-                  <Trash2 size={12} /> Delete
-                </button>
-              </div>
+                </div>
+              )}
             </div>
           ))}
           {paginated.length === 0 && (

@@ -37,6 +37,7 @@ const STATUS_BORDER: Record<string, string> = {
 };
 
 import type { FundingCall as FundingCallData } from "../../../types/fundingCall.types";
+import { Account_Type } from "@/gql/graphql";
 
 function toLocalGrantCall(fc: FundingCallData): GrantCall {
   return {
@@ -56,7 +57,7 @@ function toLocalGrantCall(fc: FundingCallData): GrantCall {
 }
 
 interface GrantCallsProps {
-  role: Role;
+  role: Account_Type;
   onNavigate: (
     page: string,
     state?: { grantCallId?: string; grantCallTitle?: string },
@@ -136,7 +137,7 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
         title="Grant Calls"
         subtitle={`${grantCalls.filter((g) => g.status === "Open").length} active opportunities available`}
         action={
-          role === "Admin" ?
+          role === "admin" || role === "director" ?
             <button
               onClick={() => setShowFundingCallCreate(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-[13px] shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
@@ -199,8 +200,8 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
                     {g.id}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    {(role === "Researcher" ||
-                      role === "Assistant Researcher") && (
+                    {(role === "researcher_pi" ||
+                      role === "researcher_co_pi") && (
                       <BookmarkButton
                         fundingCallId={g.id}
                         fundingCallTitle={g.title}
@@ -353,7 +354,7 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
                 {selected.eligibility}
               </div>
             </div>
-            {(role === "Researcher" || role === "Assistant Researcher") && (
+            {(role === "researcher_pi" || role === "researcher_co_pi") && (
               <div className="flex gap-3">
                 {selected.status === "Open" && (
                   <button
@@ -391,50 +392,51 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
                 </button>
               </div>
             )}
-            {role === "Admin" && (
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    const fc: FundingCallType = {
-                      id: selected.id,
-                      funder: selected.category,
-                      theme: selected.title,
-                      description: selected.description,
-                      totalAvailable: selected.totalBudget,
-                      maximumAward: selected.totalBudget,
-                      hasMinMaxAward: false,
-                      allowsMultipleApplications: "no",
-                      openDate: selected.deadline,
-                      originalCallLink: "",
-                      eligibility:
-                        selected.eligibility ? [selected.eligibility] : [],
-                      createdBy: authUser?.userId ?? "admin",
-                      status: selected.status,
-                    };
-                    setSelected(null);
-                    setEditingFundingCall(fc);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:opacity-90 transition-opacity"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--primary), #2D6EA8)",
-                  }}
-                >
-                  Edit
-                </button>
-                {selected.status === "Open" && (
+            {role === "admin" ||
+              (role === "director" && (
+                <div className="flex gap-3">
                   <button
                     onClick={() => {
-                      toast("Grant call closed", "warning");
+                      const fc: FundingCallType = {
+                        id: selected.id,
+                        funder: selected.category,
+                        theme: selected.title,
+                        description: selected.description,
+                        totalAvailable: selected.totalBudget,
+                        maximumAward: selected.totalBudget,
+                        hasMinMaxAward: false,
+                        allowsMultipleApplications: "no",
+                        openDate: selected.deadline,
+                        originalCallLink: "",
+                        eligibility:
+                          selected.eligibility ? [selected.eligibility] : [],
+                        createdBy: authUser?.userId ?? "admin",
+                        status: selected.status,
+                      };
                       setSelected(null);
+                      setEditingFundingCall(fc);
                     }}
-                    className="flex-1 py-2.5 rounded-xl border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors"
+                    className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:opacity-90 transition-opacity"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, var(--primary), #2D6EA8)",
+                    }}
                   >
-                    Close Call
+                    Edit
                   </button>
-                )}
-              </div>
-            )}
+                  {selected.status === "Open" && (
+                    <button
+                      onClick={() => {
+                        toast("Grant call closed", "warning");
+                        setSelected(null);
+                      }}
+                      className="flex-1 py-2.5 rounded-xl border border-border font-semibold text-[13px] text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      Close Call
+                    </button>
+                  )}
+                </div>
+              ))}
           </div>
         )}
       </Modal>

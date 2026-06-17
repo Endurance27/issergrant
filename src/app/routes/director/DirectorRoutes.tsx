@@ -1,36 +1,51 @@
-import { Navigate, useNavigate } from "react-router-dom";
-import { Reports } from "../../components/pages/Reports";
+import { useNavigate, useLocation } from "react-router-dom";
+import { DirectorDashboardPage as DirectorDashboardFeaturePage } from "../../director/dashboard";
+import { DirectorReportsPage as DirectorReportsFeaturePage } from "../../director/reports";
+import { GrantCalls } from "../../components/pages/GrantCalls";
+import { Proposals } from "../../components/pages/Proposals";
+import { Awards } from "../../components/pages/Awards";
+import { Financial } from "../../components/pages/Financial";
 import { Analytics } from "../../components/pages/Analytics";
 import { Notifications } from "../../components/pages/Notifications";
 import { CalendarPage } from "../../components/pages/CalendarPage";
+import { Settings } from "../../components/pages/Settings";
+import { UserManagement } from "../../components/pages/UserManagement";
+import { useAuthContext } from "../../context/AuthContext";
+import type { NavState } from "../../App";
 
-function DirectorDashboardPage() {
-  return (
-    <div>
-      <div className="mb-6">
-        <h1 className="font-extrabold text-2xl text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {new Date().toLocaleDateString("en-GH", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
-      </div>
-      <p className="text-muted-foreground text-sm">
-        Welcome to the Director dashboard. Use the sidebar to navigate.
-      </p>
-    </div>
-  );
+function useDirectorNav() {
+  const navigate = useNavigate();
+  return (page: string, state?: NavState) =>
+    navigate("/director/" + page, state ? { state } : undefined);
 }
 
 export function DirectorDashboard() {
-  return <DirectorDashboardPage />;
+  const nav = useDirectorNav();
+  return <DirectorDashboardFeaturePage onNavigate={nav} />;
+}
+
+export function DirectorGrantCallsPage() {
+  const nav = useDirectorNav();
+  return <GrantCalls role="director" onNavigate={nav} />;
+}
+
+export function DirectorProposalsPage() {
+  const location = useLocation();
+  const navState = (location.state as NavState | null) ?? null;
+  return <Proposals role="director" navState={navState} />;
+}
+
+export function DirectorAwardsPage() {
+  const nav = useDirectorNav();
+  return <Awards role="director" onNavigate={nav} />;
+}
+
+export function DirectorFinancialPage() {
+  return <Financial role="director" />;
 }
 
 export function DirectorReportsPage() {
-  return <Reports role="Admin" />;
+  return <DirectorReportsFeaturePage />;
 }
 
 export function DirectorAnalyticsPage() {
@@ -43,4 +58,15 @@ export function DirectorNotificationsPage() {
 
 export function DirectorCalendarPage() {
   return <CalendarPage />;
+}
+
+export function DirectorUsersPage() {
+  return <UserManagement role="Director" />;
+}
+
+export function DirectorSettingsPage() {
+  const { darkMode, toggleDark } = useAuthContext();
+  return (
+    <Settings role="Director" darkMode={darkMode} onToggleDark={toggleDark} />
+  );
 }

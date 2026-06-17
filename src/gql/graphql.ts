@@ -6,10 +6,10 @@ export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' |
 import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core';
 export type Account_Type =
   | 'admin'
-  | 'assistant_researcher'
   | 'director'
   | 'finance_officer'
-  | 'researcher';
+  | 'researcher_co_pi'
+  | 'researcher_pi';
 
 export type AssignmentType =
   | 'milestone'
@@ -116,10 +116,10 @@ export type UpdateUserInput = {
 
 export type UserRole =
   | 'admin'
-  | 'assistant_researcher'
   | 'director'
   | 'finance_officer'
-  | 'researcher';
+  | 'researcher_co_pi'
+  | 'researcher_pi';
 
 export type UserStatus =
   | 'active'

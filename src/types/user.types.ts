@@ -19,16 +19,16 @@ export interface User {
 /** Frontend-friendly display labels for each role */
 export type DisplayRole =
   | 'Admin'
-  | 'Researcher'
-  | 'Assistant Researcher'
+  | 'Researcher (PI)'
+  | 'Researcher (Co-PI)'
   | 'Finance Officer'
   | 'Director';
 
 /** Map backend enum → display label */
 export const ROLE_DISPLAY: Record<string, DisplayRole> = {
   admin: 'Admin',
-  researcher: 'Researcher',
-  assistant_researcher: 'Assistant Researcher',
+  researcher_pi: 'Researcher (PI)',
+  researcher_co_pi: 'Researcher (Co-PI)',
   finance_officer: 'Finance Officer',
   director: 'Director',
 };
@@ -36,8 +36,8 @@ export const ROLE_DISPLAY: Record<string, DisplayRole> = {
 /** Map display label → backend enum */
 export const ROLE_ENUM: Record<DisplayRole, string> = {
   Admin: 'admin',
-  Researcher: 'researcher',
-  'Assistant Researcher': 'assistant_researcher',
+  'Researcher (PI)': 'researcher_pi',
+  'Researcher (Co-PI)': 'researcher_co_pi',
   'Finance Officer': 'finance_officer',
   Director: 'director',
 };
@@ -45,8 +45,8 @@ export const ROLE_ENUM: Record<DisplayRole, string> = {
 /** Role-to-base-path mapping for routing */
 export const ROLE_BASE_PATH: Record<string, string> = {
   admin: '/admin',
-  researcher: '/researcher',
-  assistant_researcher: '/assistant',
+  researcher_pi: '/researcher-pi',
+  researcher_co_pi: '/researcher-co-pi',
   finance_officer: '/finance',
   director: '/director',
 };

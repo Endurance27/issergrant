@@ -24,20 +24,15 @@ export type AccountSettings = {
 
 export type Account_Type =
   | 'admin'
-  | 'assistant_researcher'
   | 'director'
   | 'finance_officer'
-  | 'researcher';
+  | 'researcher_co_pi'
+  | 'researcher_pi';
 
 export type Admin = {
   __typename?: 'Admin';
   email?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
-};
-
-export type AdminAuditLogsQueryInput = {
-  filter?: InputMaybe<AuditLogsFilterInput>;
-  pagination?: InputMaybe<PaginationInput>;
 };
 
 export type AdminDashboard = {
@@ -321,127 +316,38 @@ export type AttachmentPayload = {
   success: Scalars['Boolean']['output'];
 };
 
-export type AuditAction =
-  | 'APPROVE'
-  | 'ARCHIVE'
-  | 'CREATE'
-  | 'DELETE'
-  | 'DOWNLOAD'
-  | 'EXPORT'
-  | 'LOGIN'
-  | 'LOGOUT'
-  | 'PASSWORD_CHANGE'
-  | 'PERMISSION_GRANT'
-  | 'PERMISSION_REVOKE'
-  | 'PUBLISH'
-  | 'READ'
-  | 'REJECT'
-  | 'UPDATE'
-  | 'UPLOAD';
-
-export type AuditActionCount = {
-  __typename?: 'AuditActionCount';
-  action: AuditAction;
-  count: Scalars['Int']['output'];
-};
-
-export type AuditActorCount = {
-  __typename?: 'AuditActorCount';
-  actor: User;
-  count: Scalars['Int']['output'];
-};
-
 export type AuditLog = {
   __typename?: 'AuditLog';
-  action: AuditAction;
-  actor: User;
+  action: Scalars['String']['output'];
   createdAt: Scalars['String']['output'];
-  description: Scalars['String']['output'];
-  errorMessage?: Maybe<Scalars['String']['output']>;
+  details?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
-  ipAddress: Scalars['String']['output'];
-  metadata?: Maybe<AuditLogMetadata>;
-  module: AuditModule;
-  resourceId?: Maybe<Scalars['String']['output']>;
-  resourceType?: Maybe<Scalars['String']['output']>;
-  severity: AuditSeverity;
-  status: Scalars['String']['output'];
-  timestamp: Scalars['String']['output'];
-  userAgent: Scalars['String']['output'];
+  ipAddress?: Maybe<Scalars['String']['output']>;
+  module: Scalars['String']['output'];
+  updatedAt: Scalars['String']['output'];
+  user?: Maybe<User>;
+  userAgent?: Maybe<Scalars['String']['output']>;
+  userId: Scalars['ID']['output'];
 };
 
 export type AuditLogConnection = {
   __typename?: 'AuditLogConnection';
-  edges: Array<AuditLogEdge>;
-  pageInfo: PageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type AuditLogEdge = {
-  __typename?: 'AuditLogEdge';
-  cursor: Scalars['String']['output'];
-  node: AuditLog;
-};
-
-export type AuditLogExport = {
-  __typename?: 'AuditLogExport';
-  format: Scalars['String']['output'];
-  message: Scalars['String']['output'];
-  recordCount: Scalars['Int']['output'];
-  success: Scalars['Boolean']['output'];
-  url?: Maybe<Scalars['String']['output']>;
-};
-
-export type AuditLogFilterInput = {
-  actions?: InputMaybe<Array<AuditAction>>;
-  actors?: InputMaybe<Array<Scalars['ID']['input']>>;
-  dateRange?: InputMaybe<DateRangeInput>;
-  ipAddress?: InputMaybe<Scalars['String']['input']>;
-  modules?: InputMaybe<Array<AuditModule>>;
-  search?: InputMaybe<Scalars['String']['input']>;
-  severities?: InputMaybe<Array<AuditSeverity>>;
-};
-
-export type AuditLogMetadata = {
-  __typename?: 'AuditLogMetadata';
-  changes?: Maybe<Scalars['JSON']['output']>;
-  newValues?: Maybe<Scalars['JSON']['output']>;
-  previousValues?: Maybe<Scalars['JSON']['output']>;
-  reason?: Maybe<Scalars['String']['output']>;
-  recordId?: Maybe<Scalars['String']['output']>;
-  recordType?: Maybe<Scalars['String']['output']>;
-};
-
-export type AuditLogSortInput = {
-  direction: SortDirection;
-  field: AuditSortField;
-};
-
-export type AuditLogStats = {
-  __typename?: 'AuditLogStats';
-  byAction: Array<AuditActionCount>;
-  byActor: Array<AuditActorCount>;
-  byModule: Array<AuditModuleCount>;
-  criticalCount: Scalars['Int']['output'];
-  thisMonth: Scalars['Int']['output'];
-  thisWeek: Scalars['Int']['output'];
-  today: Scalars['Int']['output'];
-  total: Scalars['Int']['output'];
-};
-
-export type AuditLogsConnection = {
-  __typename?: 'AuditLogsConnection';
   logs: Array<AuditLog>;
   pageInfo: PageInfo;
   totalCount: Scalars['Int']['output'];
 };
 
-export type AuditLogsFilterInput = {
+export type AuditLogFilterInput = {
   action?: InputMaybe<Scalars['String']['input']>;
-  endDate?: InputMaybe<Scalars['String']['input']>;
+  fromDate?: InputMaybe<Scalars['String']['input']>;
   module?: InputMaybe<Scalars['String']['input']>;
-  startDate?: InputMaybe<Scalars['String']['input']>;
-  userId?: InputMaybe<Scalars['String']['input']>;
+  toDate?: InputMaybe<Scalars['String']['input']>;
+  userId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type AuditLogPaginationInput = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type AuditMetrics = {
@@ -450,50 +356,6 @@ export type AuditMetrics = {
   issuesFound: Scalars['Int']['output'];
   openFindings: Scalars['Int']['output'];
   totalAudits: Scalars['Int']['output'];
-};
-
-export type AuditModule =
-  | 'ANALYTICS'
-  | 'AUDIT_LOGS'
-  | 'AUTHENTICATION'
-  | 'AWARDS'
-  | 'CALENDAR'
-  | 'FINANCIAL'
-  | 'GRANT_CALLS'
-  | 'MILESTONES'
-  | 'NOTIFICATIONS'
-  | 'PROPOSALS'
-  | 'REPORTS'
-  | 'SETTINGS'
-  | 'SYSTEM'
-  | 'USERS';
-
-export type AuditModuleCount = {
-  __typename?: 'AuditModuleCount';
-  count: Scalars['Int']['output'];
-  module: AuditModule;
-};
-
-export type AuditSeverity =
-  | 'CRITICAL'
-  | 'INFO'
-  | 'WARNING';
-
-export type AuditSortField =
-  | 'ACTION'
-  | 'ACTOR'
-  | 'MODULE'
-  | 'SEVERITY'
-  | 'TIMESTAMP';
-
-export type AuditUserActivity = {
-  __typename?: 'AuditUserActivity';
-  actionCount: Scalars['Int']['output'];
-  lastActivity: Scalars['String']['output'];
-  module: AuditModule;
-  recentActions: Array<AuditLog>;
-  user: User;
-  userId: Scalars['ID']['output'];
 };
 
 export type AuthUser = {
@@ -1208,11 +1070,6 @@ export type EventType =
   | 'REPORT_DUE'
   | 'REVIEW_SESSION';
 
-export type ExportAuditLogsInput = {
-  filter?: InputMaybe<AuditLogFilterInput>;
-  format: Scalars['String']['input'];
-};
-
 export type ExportReportInput = {
   format: Scalars['String']['input'];
   id: Scalars['ID']['input'];
@@ -1587,12 +1444,6 @@ export type GetApplicationFilter = {
   fundingCallId?: InputMaybe<Scalars['ID']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
   status?: InputMaybe<ApplicationStatus>;
-};
-
-export type GetAuditLogsInput = {
-  filter?: InputMaybe<AuditLogFilterInput>;
-  pagination?: InputMaybe<CursorPaginationInput>;
-  sorting?: InputMaybe<AuditLogSortInput>;
 };
 
 export type GetAwardsInput = {
@@ -3284,6 +3135,8 @@ export type Query = {
   assistantNotificationPreferences: NotificationPreferences;
   assistantProposalStats: AssistantProposalStats;
   assistantReportStats: AssistantReportStats;
+  auditLog?: Maybe<AuditLog>;
+  auditLogs: AuditLogConnection;
   auditMetrics: AuditMetrics;
   award?: Maybe<Award>;
   awardAnalytics: AwardAnalytics;
@@ -3310,17 +3163,12 @@ export type Query = {
   fundingHistory: Array<DisbursementRecord>;
   fundingStats: FundingStats;
   fundingTrends: Array<FundingTrend>;
-  getActionAuditLogs: AuditLogConnection;
-  getActorAuditLogs: AuditLogConnection;
   getAdminDashboard: AdminDashboard;
   getAllSettings: AllSettings;
   getAnalytics: AnalyticsData;
   getApplication?: Maybe<Application>;
   getApplicationSettings: ApplicationSettings;
   getApplications: Array<Application>;
-  getAuditLog?: Maybe<AuditLog>;
-  getAuditLogs: AuditLogsConnection;
-  getAuditStats: AuditLogStats;
   getAward?: Maybe<Award>;
   getAwardAllocations: Array<FundingAllocation>;
   getAwardAnalytics: AwardAnalytics;
@@ -3331,7 +3179,6 @@ export type Query = {
   getBudget?: Maybe<Budget>;
   getCalendarStats: CalendarStats;
   getCostCenters: Array<CostCenter>;
-  getCriticalAuditLogs: AuditLogConnection;
   getDashboardAlerts: Array<DashboardAlert>;
   getDashboardMetrics: DashboardMetrics;
   getDashboardStats: DashboardStats;
@@ -3356,7 +3203,6 @@ export type Query = {
   getMilestone?: Maybe<Milestone>;
   getMilestoneEvidence: Array<MilestoneEvidence>;
   getMilestoneStats: MilestoneStats;
-  getModuleAuditLogs: AuditLogConnection;
   getMonthlyApplicationStats: MonthlyApplicationStat;
   getMonthlyExpenditure: Array<MonthlyData>;
   getMonthlyProposalStats: Array<MonthlyProposalStat>;
@@ -3393,9 +3239,7 @@ export type Query = {
   getUpcomingDeadlines: Array<CalendarEvent>;
   getUpcomingEvents: CalendarEventConnection;
   getUser?: Maybe<User>;
-  getUserActivity?: Maybe<AuditUserActivity>;
   getUserAnalytics: UserAnalytics;
-  getUserAuditLogs: AuditLogsConnection;
   getUserCountByRole: Array<UserRoleCount>;
   getUserGrowthTrend: Array<TrendData>;
   getUserRoleDistribution: Array<UserRoleDistribution>;
@@ -3408,7 +3252,6 @@ export type Query = {
   grantCall?: Maybe<AssistantGrantCall>;
   grantCalls: AssistantGrantCallConnection;
   isFeatureEnabled: Scalars['Boolean']['output'];
-  listAuditLogs: AuditLogConnection;
   listAwards: AwardConnection;
   listBudgets: BudgetConnection;
   listEvents: CalendarEventConnection;
@@ -3435,7 +3278,6 @@ export type Query = {
   notificationPreferences?: Maybe<NotificationPreference>;
   notifications: NotificationConnection;
   overdueMilestones: Array<Milestone>;
-  prepareAuditLogExport: AuditLogExport;
   profile: FinanceOfficerProfile;
   projectFinancials: FinancialSummary;
   proposal?: Maybe<Proposal>;
@@ -3455,7 +3297,18 @@ export type Query = {
   upcomingDeadlines: Array<UpcomingDeadline>;
   upcomingEvents: Array<CalendarEvent>;
   upcomingMilestones: Array<Milestone>;
-  verifyAuditLogIntegrity: Scalars['Boolean']['output'];
+};
+
+
+export type QueryAuditLogArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryAuditLogsArgs = {
+  filter?: InputMaybe<AuditLogFilterInput>;
+  pagination?: InputMaybe<AuditLogPaginationInput>;
+  sortDirection?: InputMaybe<SortDirection>;
 };
 
 
@@ -3567,18 +3420,6 @@ export type QueryFundingTrendsArgs = {
 };
 
 
-export type QueryGetActionAuditLogsArgs = {
-  action: AuditAction;
-  pagination?: InputMaybe<CursorPaginationInput>;
-};
-
-
-export type QueryGetActorAuditLogsArgs = {
-  pagination?: InputMaybe<CursorPaginationInput>;
-  userId: Scalars['ID']['input'];
-};
-
-
 export type QueryGetAnalyticsArgs = {
   filter?: InputMaybe<AnalyticsFilterInput>;
 };
@@ -3591,21 +3432,6 @@ export type QueryGetApplicationArgs = {
 
 export type QueryGetApplicationsArgs = {
   filter?: InputMaybe<GetApplicationFilter>;
-};
-
-
-export type QueryGetAuditLogArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type QueryGetAuditLogsArgs = {
-  input: AdminAuditLogsQueryInput;
-};
-
-
-export type QueryGetAuditStatsArgs = {
-  dateRange?: InputMaybe<DateRangeInput>;
 };
 
 
@@ -3644,11 +3470,6 @@ export type QueryGetAwardReportsArgs = {
 
 export type QueryGetBudgetArgs = {
   id: Scalars['ID']['input'];
-};
-
-
-export type QueryGetCriticalAuditLogsArgs = {
-  pagination?: InputMaybe<CursorPaginationInput>;
 };
 
 
@@ -3737,12 +3558,6 @@ export type QueryGetMilestoneArgs = {
 
 export type QueryGetMilestoneEvidenceArgs = {
   milestoneId: Scalars['ID']['input'];
-};
-
-
-export type QueryGetModuleAuditLogsArgs = {
-  module: AuditModule;
-  pagination?: InputMaybe<CursorPaginationInput>;
 };
 
 
@@ -3904,19 +3719,8 @@ export type QueryGetUserArgs = {
 };
 
 
-export type QueryGetUserActivityArgs = {
-  userId: Scalars['ID']['input'];
-};
-
-
 export type QueryGetUserAnalyticsArgs = {
   filter?: InputMaybe<AnalyticsFilterInput>;
-};
-
-
-export type QueryGetUserAuditLogsArgs = {
-  pagination?: InputMaybe<PaginationInput>;
-  userId: Scalars['ID']['input'];
 };
 
 
@@ -3975,11 +3779,6 @@ export type QueryGrantCallsArgs = {
 
 export type QueryIsFeatureEnabledArgs = {
   key: Scalars['String']['input'];
-};
-
-
-export type QueryListAuditLogsArgs = {
-  input: GetAuditLogsInput;
 };
 
 
@@ -4126,11 +3925,6 @@ export type QueryNotificationsArgs = {
 };
 
 
-export type QueryPrepareAuditLogExportArgs = {
-  input: ExportAuditLogsInput;
-};
-
-
 export type QueryProjectFinancialsArgs = {
   projectId: Scalars['ID']['input'];
 };
@@ -4203,12 +3997,6 @@ export type QueryUpcomingEventsArgs = {
 
 export type QueryUpcomingMilestonesArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type QueryVerifyAuditLogIntegrityArgs = {
-  endId?: InputMaybe<Scalars['ID']['input']>;
-  startId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type RecentActivity = {
@@ -4970,10 +4758,10 @@ export type UserFilterInput = {
 
 export type UserRole =
   | 'admin'
-  | 'assistant_researcher'
   | 'director'
   | 'finance_officer'
-  | 'researcher';
+  | 'researcher_co_pi'
+  | 'researcher_pi';
 
 export type UserRoleCount = {
   __typename?: 'UserRoleCount';

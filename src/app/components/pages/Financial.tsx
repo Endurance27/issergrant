@@ -8,6 +8,15 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { Badge } from "../ui/Badge";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { useToast } from "../ui/Toast";
@@ -17,14 +26,16 @@ import { Pagination } from "../ui/Pagination";
 import { usePagination } from "../../../hooks/usePagination";
 import { useSortable } from "../../../hooks/useSortable";
 import { useAppContext } from "../../context/AppContext";
-import { currentUsers } from "../../data/mockData";
+import { currentUsers, analyticsData } from "../../data/mockData";
 import { supabase } from "../../../lib/supabase";
 import type { Role } from "../../data/mockData";
+import { TICK, TIP } from "../../utils/formatters";
+import { Account_Type } from "@/gql/schema-types";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
 
 interface FinancialProps {
-  role: Role;
+  role: Account_Type;
 }
 
 export function Financial({ role }: FinancialProps) {
@@ -83,15 +94,6 @@ export function Financial({ role }: FinancialProps) {
         time: "Just now",
         type: "payment",
       });
-      addAuditLog({
-        action: "Disbursement Approved",
-        user: currentUsers[role].name,
-        role,
-        module: "Financial",
-        timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
-        ip: "192.168.1.1",
-        details: `${fmtCurrency(tx.amount)} — ${tx.description}`,
-      });
     }
     toast("Disbursement approved");
   };
@@ -102,15 +104,7 @@ export function Financial({ role }: FinancialProps) {
       .update({ status: "Rejected" })
       .eq("id", id)
       .then(() => {});
-    addAuditLog({
-      action: "Disbursement Rejected",
-      user: currentUsers[role].name,
-      role,
-      module: "Financial",
-      timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
-      ip: "192.168.1.1",
-      details: id,
-    });
+
     toast("Disbursement rejected", "error");
   };
 
@@ -186,6 +180,61 @@ export function Financial({ role }: FinancialProps) {
             </div>
           </div>
         ))}
+      </div>
+
+      <div
+        className="rounded-2xl p-5 mb-6 bg-card border border-border"
+        data-testid="monthly-expenditure-chart"
+      >
+        <h3 className="font-bold text-sm text-foreground mb-1">
+          Monthly Expenditures
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Funds disbursed per month in 2025
+        </p>
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={analyticsData.monthlyDisbursements}>
+            <defs>
+              <linearGradient id="financeArea" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="5%"
+                  stopColor="var(--chart-1)"
+                  stopOpacity={0.25}
+                />
+                <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="var(--border)"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="month"
+              tick={TICK}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tickFormatter={(v) => `GHS ${v / 1000}k`}
+              tick={TICK}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              formatter={(v: number) => fmtCurrency(v)}
+              contentStyle={TIP}
+            />
+            <Area
+              type="monotone"
+              dataKey="amount"
+              name="Disbursed"
+              stroke="var(--chart-1)"
+              strokeWidth={2.5}
+              fill="url(#financeArea)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
       <div className="rounded-2xl p-5 mb-6 bg-card border border-border">
@@ -280,7 +329,7 @@ export function Financial({ role }: FinancialProps) {
                     "Date",
                     "Amount",
                     "Status",
-                    role === "Finance Officer" ? "Action" : "",
+                    role === "finance_officer" ? "Action" : "",
                   ]
                     .filter(Boolean)
                     .map((h) => (
@@ -340,7 +389,7 @@ export function Financial({ role }: FinancialProps) {
                     <td className="px-4 py-3">
                       <Badge status={t.status} size="sm" />
                     </td>
-                    {role === "Finance Officer" && (
+                    {role === "finance_officer" && (
                       <td className="px-4 py-3">
                         {t.status === "Pending" && (
                           <div className="flex gap-1.5">
@@ -423,7 +472,7 @@ export function Financial({ role }: FinancialProps) {
                     {t.requestedBy}
                   </span>
                 </div>
-                {role === "Finance Officer" && t.status === "Pending" && (
+                {role === "finance_officer" && t.status === "Pending" && (
                   <div className="flex gap-1.5">
                     <button
                       onClick={() =>
