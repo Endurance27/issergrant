@@ -10,9 +10,11 @@ import { ErrorLink } from "@apollo/client/link/error";
 import React from "react";
 import { useAuthStore } from "../store/auth.store";
 
-const GRAPHQL_URI =
-  import.meta.env.VITE_GRAPHQL_URL ??
-  (import.meta.env.PROD ? "/api/graphql" : " https://grants.isser.edu.gh");
+// const GRAPHQL_URI =
+//   import.meta.env.VITE_GRAPHQL_URL ??
+//   (import.meta.env.PROD ? "/api/graphql" : " https://grants.isser.edu.gh");
+
+const GRAPHQL_URI = "https://grants.isser.edu.gh/graphql";
 
 const httpLink = new HttpLink({
   uri: GRAPHQL_URI,
