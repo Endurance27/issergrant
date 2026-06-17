@@ -10,6 +10,7 @@ import { Notifications } from "../../components/pages/Notifications";
 import { CalendarPage } from "../../components/pages/CalendarPage";
 import { Settings } from "../../components/pages/Settings";
 import { UserManagement } from "../../components/pages/UserManagement";
+import { AuditLogs } from "../../components/pages/AuditLogs";
 import { useAuthContext } from "../../context/AuthContext";
 import type { NavState } from "../../App";
 
@@ -62,6 +63,10 @@ export function DirectorCalendarPage() {
 
 export function DirectorUsersPage() {
   return <UserManagement role="Director" />;
+}
+
+export function DirectorAuditPage() {
+  return <AuditLogs />;
 }
 
 export function DirectorSettingsPage() {

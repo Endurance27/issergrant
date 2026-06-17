@@ -19,6 +19,7 @@ import {
   DirectorCalendarPage,
   DirectorUsersPage,
   DirectorSettingsPage,
+  DirectorAuditPage,
 } from "./director/DirectorRoutes";
 import {
   AdminDashboardPage,
@@ -196,6 +197,7 @@ export function AppRoutes() {
           <Route path="analytics" element={<DirectorAnalyticsPage />} />
           <Route path="calendar" element={<DirectorCalendarPage />} />
           <Route path="users" element={<DirectorUsersPage />} />
+          <Route path="audit" element={<DirectorAuditPage />} />
           <Route path="notifications" element={<DirectorNotificationsPage />} />
           <Route path="settings" element={<DirectorSettingsPage />} />
         </Route>
