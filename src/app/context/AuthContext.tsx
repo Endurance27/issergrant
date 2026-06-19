@@ -58,9 +58,10 @@ export function useAuthContext() {
 // Email → display role mapping for the demo accounts
 const roleByEmail: Record<string, DisplayRole> = {
   'sarah.ahmad@iser.edu': 'Admin',
+  'kwame.mensah@iser.edu': 'Director',
   'james.okonkwo@iser.edu': 'Researcher',
-  'chen.wei@iser.edu': 'Assistant Researcher',
   'fatima.rashid@iser.edu': 'Finance Officer',
+  'guest@iser.edu': 'Guest',
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

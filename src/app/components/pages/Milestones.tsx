@@ -56,7 +56,7 @@ export function Milestones({ role }: MilestonesProps) {
         title="Milestones & Deliverables"
         subtitle="Track project progress checkpoints"
         action={
-          (role === 'Researcher' || role === 'Assistant Researcher') ? (
+          (role === 'Researcher') ? (
             <button onClick={() => toast('Report submission coming soon', 'info')} className="btn-primary flex items-center gap-2">
               <Plus size={16} /> Submit Report
             </button>
@@ -117,7 +117,7 @@ export function Milestones({ role }: MilestonesProps) {
                             <button className="btn-destructive px-3 py-1 text-xs" onClick={e => { e.stopPropagation(); updateMilestoneStatus(m.id, 'Rejected'); toast('Revision requested', 'warning'); }}>Revise</button>
                           </div>
                         )}
-                        {(role === 'Researcher' || role === 'Assistant Researcher') && m.status === 'Draft' && (
+                        {(role === 'Researcher') && m.status === 'Draft' && (
                           <button className="btn-primary px-3 py-1 text-xs" onClick={e => { e.stopPropagation(); updateMilestoneStatus(m.id, 'Submitted'); toast('Milestone submitted for review'); }}>Submit</button>
                         )}
                       </div>

@@ -133,10 +133,10 @@ export interface UpdateProposalVariables {
 }
 
 // Frontend display roles
-export type UserRole = 'Admin' | 'Researcher' | 'Assistant Researcher' | 'Finance Officer'
+export type UserRole = 'Admin' | 'Director' | 'Finance Officer' | 'Researcher' | 'Guest'
 
 // Backend GraphQL enum values (lowercase)
-export type UserRoleEnum = 'admin' | 'researcher' | 'assistant_researcher' | 'finance_officer'
+export type UserRoleEnum = 'admin' | 'director' | 'finance_officer' | 'researcher' | 'guest'
 
 export interface CreateUserInput {
   name: string

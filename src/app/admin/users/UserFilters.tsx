@@ -1,7 +1,7 @@
 import { Search } from "lucide-react";
 import type { Role } from "../../data/mockData";
 
-const ROLES: Role[] = ['Researcher', 'Assistant Researcher', 'Finance Officer', 'Admin'];
+const ROLES: Role[] = ['Researcher', 'Director', 'Finance Officer', 'Admin'];
 const allRoles = ['All', ...ROLES];
 
 interface UserFiltersProps {

@@ -1,4 +1,4 @@
-export type Role = 'Admin' | 'Researcher' | 'Assistant Researcher' | 'Finance Officer';
+export type Role = 'Admin' | 'Director' | 'Finance Officer' | 'Researcher' | 'Guest';
 export type StatusBadge = 'Draft' | 'Submitted' | 'Under Review' | 'Approved' | 'Rejected' | 'Paid' | 'Pending' | 'Active' | 'Suspended' | 'Open' | 'Closed' | 'Locked' | 'Revised';
 
 export interface User {
@@ -102,20 +102,25 @@ export const currentUsers: Record<Role, User> = {
     status: 'Active', department: 'Administration', joined: '2023-01-15',
     avatar: 'SA'
   },
+  'Director': {
+    id: 3, name: 'Prof. Kwame Mensah', email: 'kwame.mensah@iser.edu', role: 'Director',
+    status: 'Active', department: 'Administration', joined: '2022-06-01',
+    avatar: 'KM'
+  },
   'Researcher': {
     id: 2, name: 'Prof. James Okonkwo', email: 'james.okonkwo@iser.edu', role: 'Researcher',
     status: 'Active', department: 'Biomedical Engineering', joined: '2023-03-20',
     avatar: 'JO'
   },
-  'Assistant Researcher': {
-    id: 4, name: 'Chen Wei', email: 'chen.wei@iser.edu', role: 'Assistant Researcher',
-    status: 'Active', department: 'Biomedical Engineering', joined: '2024-04-05',
-    avatar: 'CW'
-  },
   'Finance Officer': {
     id: 5, name: 'Ms. Fatima Al-Rashid', email: 'fatima.rashid@iser.edu', role: 'Finance Officer',
     status: 'Active', department: 'Finance & Accounts', joined: '2023-01-08',
     avatar: 'FA'
+  },
+  'Guest': {
+    id: 6, name: 'Guest User', email: 'guest@iser.edu', role: 'Guest',
+    status: 'Active', department: '', joined: '2025-01-01',
+    avatar: 'GU'
   },
 };
 
@@ -123,10 +128,10 @@ export const users: User[] = [
   { id: 1, name: 'Dr. Sarah Ahmad', email: 'sarah.ahmad@iser.edu', role: 'Admin', status: 'Active', department: 'Administration', joined: '2023-01-15', avatar: 'SA' },
   { id: 2, name: 'Prof. James Okonkwo', email: 'james.okonkwo@iser.edu', role: 'Researcher', status: 'Active', department: 'Biomedical Engineering', joined: '2023-03-20', avatar: 'JO' },
   { id: 3, name: 'Dr. Layla Hassan', email: 'layla.hassan@iser.edu', role: 'Researcher', status: 'Active', department: 'Environmental Science', joined: '2023-06-10', avatar: 'LH' },
-  { id: 4, name: 'Chen Wei', email: 'chen.wei@iser.edu', role: 'Assistant Researcher', status: 'Active', department: 'Biomedical Engineering', joined: '2024-04-05', avatar: 'CW' },
+  { id: 4, name: 'Chen Wei', email: 'chen.wei@iser.edu', role: 'Researcher', status: 'Active', department: 'Biomedical Engineering', joined: '2024-04-05', avatar: 'CW' },
   { id: 5, name: 'Ms. Fatima Al-Rashid', email: 'fatima.rashid@iser.edu', role: 'Finance Officer', status: 'Active', department: 'Finance & Accounts', joined: '2023-01-08', avatar: 'FA' },
   { id: 6, name: 'Dr. Marcus Rivera', email: 'marcus.rivera@iser.edu', role: 'Researcher', status: 'Suspended', department: 'Physics', joined: '2022-11-12', avatar: 'MR' },
-  { id: 7, name: 'Amira Nour', email: 'amira.nour@iser.edu', role: 'Assistant Researcher', status: 'Active', department: 'Environmental Science', joined: '2024-02-18', avatar: 'AN' },
+  { id: 7, name: 'Amira Nour', email: 'amira.nour@iser.edu', role: 'Researcher', status: 'Active', department: 'Environmental Science', joined: '2024-02-18', avatar: 'AN' },
   { id: 8, name: 'Dr. Raj Patel', email: 'raj.patel@iser.edu', role: 'Researcher', status: 'Active', department: 'Computer Science', joined: '2023-09-01', avatar: 'RP' },
 ];
 

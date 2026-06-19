@@ -23,9 +23,10 @@ import { AssistantResearcherForm } from "./AssistantResearcherForm";
 
 const ROLE_COLORS: Record<Role, string> = {
   'Admin': '#1A3363',
+  'Director': '#1A4A7A',
   'Researcher': '#2D6EA8',
-  'Assistant Researcher': '#B79A64',
   'Finance Officer': '#403C3A',
+  'Guest': '#B79A64',
 };
 
 const DEPARTMENTS = [
@@ -48,7 +49,7 @@ const DEPARTMENTS = [
   'Research Methods and Data Visualization',
 ];
 
-const ROLES: Role[] = ['Researcher', 'Assistant Researcher', 'Finance Officer', 'Admin'];
+const ROLES: Role[] = ['Researcher', 'Director', 'Finance Officer', 'Admin'];
 
 const TH = ({ label, sortKey, active, dir, onToggle }: { label: string; sortKey?: string; active?: boolean; dir?: 'asc' | 'desc'; onToggle?: () => void }) => (
   <th onClick={onToggle} className={`text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground whitespace-nowrap uppercase tracking-[0.05em] select-none ${onToggle ? 'cursor-pointer hover:text-foreground' : ''}`}>
@@ -66,11 +67,11 @@ interface UserManagementProps {
 export function UserManagement({ role = 'Admin' }: UserManagementProps) {
   const { addNotification, addAuditLog } = useAppContext();
 
-  // Admin can add Researcher and Finance Officer only
-  // Researcher can add Assistant Researcher only
+  // Admin can add Researcher, Director, Finance Officer
+  // Researcher sees their team members
   const allowedRoles: Role[] = role === 'Researcher'
-    ? ['Assistant Researcher']
-    : ['Researcher', 'Finance Officer'];
+    ? ['Researcher']
+    : ['Researcher', 'Director', 'Finance Officer'];
   const [users, setUsers] = useState<User[]>([]);
 
   // Load users from Supabase on mount

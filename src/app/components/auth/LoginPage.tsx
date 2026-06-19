@@ -16,24 +16,27 @@ type DemoRole = DisplayRole
 
 const roleColors: Record<DemoRole, string> = {
   'Admin': 'var(--primary)',
+  'Director': '#1A4A7A',
   'Researcher': '#2D6EA8',
-  'Assistant Researcher': '#B79A64',
   'Finance Officer': '#403C3A',
+  'Guest': '#B79A64',
 };
 
 const demoAccounts: { role: DemoRole; email: string; hint: string }[] = [
-  { role: 'Admin',              email: 'sarah.ahmad@iser.edu',    hint: 'System administrator' },
-  { role: 'Researcher',         email: 'james.okonkwo@iser.edu',  hint: 'Principal Investigator' },
-  { role: 'Assistant Researcher', email: 'chen.wei@iser.edu',     hint: 'Research assistant' },
-  { role: 'Finance Officer',    email: 'fatima.rashid@iser.edu',  hint: 'Finance & Accounts' },
+  { role: 'Admin' as DisplayRole,           email: 'sarah.ahmad@iser.edu',   hint: 'System administrator' },
+  { role: 'Director' as DisplayRole,        email: 'kwame.mensah@iser.edu',  hint: 'Institute Director' },
+  { role: 'Researcher' as DisplayRole,      email: 'james.okonkwo@iser.edu', hint: 'Principal Investigator' },
+  { role: 'Finance Officer' as DisplayRole, email: 'fatima.rashid@iser.edu', hint: 'Finance & Accounts' },
+  { role: 'Guest' as DisplayRole,           email: 'guest@iser.edu',         hint: 'Guest collaborator' },
 ];
 
 /** Email → backend enum role */
 const roleByEmail: Record<string, string> = {
   'sarah.ahmad@iser.edu':    'admin',
+  'kwame.mensah@iser.edu':   'director',
   'james.okonkwo@iser.edu':  'researcher',
-  'chen.wei@iser.edu':       'assistant_researcher',
   'fatima.rashid@iser.edu':  'finance_officer',
+  'guest@iser.edu':          'guest',
 };
 
 // ─── Visuals ──────────────────────────────────────────────────────────────────

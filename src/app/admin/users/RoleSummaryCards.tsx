@@ -2,12 +2,13 @@ import type { User, Role } from "../../data/mockData";
 
 const ROLE_COLORS: Record<Role, string> = {
   'Admin': '#1A3363',
+  'Director': '#1A4A7A',
   'Researcher': '#2D6EA8',
-  'Assistant Researcher': '#B79A64',
   'Finance Officer': '#403C3A',
+  'Guest': '#B79A64',
 };
 
-const ROLES: Role[] = ['Researcher', 'Assistant Researcher', 'Finance Officer', 'Admin'];
+const ROLES: Role[] = ['Researcher', 'Director', 'Finance Officer', 'Admin'];
 
 interface RoleSummaryCardsProps {
   users: User[];

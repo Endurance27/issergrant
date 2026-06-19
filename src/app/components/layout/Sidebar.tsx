@@ -1,7 +1,8 @@
 import {
   LayoutDashboard, FileText, Award, Milestone, DollarSign,
   BarChart3, Bell, Users, Settings, Shield, Calendar,
-  ChevronLeft, ChevronRight, LogOut, Megaphone, ClipboardList
+  ChevronLeft, ChevronRight, LogOut, Megaphone, ClipboardList,
+  TrendingUp, UserPlus
 } from "lucide-react";
 import type { Role } from "../../data/mockData";
 import { IsserLogo } from "../ui/IsserLogo";
@@ -15,18 +16,19 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: 'dashboard',     label: 'Dashboard',       icon: <LayoutDashboard size={18} />, roles: ['Admin', 'Researcher', 'Assistant Researcher', 'Finance Officer'] },
-  { id: 'grant-calls',   label: 'Grant Calls',      icon: <Megaphone size={18} />,       roles: ['Admin', 'Researcher', 'Assistant Researcher'] },
-  { id: 'proposals',     label: 'Proposals',        icon: <FileText size={18} />,        roles: ['Admin', 'Researcher', 'Assistant Researcher'] },
-  { id: 'awards',        label: 'Awards & Funding', icon: <Award size={18} />,           roles: ['Admin', 'Researcher', 'Finance Officer'] },
-  { id: 'milestones',    label: 'Milestones',       icon: <Milestone size={18} />,       roles: ['Admin', 'Researcher', 'Assistant Researcher'] },
-  { id: 'financial',     label: 'Financial',        icon: <DollarSign size={18} />,      roles: ['Admin', 'Finance Officer'] },
-  { id: 'reports',       label: 'Reports',          icon: <ClipboardList size={18} />,   roles: ['Admin', 'Researcher', 'Assistant Researcher', 'Finance Officer'] },
-  { id: 'calendar',      label: 'Calendar',         icon: <Calendar size={18} />,        roles: ['Admin', 'Researcher', 'Assistant Researcher', 'Finance Officer'] },
-  { id: 'analytics',     label: 'Analytics',        icon: <BarChart3 size={18} />,       roles: ['Admin', 'Finance Officer'] },
-  { id: 'notifications', label: 'Notifications',    icon: <Bell size={18} />,            roles: ['Admin', 'Researcher', 'Assistant Researcher', 'Finance Officer'], badge: 3 },
-  { id: 'users',         label: 'Team Members',     icon: <Users size={18} />,           roles: ['Admin', 'Researcher'] },
-  { id: 'settings',      label: 'Settings',         icon: <Settings size={18} />,        roles: ['Admin', 'Researcher', 'Assistant Researcher', 'Finance Officer'] },
+  { id: 'dashboard',     label: 'Dashboard',       icon: <LayoutDashboard size={18} />, roles: ['Admin', 'Director', 'Researcher', 'Finance Officer', 'Guest'] },
+  { id: 'grant-calls',   label: 'Grant Calls',      icon: <Megaphone size={18} />,       roles: ['Admin', 'Director', 'Researcher'] },
+  { id: 'proposals',     label: 'Proposals',        icon: <FileText size={18} />,        roles: ['Admin', 'Director', 'Researcher'] },
+  { id: 'awards',        label: 'Awards & Funding', icon: <Award size={18} />,           roles: ['Admin', 'Director', 'Finance Officer'] },
+  { id: 'milestones',    label: 'Milestones',       icon: <Milestone size={18} />,       roles: ['Admin', 'Researcher'] },
+  { id: 'financial',     label: 'Financial',        icon: <DollarSign size={18} />,      roles: ['Admin', 'Director', 'Finance Officer'] },
+  { id: 'reports',       label: 'Reports',          icon: <ClipboardList size={18} />,   roles: ['Admin', 'Director', 'Researcher', 'Finance Officer'] },
+  { id: 'calendar',      label: 'Calendar',         icon: <Calendar size={18} />,        roles: ['Admin', 'Director', 'Researcher'] },
+  { id: 'analytics',     label: 'Analytics',        icon: <TrendingUp size={18} />,      roles: ['Admin', 'Director', 'Finance Officer'] },
+  { id: 'notifications', label: 'Notifications',    icon: <Bell size={18} />,            roles: ['Admin', 'Director', 'Researcher', 'Finance Officer', 'Guest'], badge: 3 },
+  { id: 'users',         label: 'User Management',  icon: <Users size={18} />,           roles: ['Admin'] },
+  { id: 'guests',        label: 'Guests',           icon: <UserPlus size={18} />,        roles: ['Admin', 'Director', 'Researcher'] },
+  { id: 'settings',      label: 'Settings',         icon: <Settings size={18} />,        roles: ['Admin', 'Director', 'Researcher', 'Finance Officer', 'Guest'] },
   { id: 'audit',         label: 'Audit Logs',       icon: <Shield size={18} />,          roles: ['Admin'] },
 ];
 
@@ -35,7 +37,7 @@ const navSections = [
   { label: 'Grants',   ids: ['grant-calls', 'proposals', 'awards', 'milestones'] },
   { label: 'Finance',  ids: ['financial', 'reports'] },
   { label: 'Insights', ids: ['calendar', 'analytics'] },
-  { label: 'System',   ids: ['notifications', 'users', 'settings', 'audit'] },
+  { label: 'System',   ids: ['notifications', 'users', 'guests', 'settings', 'audit'] },
 ];
 
 interface SidebarProps {

@@ -140,7 +140,7 @@ export function Reports({ role }: ReportsProps) {
             <button onClick={handleExportAll} className="btn-secondary flex items-center gap-2">
               <Download size={15} /> Export All
             </button>
-            {(role === 'Researcher' || role === 'Assistant Researcher') && (
+            {(role === 'Researcher') && (
               <button onClick={() => setShowUpload(true)} className="btn-primary flex items-center gap-2">
                 <Upload size={15} /> Upload Report
               </button>

@@ -4,7 +4,8 @@ import { UnauthorizedPage } from "../components/auth/UnauthorizedPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminLayout } from "./admin/AdminLayout";
 import { ResearcherLayout } from "./researcher/ResearcherLayout";
-import { AssistantLayout } from "./assistant/AssistantLayout";
+import { DirectorLayout } from "./director/DirectorLayout";
+import { GuestLayout } from "./guest/GuestLayout";
 import { FinanceLayout } from "./finance/FinanceLayout";
 import {
   AdminDashboardPage, AdminGrantCallsPage, AdminProposalsPage,
@@ -19,15 +20,22 @@ import {
   ResearcherTeamMembersPage,
 } from "./researcher/ResearcherRoutes";
 import {
-  AssistantDashboardPage, AssistantGrantCallsPage, AssistantProposalsPage,
-  AssistantMilestonesPage, AssistantReportsPage, AssistantNotificationsPage,
-  AssistantCalendarPage, AssistantSettingsPage,
-} from "./assistant/AssistantRoutes";
+  DirectorDashboardPage, DirectorGrantCallsPage, DirectorProposalsPage,
+  DirectorAwardsPage, DirectorFinancialPage, DirectorReportsPage,
+  DirectorAnalyticsPage, DirectorCalendarPage, DirectorNotificationsPage,
+  DirectorSettingsPage, DirectorGuestsPage,
+} from "./director/DirectorRoutes";
+import {
+  GuestDashboardPage, GuestFundingCallsPage, GuestProposalsPage,
+  GuestNotificationsPage, GuestSettingsPage,
+} from "./guest/GuestRoutes";
 import {
   FinanceDashboardPage, FinanceAwardsPage, FinanceFinancialPage,
   FinanceReportsPage, FinanceAnalyticsPage, FinanceNotificationsPage,
   FinanceCalendarPage, FinanceSettingsPage,
 } from "./finance/FinanceRoutes";
+import { Guests } from "../researcher/guests/Guests";
+import { CreateGuest } from "../researcher/guests/CreateGuest";
 import { useAuthStore } from "../../store/auth.store";
 import { ROLE_BASE_PATH } from "../../types/user.types";
 
@@ -52,7 +60,6 @@ function LoginRoute() {
     return <Navigate to={`${basePath}/dashboard`} replace />;
   }
 
-  // LoginPage is now self-contained — no onLogin prop needed
   return <LoginPage />;
 }
 
@@ -82,9 +89,30 @@ export function AppRoutes() {
           <Route path="notifications" element={<AdminNotificationsPage />} />
           <Route path="analytics"     element={<AdminAnalyticsPage />} />
           <Route path="users"         element={<AdminUsersPage />} />
+          <Route path="guests"        element={<Guests />} />
+          <Route path="guests/create" element={<CreateGuest />} />
           <Route path="audit"         element={<AdminAuditPage />} />
           <Route path="calendar"      element={<AdminCalendarPage />} />
           <Route path="settings"      element={<AdminSettingsPage />} />
+        </Route>
+      </Route>
+
+      {/* Director — backend enum: "director" */}
+      <Route element={<ProtectedRoute allowedRoles={["director"]} />}>
+        <Route path="/director" element={<DirectorLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard"     element={<DirectorDashboardPage />} />
+          <Route path="grant-calls"   element={<DirectorGrantCallsPage />} />
+          <Route path="proposals"     element={<DirectorProposalsPage />} />
+          <Route path="awards"        element={<DirectorAwardsPage />} />
+          <Route path="financial"     element={<DirectorFinancialPage />} />
+          <Route path="reports"       element={<DirectorReportsPage />} />
+          <Route path="analytics"     element={<DirectorAnalyticsPage />} />
+          <Route path="calendar"      element={<DirectorCalendarPage />} />
+          <Route path="notifications" element={<DirectorNotificationsPage />} />
+          <Route path="settings"      element={<DirectorSettingsPage />} />
+          <Route path="guests"        element={<DirectorGuestsPage />} />
+          <Route path="guests/create" element={<CreateGuest />} />
         </Route>
       </Route>
 
@@ -102,21 +130,20 @@ export function AppRoutes() {
           <Route path="calendar"      element={<ResearcherCalendarPage />} />
           <Route path="settings"      element={<ResearcherSettingsPage />} />
           <Route path="users"         element={<ResearcherTeamMembersPage />} />
+          <Route path="guests"        element={<Guests />} />
+          <Route path="guests/create" element={<CreateGuest />} />
         </Route>
       </Route>
 
-      {/* Assistant Researcher — backend enum: "assistant_researcher" */}
-      <Route element={<ProtectedRoute allowedRoles={["assistant_researcher"]} />}>
-        <Route path="/assistant" element={<AssistantLayout />}>
+      {/* Guest — backend enum: "guest" */}
+      <Route element={<ProtectedRoute allowedRoles={["guest"]} />}>
+        <Route path="/guest" element={<GuestLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard"     element={<AssistantDashboardPage />} />
-          <Route path="grant-calls"   element={<AssistantGrantCallsPage />} />
-          <Route path="proposals"     element={<AssistantProposalsPage />} />
-          <Route path="milestones"    element={<AssistantMilestonesPage />} />
-          <Route path="reports"       element={<AssistantReportsPage />} />
-          <Route path="notifications" element={<AssistantNotificationsPage />} />
-          <Route path="calendar"      element={<AssistantCalendarPage />} />
-          <Route path="settings"      element={<AssistantSettingsPage />} />
+          <Route path="dashboard"     element={<GuestDashboardPage />} />
+          <Route path="funding-calls" element={<GuestFundingCallsPage />} />
+          <Route path="proposals"     element={<GuestProposalsPage />} />
+          <Route path="notifications" element={<GuestNotificationsPage />} />
+          <Route path="settings"      element={<GuestSettingsPage />} />
         </Route>
       </Route>
 

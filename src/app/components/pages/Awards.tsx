@@ -114,7 +114,7 @@ export function Awards({ role, onNavigate }: AwardsProps) {
         {awards.map(award => {
           const pct = Math.round((award.disbursed / award.awardedAmount) * 100);
           const isActive = award.status === 'Active';
-          const myAward = role === 'Researcher' || role === 'Assistant Researcher';
+          const myAward = role === 'Researcher';
           return (
             <div key={award.id} className="rounded-2xl bg-card border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
               style={{ borderLeftWidth: 4, borderLeftColor: isActive ? '#22C55E' : '#94A3B8' }}>

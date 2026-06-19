@@ -202,7 +202,7 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
               <div className="flex items-start justify-between mb-3">
                 <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{g.id}</span>
                 <div className="flex items-center gap-1.5">
-                  {(role === 'Researcher' || role === 'Assistant Researcher') && (
+                  {(role === 'Researcher') && (
                     <BookmarkButton
                       fundingCallId={g.id}
                       fundingCallTitle={g.title}
@@ -291,7 +291,7 @@ export function GrantCalls({ role, onNavigate }: GrantCallsProps) {
               <div className="text-[11px] text-muted-foreground mb-1">Eligibility Criteria</div>
               <div className="text-[13px] text-foreground">{selected.eligibility}</div>
             </div>
-            {(role === 'Researcher' || role === 'Assistant Researcher') && (
+            {(role === 'Researcher') && (
               <div className="flex gap-3">
                 {selected.status === 'Open' && (
                   <button

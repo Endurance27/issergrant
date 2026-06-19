@@ -117,7 +117,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
-  const myId = role === 'Researcher' ? 2 : role === 'Assistant Researcher' ? 4 : null;
+  const myId = role === 'Researcher' ? 2 : null;
   const visibleProposals = myId ? proposals.filter(p => p.researcherId === myId) : proposals;
 
   const filtered = useMemo(() => visibleProposals.filter(p => {
@@ -214,7 +214,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
       <PageHeader
         title="Proposals"
         subtitle={`${proposals.filter(p => p.status === 'Under Review').length} proposals pending review`}
-        action={(role === 'Researcher' || role === 'Assistant Researcher') ? (
+        action={role === 'Researcher' ? (
           <button onClick={() => setShowNew(true)} className="btn-primary flex items-center gap-2">
             <Plus size={16} /> New Proposal
           </button>
@@ -528,7 +528,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
               const localProposal = {
                 id: created.id,
                 title: created.title,
-                researcher: created.user?.name ?? 'You',
+                researcher: created.principalInvestigator?.name ?? 'You',
                 researcherId: 0,
                 grantCallId: created.fundingCallId,
                 grantCallTitle: created.fundingCallTitle ?? created.fundingCall?.theme ?? '',

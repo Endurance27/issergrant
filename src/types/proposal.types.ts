@@ -2,25 +2,19 @@ export interface CreateProposalInput {
   title: string
   abstract: string
   fundingCallId: string
-  userID: string
   requestedAmount: number
   department: string
+  coPrincipalInvestigatorId?: string
 }
 
-export interface ProposalUser {
-  id: string
-  authUserId: string
-  name: string
-  email: string
-  role: string
-  status: string
-  department: string
-  staffId: string
-  phoneContact: string
-  avatar?: string
-  lastLogin?: string
-  createdAt: string
-  updatedAt: string
+export interface ProposalPI {
+  id: string; name: string; email: string; department: string
+}
+
+export interface ProposalCollaborator {
+  id: string; guestId: string; proposalId: string
+  roleDescription: string
+  guest: { id: string; name: string; email: string; department: string }
 }
 
 export interface ProposalFundingCall {
@@ -45,8 +39,6 @@ export interface ProposalRecord {
   id: string
   title: string
   abstract: string
-  userID: string
-  user: ProposalUser
   fundingCallId: string
   fundingCallTitle: string
   fundingCall: ProposalFundingCall
@@ -54,6 +46,9 @@ export interface ProposalRecord {
   requestedAmount: number
   department: string
   submitted: boolean
+  principalInvestigator: ProposalPI
+  coPrincipalInvestigator?: ProposalPI | null
+  collaborators?: ProposalCollaborator[]
 }
 
 export interface CreateProposalPayload {
@@ -74,4 +69,5 @@ export interface CreateProposalFormValues {
   fundingCallId: string
   requestedAmount: number | ''
   department: string
+  coPrincipalInvestigatorId: string
 }

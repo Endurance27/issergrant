@@ -313,12 +313,14 @@ function AssistantDashboard({ onNavigate }: { onNavigate: (p: string) => void })
 }
 
 export function Dashboard({ role, onNavigate }: DashboardProps) {
-  const pageTitle = {
+  const pageTitleMap: Partial<Record<import('../../data/mockData').Role, string>> = {
     'Admin': 'System Overview',
+    'Director': 'Institute Overview',
     'Researcher': 'My Research Hub',
-    'Assistant Researcher': 'Team Workspace',
     'Finance Officer': 'Financial Overview',
-  }[role];
+    'Guest': 'Guest Dashboard',
+  };
+  const pageTitle = pageTitleMap[role] ?? 'Dashboard';
 
   return (
     <div>
@@ -327,9 +329,9 @@ export function Dashboard({ role, onNavigate }: DashboardProps) {
         subtitle={new Date().toLocaleDateString('en-GH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
       />
       {role === 'Admin' && <AdminDashboard onNavigate={onNavigate} />}
+      {role === 'Director' && <AdminDashboard onNavigate={onNavigate} />}
       {role === 'Researcher' && <ResearcherDashboard onNavigate={onNavigate} />}
       {role === 'Finance Officer' && <FinanceDashboard onNavigate={onNavigate} />}
-      {role === 'Assistant Researcher' && <AssistantDashboard onNavigate={onNavigate} />}
     </div>
   );
 }

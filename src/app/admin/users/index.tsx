@@ -41,8 +41,8 @@ const DEPARTMENTS = [
   'Research Methods and Data Visualization',
 ];
 
-// Admin can only add Researcher and Finance Officer
-const ALLOWED_ROLES: Role[] = ['Researcher', 'Finance Officer'];
+// Admin can create these roles (not admin itself, not guest)
+const ALLOWED_ROLES: Role[] = ['Researcher', 'Director', 'Finance Officer'];
 
 export function UserManagementPage() {
   const { addNotification, addAuditLog } = useAppContext();

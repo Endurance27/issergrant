@@ -5,9 +5,10 @@ import { currentUsers } from "../../data/mockData";
 
 const roleColors: Record<Role, string> = {
   'Admin': 'var(--primary)',
+  'Director': '#1A4A7A',
   'Researcher': 'var(--primary)',
-  'Assistant Researcher': '#B79A64',
   'Finance Officer': '#403C3A',
+  'Guest': '#B79A64',
 };
 
 interface HeaderProps {
@@ -20,7 +21,7 @@ interface HeaderProps {
   onSearch: (query: string) => void;
 }
 
-const roles: Role[] = ['Admin', 'Researcher', 'Assistant Researcher', 'Finance Officer'];
+const roles: Role[] = ['Admin', 'Director', 'Researcher', 'Finance Officer', 'Guest'];
 
 export function Header({ currentRole, onRoleChange, darkMode, onToggleDark, onNavigate, unreadCount, onSearch }: HeaderProps) {
   const [showRoleMenu, setShowRoleMenu] = useState(false);

@@ -23,21 +23,21 @@ export function AssistantDashboardPage() {
 
 export function AssistantGrantCallsPage() {
   const nav = useAssistantNav();
-  return <GrantCalls role="Assistant Researcher" onNavigate={nav} />;
+  return <GrantCalls role="Researcher" onNavigate={nav} />;
 }
 
 export function AssistantProposalsPage() {
   const location = useLocation();
   const navState = (location.state as NavState | null) ?? null;
-  return <Proposals role="Assistant Researcher" navState={navState} />;
+  return <Proposals role="Researcher" navState={navState} />;
 }
 
 export function AssistantMilestonesPage() {
-  return <Milestones role="Assistant Researcher" />;
+  return <Milestones role="Researcher" />;
 }
 
 export function AssistantReportsPage() {
-  return <Reports role="Assistant Researcher" />;
+  return <Reports role="Researcher" />;
 }
 
 export function AssistantNotificationsPage() {
@@ -50,5 +50,5 @@ export function AssistantCalendarPage() {
 
 export function AssistantSettingsPage() {
   const { darkMode, toggleDark } = useAuthContext();
-  return <Settings role="Assistant Researcher" darkMode={darkMode} onToggleDark={toggleDark} />;
+  return <Settings role="Researcher" darkMode={darkMode} onToggleDark={toggleDark} />;
 }

@@ -29,8 +29,14 @@ const DEPARTMENTS = [
 
 interface FundingCallOption {
   id: string
-  label: string   // shown in the dropdown
+  label: string
   maxAward: number
+}
+
+interface ResearcherOption {
+  id: string
+  name: string
+  department: string
 }
 
 interface CreateProposalFormProps {
@@ -53,6 +59,7 @@ export function CreateProposalForm({
 
   const [fundingCalls, setFundingCalls] = useState<FundingCallOption[]>([])
   const [loadingCalls, setLoadingCalls] = useState(true)
+  const [researchers, setResearchers] = useState<ResearcherOption[]>([])
 
   // Backend response feedback
   const [apiSuccess, setApiSuccess] = useState(false)
@@ -86,6 +93,26 @@ export function CreateProposalForm({
     fetch()
   }, [])
 
+  // Fetch researchers for Co-PI dropdown
+  useEffect(() => {
+    const fetchResearchers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, name, department')
+          .eq('role', 'researcher')
+          .order('name')
+
+        if (!error && data) {
+          setResearchers(data as ResearcherOption[])
+        }
+      } catch {
+        // Silently fail — Co-PI dropdown will just be empty
+      }
+    }
+    fetchResearchers()
+  }, [])
+
   const formik = useFormik<CreateProposalFormValues>({
     initialValues: {
       title: '',
@@ -93,26 +120,27 @@ export function CreateProposalForm({
       fundingCallId: defaultFundingCallId,
       requestedAmount: '',
       department: DEPARTMENTS[0],
+      coPrincipalInvestigatorId: '',
     },
     validationSchema: createProposalSchema,
     enableReinitialize: false,
     onSubmit: async (values, { resetForm }) => {
-      // Clear previous API feedback
       setApiSuccess(false)
       setApiMessage('')
       setApiErrors([])
 
+      const { title, abstract, fundingCallId, requestedAmount, department, coPrincipalInvestigatorId } = values
+
       const payload = await createProposal({
-        title: values.title.trim(),
-        abstract: values.abstract.trim(),
-        fundingCallId: values.fundingCallId,
-        userID: currentUserId || 'anonymous',
-        requestedAmount: Number(values.requestedAmount),
-        department: values.department,
+        title: title.trim(),
+        abstract: abstract.trim(),
+        fundingCallId,
+        requestedAmount: Number(requestedAmount),
+        department,
+        ...(coPrincipalInvestigatorId ? { coPrincipalInvestigatorId } : {}),
       })
 
       if (!payload) {
-        // Network / Apollo error — hook already sets `error`
         setApiErrors(['A network error occurred. Please try again.'])
         return
       }
@@ -123,7 +151,6 @@ export function CreateProposalForm({
         return
       }
 
-      // ── Success path ──────────────────────────────────────────────────
       setApiSuccess(true)
       setApiMessage(payload.message || 'Proposal submitted successfully.')
       toast(`"${payload.proposal?.title}" submitted successfully`, 'success')
@@ -142,11 +169,11 @@ export function CreateProposalForm({
   const errCls = 'text-xs text-red-500 mt-1'
 
   const isSubmitting = formik.isSubmitting || loading
-
-  // Character count for abstract
   const abstractLen = formik.values.abstract.length
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // Filter out current user from Co-PI list
+  const copiOptions = researchers.filter(r => r.id !== currentUserId)
+
   return (
     <form onSubmit={formik.handleSubmit} noValidate className="space-y-4">
 
@@ -307,13 +334,31 @@ export function CreateProposalForm({
         </div>
       </div>
 
+      {/* ── Co-Principal Investigator ──────────────────────────────────────── */}
+      <div>
+        <label className={labelCls}>
+          Co-Principal Investigator{' '}
+          <span className="text-muted-foreground font-normal">(optional)</span>
+        </label>
+        <select
+          name="coPrincipalInvestigatorId"
+          value={formik.values.coPrincipalInvestigatorId}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          disabled={isSubmitting}
+          className={inputCls}
+        >
+          <option value="">— No Co-PI —</option>
+          {copiOptions.map(r => (
+            <option key={r.id} value={r.id}>{r.name} — {r.department}</option>
+          ))}
+        </select>
+      </div>
+
       {/* ── Auto-filled user note ──────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted border border-border text-[12px] text-muted-foreground">
         <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold">i</span>
-        This proposal will be submitted under your account.
-        {!currentUserId && (
-          <span className="text-amber-600 font-semibold ml-1">(Session not detected — user ID will be set server-side.)</span>
-        )}
+        This proposal will be submitted under your account as Principal Investigator.
       </div>
 
       {/* ── Actions ───────────────────────────────────────────────────────── */}

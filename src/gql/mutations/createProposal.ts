@@ -10,15 +10,13 @@ export const CREATE_PROPOSAL_MUTATION = gql`
         id
         title
         abstract
-        userID
         fundingCallId
         fundingCallTitle
         status
         requestedAmount
         department
         submitted
-
-        user {
+        principalInvestigator {
           id
           authUserId
           name
@@ -33,7 +31,12 @@ export const CREATE_PROPOSAL_MUTATION = gql`
           createdAt
           updatedAt
         }
-
+        coPrincipalInvestigator {
+          id
+          name
+          email
+          department
+        }
         fundingCall {
           id
           funder

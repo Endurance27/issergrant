@@ -6,9 +6,10 @@ import type { User, Role } from "../../data/mockData";
 
 const ROLE_COLORS: Record<Role, string> = {
   'Admin': '#1A3363',
+  'Director': '#1A4A7A',
   'Researcher': '#2D6EA8',
-  'Assistant Researcher': '#B79A64',
   'Finance Officer': '#403C3A',
+  'Guest': '#B79A64',
 };
 
 function TH({ label, sortKey, active, dir, onToggle }: { label: string; sortKey?: string; active?: boolean; dir?: 'asc' | 'desc'; onToggle?: () => void }) {
