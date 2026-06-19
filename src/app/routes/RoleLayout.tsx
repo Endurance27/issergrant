@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
+import { ChevronRight, Home } from "lucide-react";
 import { Sidebar } from "../components/layout/Sidebar";
 import { Header } from "../components/layout/Header";
 import { SearchOverlay } from "../components/ui/SearchOverlay";
@@ -14,6 +15,39 @@ interface RoleLayoutProps {
 // Map sidebar page IDs to route segments
 function pageToPath(role: Role, page: string): string {
   return roleToBasePath(role) + '/' + page;
+}
+
+const PAGE_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  proposals: "Proposals",
+  "grant-calls": "Grant Calls",
+  "funding-calls": "Funding Calls",
+  awards: "Awards & Funding",
+  milestones: "Milestones",
+  financial: "Financial",
+  reports: "Reports",
+  analytics: "Analytics",
+  calendar: "Calendar",
+  users: "Team Members",
+  notifications: "Notifications",
+  settings: "Settings",
+  audit: "Audit Logs",
+};
+
+function Breadcrumbs({ role, activePage }: { role: Role; activePage: string }) {
+  const label = PAGE_LABELS[activePage] ?? activePage;
+  return (
+    <nav
+      aria-label="Breadcrumb"
+      data-testid="breadcrumbs"
+      className="flex items-center gap-1.5 px-6 pt-4 text-[12px] text-muted-foreground"
+    >
+      <Home size={12} />
+      <span>{role}</span>
+      <ChevronRight size={12} />
+      <span className="font-semibold text-foreground">{label}</span>
+    </nav>
+  );
 }
 
 export function RoleLayout({ role }: RoleLayoutProps) {
@@ -75,6 +109,7 @@ export function RoleLayout({ role }: RoleLayoutProps) {
           className="flex-1 overflow-y-auto animate-in fade-in duration-150"
           style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}
         >
+          {role === 'Director' && <Breadcrumbs role={role} activePage={activePage} />}
           <div className="p-6 max-w-7xl mx-auto">
             <Outlet />
           </div>

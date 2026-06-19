@@ -1,67 +1,84 @@
-import { useFormik } from 'formik'
-import { createFundingCallSchema } from '../../../schemas/fundingCall.schema'
-import type { CreateFundingCallFormValues } from '../../../types/fundingCall.types'
-import { Plus, Trash2, X } from 'lucide-react'
-import { Modal } from '../../components/ui/Modal'
+import { useFormik } from "formik";
+import { createFundingCallSchema } from "../../../schemas/fundingCall.schema";
+import type { CreateFundingCallFormValues } from "../../../types/fundingCall.types";
+import { Plus, Trash2, X } from "lucide-react";
+import { Modal } from "../../components/ui/Modal";
 
 interface Props {
-  open: boolean
-  onClose: () => void
-  onSubmit: (values: CreateFundingCallFormValues) => Promise<void>
-  isSubmitting: boolean
-  formError: string
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (values: CreateFundingCallFormValues) => Promise<boolean>;
+  isSubmitting: boolean;
+  formError: string;
 }
 
-export function CreateFundingCallModal({ open, onClose, onSubmit, isSubmitting, formError }: Props) {
+export function CreateFundingCallModal({
+  open,
+  onClose,
+  onSubmit,
+  isSubmitting,
+  formError,
+}: Props) {
   const formik = useFormik<CreateFundingCallFormValues>({
     initialValues: {
-      funder: '',
-      totalAvailable: '',
-      maximumAward: '',
-      theme: '',
-      description: '',
+      funder: "",
+      totalAvailable: "",
+      maximumAward: "",
+      theme: "",
+      description: "",
       hasMinMaxAward: false,
-      minimumAward: '',
-      allowsMultipleApplications: 'no',
-      openDate: '',
-      originalCallLink: '',
-      eligibility: [''],
+      minimumAward: "",
+      allowsMultipleApplications: "no",
+      openDate: "",
+      originalCallLink: "",
+      eligibility: [""],
     },
     validationSchema: createFundingCallSchema,
     onSubmit: async (values, { resetForm }) => {
-      await onSubmit(values)
-      resetForm()
+      if (isSubmitting) return;
+      const success = await onSubmit(values);
+      if (success) {
+        resetForm();
+      }
     },
-  })
+  });
 
   const addEligibility = () => {
-    formik.setFieldValue('eligibility', [...formik.values.eligibility, ''])
-  }
+    formik.setFieldValue("eligibility", [...formik.values.eligibility, ""]);
+  };
 
   const removeEligibility = (index: number) => {
-    const updated = formik.values.eligibility.filter((_, i) => i !== index)
-    formik.setFieldValue('eligibility', updated.length > 0 ? updated : [''])
-  }
+    const updated = formik.values.eligibility.filter((_, i) => i !== index);
+    formik.setFieldValue("eligibility", updated.length > 0 ? updated : [""]);
+  };
 
   const updateEligibility = (index: number, value: string) => {
-    const updated = [...formik.values.eligibility]
-    updated[index] = value
-    formik.setFieldValue('eligibility', updated)
-  }
+    const updated = [...formik.values.eligibility];
+    updated[index] = value;
+    formik.setFieldValue("eligibility", updated);
+  };
 
   const handleClose = () => {
-    formik.resetForm()
-    onClose()
-  }
+    formik.resetForm();
+    onClose();
+  };
 
-  const inputCls = 'w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground focus:border-primary/50 transition-colors'
-  const labelCls = 'block text-xs font-semibold text-foreground mb-1.5'
-  const errorCls = 'text-xs text-red-500 mt-1'
+  const inputCls =
+    "w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground focus:border-primary/50 transition-colors";
+  const labelCls = "block text-xs font-semibold text-foreground mb-1.5";
+  const errorCls = "text-xs text-red-500 mt-1";
 
   return (
-    <Modal open={open} onClose={handleClose} title="Create Funding Call" width={660}>
-      <form onSubmit={formik.handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title="Create Funding Call"
+      width={660}
+    >
+      <form
+        onSubmit={formik.handleSubmit}
+        className="space-y-4 max-h-[70vh] overflow-y-auto pr-1"
+      >
         {/* Funder */}
         <div>
           <label className={labelCls}>Funder / Organisation</label>
@@ -125,7 +142,9 @@ export function CreateFundingCallModal({ open, onClose, onSubmit, isSubmitting, 
               className={inputCls}
             />
             {formik.touched.totalAvailable && formik.errors.totalAvailable && (
-              <p className={errorCls}>{formik.errors.totalAvailable as string}</p>
+              <p className={errorCls}>
+                {formik.errors.totalAvailable as string}
+              </p>
             )}
           </div>
           <div>
@@ -157,7 +176,9 @@ export function CreateFundingCallModal({ open, onClose, onSubmit, isSubmitting, 
             />
             <div className="w-10 h-5 bg-border rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5" />
           </label>
-          <span className="text-[13px] font-medium text-foreground">Enable minimum award amount</span>
+          <span className="text-[13px] font-medium text-foreground">
+            Enable minimum award amount
+          </span>
         </div>
 
         {/* Minimum Award — conditional */}
@@ -207,9 +228,12 @@ export function CreateFundingCallModal({ open, onClose, onSubmit, isSubmitting, 
               <option value="no">No</option>
               <option value="yes">Yes</option>
             </select>
-            {formik.touched.allowsMultipleApplications && formik.errors.allowsMultipleApplications && (
-              <p className={errorCls}>{formik.errors.allowsMultipleApplications}</p>
-            )}
+            {formik.touched.allowsMultipleApplications &&
+              formik.errors.allowsMultipleApplications && (
+                <p className={errorCls}>
+                  {formik.errors.allowsMultipleApplications}
+                </p>
+              )}
           </div>
         </div>
 
@@ -224,15 +248,16 @@ export function CreateFundingCallModal({ open, onClose, onSubmit, isSubmitting, 
             placeholder="https://funder.org/calls/2026"
             className={inputCls}
           />
-          {formik.touched.originalCallLink && formik.errors.originalCallLink && (
-            <p className={errorCls}>{formik.errors.originalCallLink}</p>
-          )}
+          {formik.touched.originalCallLink &&
+            formik.errors.originalCallLink && (
+              <p className={errorCls}>{formik.errors.originalCallLink}</p>
+            )}
         </div>
 
         {/* Eligibility — dynamic list */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className={labelCls + ' mb-0'}>Eligibility Criteria</label>
+            <label className={labelCls + " mb-0"}>Eligibility Criteria</label>
             <button
               type="button"
               onClick={addEligibility}
@@ -246,8 +271,10 @@ export function CreateFundingCallModal({ open, onClose, onSubmit, isSubmitting, 
               <div key={idx} className="flex items-center gap-2">
                 <input
                   value={item}
-                  onChange={e => updateEligibility(idx, e.target.value)}
-                  onBlur={() => formik.setFieldTouched(`eligibility[${idx}]`, true)}
+                  onChange={(e) => updateEligibility(idx, e.target.value)}
+                  onBlur={() =>
+                    formik.setFieldTouched(`eligibility[${idx}]`, true)
+                  }
                   placeholder={`Criterion ${idx + 1}`}
                   className={inputCls}
                 />
@@ -263,9 +290,10 @@ export function CreateFundingCallModal({ open, onClose, onSubmit, isSubmitting, 
               </div>
             ))}
           </div>
-          {formik.touched.eligibility && typeof formik.errors.eligibility === 'string' && (
-            <p className={errorCls}>{formik.errors.eligibility}</p>
-          )}
+          {formik.touched.eligibility &&
+            typeof formik.errors.eligibility === "string" && (
+              <p className={errorCls}>{formik.errors.eligibility}</p>
+            )}
         </div>
 
         {/* Form error */}
@@ -289,12 +317,16 @@ export function CreateFundingCallModal({ open, onClose, onSubmit, isSubmitting, 
             type="submit"
             disabled={isSubmitting || formik.isSubmitting}
             className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}
+            style={{
+              background: "linear-gradient(135deg, var(--primary), #2D6EA8)",
+            }}
           >
-            {isSubmitting || formik.isSubmitting ? 'Creating...' : 'Create Funding Call'}
+            {isSubmitting || formik.isSubmitting ?
+              "Creating..."
+            : "Create Funding Call"}
           </button>
         </div>
       </form>
     </Modal>
-  )
+  );
 }

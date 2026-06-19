@@ -1,9 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useFormik } from "formik";
-import { supabase } from "../../../lib/supabase";
+import { useMutation } from "@apollo/client/react";
 import { createUserSchema } from "../../../schemas/user.schema";
 import type { CreateUserFormValues } from "../../../types/forms";
-import { Plus, Search, MoreHorizontal, ShieldCheck, ShieldOff, Trash2, Users, ChevronUp, ChevronDown } from "lucide-react";
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  ShieldCheck,
+  ShieldOff,
+  Trash2,
+  Users,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
@@ -11,15 +21,17 @@ import { Pagination } from "../ui/Pagination";
 import { useToast } from "../ui/Toast";
 import { ScrollTable } from "../ui/ScrollTable";
 import { PageHeader } from "../ui/PageHeader";
-import { usePagination } from "../../hooks/usePagination";
-import { useSortable } from "../../hooks/useSortable";
+import { usePagination } from "../../../hooks/usePagination";
+import { useSortable } from "../../../hooks/useSortable";
 import { useAppContext } from "../../context/AppContext";
-import { users as initialUsers, currentUsers } from "../../data/mockData";
-import type { User, Role } from "../../data/mockData";
+import { useUsers } from "../../../hooks/useUsers";
+import { useAuthStore } from "../../../store/auth.store";
 import { TemporaryPasswordModal } from "../ui/TemporaryPasswordModal";
 import { useCreateUser } from "../../../hooks/useCreateUser";
-import type { UserRole } from "../../../gql/graphql";
+import { UPDATE_USER_MUTATION } from "../../../apollo/mutations";
+import type { User, UserRoleEnum } from "../../../gql/graphql";
 import { AssistantResearcherForm } from "./AssistantResearcherForm";
+import type { Role } from "../../data/mockData";
 
 const ROLE_COLORS: Record<Role, string> = {
   'Admin': '#1A3363',
@@ -29,209 +41,371 @@ const ROLE_COLORS: Record<Role, string> = {
   'Guest': '#B79A64',
 };
 
+const ROLE_DISPLAY_MAP: Record<string, string> = {
+  admin: 'Admin',
+  researcher: 'Researcher',
+  finance_officer: 'Finance Officer',
+  director: 'Director',
+  guest: 'Guest',
+};
+
+function toDisplay(role: string): string {
+  return ROLE_DISPLAY_MAP[role] ?? role;
+}
+
+function getInitials(name: string): string {
+  return name.trim().split(/\s+/).map((n) => n[0] ?? '').join('').toUpperCase().slice(0, 2);
+}
+
 const DEPARTMENTS = [
   // Economics Division
-  'Macroeconomic Policy',
-  'Trade and Development',
-  'Public Finance',
-  'Poverty and Inequality',
-  'Labour Economics',
+  "Macroeconomic Policy",
+  "Trade and Development",
+  "Public Finance",
+  "Poverty and Inequality",
+  "Labour Economics",
   // Social Division
-  'Education',
-  'Health',
-  'Gender Studies',
-  'Governance',
-  'Social Protection and Development Policy',
+  "Education",
+  "Health",
+  "Gender Studies",
+  "Governance",
+  "Social Protection and Development Policy",
   // Statistics and Survey Division
-  'Survey Design and Implementation',
-  'Statistical Analysis',
-  'Data Management',
-  'Research Methods and Data Visualization',
+  "Survey Design and Implementation",
+  "Statistical Analysis",
+  "Data Management",
+  "Research Methods and Data Visualization",
 ];
 
 const ROLES: Role[] = ['Researcher', 'Director', 'Finance Officer', 'Admin'];
 
-const TH = ({ label, sortKey, active, dir, onToggle }: { label: string; sortKey?: string; active?: boolean; dir?: 'asc' | 'desc'; onToggle?: () => void }) => (
-  <th onClick={onToggle} className={`text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground whitespace-nowrap uppercase tracking-[0.05em] select-none ${onToggle ? 'cursor-pointer hover:text-foreground' : ''}`}>
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const TH = ({
+  label,
+  active,
+  dir,
+  onToggle,
+}: {
+  label: string;
+  active?: boolean;
+  dir?: "asc" | "desc";
+  onToggle?: () => void;
+}) => (
+  <th
+    onClick={onToggle}
+    className={`text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground whitespace-nowrap uppercase tracking-[0.05em] select-none ${onToggle ? "cursor-pointer hover:text-foreground" : ""}`}
+  >
     <span className="flex items-center gap-1">
       {label}
-      {onToggle && (active ? (dir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />) : <ChevronUp size={11} className="opacity-20" />)}
+      {onToggle &&
+        (active ?
+          dir === "asc" ?
+            <ChevronUp size={11} />
+          : <ChevronDown size={11} />
+        : <ChevronUp size={11} className="opacity-20" />)}
     </span>
   </th>
 );
+
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+
+function UserRowSkeleton() {
+  return (
+    <tr className="bg-card animate-pulse">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <td key={i} className="px-4 py-3">
+          <div className="h-4 bg-muted rounded-md" />
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 interface UserManagementProps {
   role?: Role;
 }
 
-export function UserManagement({ role = 'Admin' }: UserManagementProps) {
+export function UserManagement({ role = "Admin" }: UserManagementProps) {
   const { addNotification, addAuditLog } = useAppContext();
+  const currentUser = useAuthStore((s) => s.user);
+  const adminName = currentUser?.name ?? "Admin";
+  const isReadOnly = role === "Director";
 
-  // Admin can add Researcher, Director, Finance Officer
-  // Researcher sees their team members
-  const allowedRoles: Role[] = role === 'Researcher'
-    ? ['Researcher']
-    : ['Researcher', 'Director', 'Finance Officer'];
-  const [users, setUsers] = useState<User[]>([]);
+  const { users: remoteUsers, loading, error, refetch } = useUsers();
+  const [updateUserMutation] = useMutation(UPDATE_USER_MUTATION);
 
-  // Load users from Supabase on mount
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const { data, error } = await supabase.from('users').select('*').order('joined', { ascending: false });
-        if (error) throw error;
-        if (data && data.length > 0) {
-          setUsers(data as User[]);
-        } else {
-          setUsers(initialUsers);
-        }
-      } catch (err) {
-        console.error("Error fetching users:", err);
-        setUsers(initialUsers);
-      }
-    };
-    fetchUsers();
-  }, []);
+  // Local-only deletes: ids removed optimistically (no backend delete mutation)
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  const users = useMemo(
+    () => remoteUsers.filter((u) => !deletedIds.has(u.id)),
+    [remoteUsers, deletedIds],
+  );
 
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('All');
-  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const allowedRoles: Role[] =
+    role === "Researcher" ?
+      ["Assistant Researcher"]
+    : ["Researcher", "Finance Officer"];
+
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("All");
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<User | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState<User | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showAssistantForm, setShowAssistantForm] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [formError, setFormError] = useState("");
 
-  const [tempPasswordData, setTempPasswordData] = useState<{ name: string; email: string; temporaryPassword: string } | null>(null);
+  const [tempPasswordData, setTempPasswordData] = useState<{
+    name: string;
+    email: string;
+    temporaryPassword: string;
+  } | null>(null);
 
   const { toast } = useToast();
   const { createUser: createUserMutation, loading: creating } = useCreateUser();
 
   const formik = useFormik<CreateUserFormValues>({
     initialValues: {
-      name: '',
-      email: '',
-      role: role === 'Researcher' ? 'Assistant Researcher' : 'Researcher',
+      name: "",
+      email: "",
+      role: role === "Researcher" ? "Assistant Researcher" : "Researcher",
       department: DEPARTMENTS[0],
-      staffId: '',
-      phoneContact: '',
+      staffId: "",
+      phoneContact: "",
     },
     validationSchema: createUserSchema,
     onSubmit: async (values, { resetForm }) => {
-      setFormError('');
-      if (users.find(u => u.email.toLowerCase() === values.email.toLowerCase())) {
-        setFormError('A user with this email already exists.');
+      setFormError("");
+      if (
+        users.find((u) => u.email.toLowerCase() === values.email.toLowerCase())
+      ) {
+        setFormError("A user with this email already exists.");
         return;
       }
-      const initials = values.name.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
       const result = await createUserMutation({
         name: values.name.trim(),
         email: values.email.trim().toLowerCase(),
-        role: values.role as unknown as import("../../../gql/graphql").UserRoleEnum,
+        role: values.role as unknown as UserRoleEnum,
         department: values.department,
         staffId: values.staffId.trim(),
         phoneContact: values.phoneContact.trim(),
       });
       if (!result) {
-        setFormError('Failed to save user. Please try again.');
+        setFormError("Failed to save user. Please try again.");
         return;
       }
-      const newUser: User = {
-        id: result.user.id as unknown as number,
-        name: values.name.trim(),
-        email: values.email.trim().toLowerCase(),
-        role: values.role as Role,
-        status: 'Active',
-        department: values.department,
-        joined: new Date().toISOString().slice(0, 10),
-        avatar: result.user.avatar || initials,
-      };
-      setUsers(prev => [newUser, ...prev]);
-      addNotification({ title: 'New User Added', message: `${newUser.name} (${values.role}) has been added to the system.`, time: 'Just now', type: 'system' });
-      addAuditLog({ action: 'User Created', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: `${newUser.name} — ${values.role} — ${values.department}` });
-      toast(`${newUser.name} added successfully`);
+      addNotification({
+        title: "New User Added",
+        message: `${values.name.trim()} (${values.role}) has been added to the system.`,
+        time: "Just now",
+        type: "system",
+      });
+      addAuditLog({
+        action: "User Created",
+        user: adminName,
+        role: "Admin",
+        module: "User Management",
+        timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
+        ip: "192.168.1.1",
+        details: `${values.name.trim()} — ${values.role} — ${values.department}`,
+      });
+      toast(`${values.name.trim()} added successfully`);
       setShowCreate(false);
       resetForm();
       setTempPasswordData({
-        name: newUser.name,
-        email: newUser.email,
+        name: values.name.trim(),
+        email: values.email.trim().toLowerCase(),
         temporaryPassword: result.temporaryPassword,
       });
+      await refetch();
     },
   });
 
-  const allRoles = ['All', ...ROLES];
-  const filtered = users.filter(u => {
+  const allRoles = ["All", ...ROLES];
+  const filtered = users.filter((u) => {
     const q = search.toLowerCase();
-    const matchSearch = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.department.toLowerCase().includes(q);
-    const matchRole = roleFilter === 'All' || u.role === roleFilter;
+    const matchSearch =
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.department.toLowerCase().includes(q);
+    const matchRole = roleFilter === "All" || toDisplay(u.role) === roleFilter;
     return matchSearch && matchRole;
   });
 
-  const { sorted, sortKey, dir, toggle } = useSortable(filtered as unknown as Record<string, unknown>[], 'name' as any);
-  const { paginated, page, totalPages, setPage } = usePagination(sorted as unknown as User[], 8);
+  const { sorted, sortKey, dir, toggle } = useSortable(
+    filtered as unknown as Record<string, unknown>[],
+    "name",
+  );
+  const { paginated, page, totalPages, setPage } = usePagination(
+    sorted as unknown as User[],
+    8,
+  );
 
-  const activeCount = users.filter(u => u.status === 'Active').length;
-  const deptCount = new Set(users.map(u => u.department)).size;
+  const activeCount = users.filter((u) => u.status === "active").length;
+  const deptCount = new Set(users.map((u) => u.department)).size;
 
-  const toggleStatus = async (id: number, wasActive: boolean) => {
-    const u = users.find(u => u.id === id);
-    const newStatus = wasActive ? 'Suspended' : 'Active';
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, status: newStatus } : u));
-    await supabase.from('users').update({ status: newStatus }).eq('id', id);
-    addAuditLog({ action: wasActive ? 'Account Suspended' : 'Account Activated', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: u?.name || '' });
-    toast(wasActive ? 'Account suspended' : 'Account activated', wasActive ? 'warning' : 'success');
+  const toggleStatus = async (id: string, wasActive: boolean) => {
+    const newStatus = wasActive ? "Suspended" : "Active";
+    const u = users.find((u) => u.id === id);
+    try {
+      await updateUserMutation({ variables: { id, status: newStatus } });
+      await refetch();
+    } catch (e) {
+      console.error("[toggleStatus]", e);
+    }
+    addAuditLog({
+      action: wasActive ? "Account Suspended" : "Account Activated",
+      user: adminName,
+      role: "Admin",
+      module: "User Management",
+      timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
+      ip: "192.168.1.1",
+      details: u?.name ?? "",
+    });
+    toast(
+      wasActive ? "Account suspended" : "Account activated",
+      wasActive ? "warning" : "success",
+    );
   };
 
-  const deleteUser = async (id: number) => {
-    const u = users.find(u => u.id === id);
-    setUsers(prev => prev.filter(u => u.id !== id));
-    await supabase.from('users').delete().eq('id', id);
-    addAuditLog({ action: 'User Deleted', user: currentUsers['Admin'].name, role: 'Admin', module: 'User Management', timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '), ip: '192.168.1.1', details: u?.name || '' });
-    toast('User deleted', 'error');
+  const handleDeleteUser = (id: string) => {
+    const u = users.find((u) => u.id === id);
+    setDeletedIds((prev) => new Set([...prev, id]));
+    addAuditLog({
+      action: "User Deleted",
+      user: adminName,
+      role: "Admin",
+      module: "User Management",
+      timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
+      ip: "192.168.1.1",
+      details: u?.name ?? "",
+    });
+    toast("User deleted", "error");
   };
 
   const openCreate = () => {
     formik.resetForm();
-    setFormError('');
+    setFormError("");
     setShowCreate(true);
   };
+
+  // ─── Loading state ──────────────────────────────────────────────────────────
+  if (loading && remoteUsers.length === 0) {
+    return (
+      <div data-testid="users-loading">
+        <PageHeader title="User Management" subtitle="Loading users…" />
+        <div className="rounded-2xl overflow-hidden border border-border mt-6">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-muted border-b border-border">
+                {["User", "Role", "Department", "Joined", "Status", ""].map(
+                  (label) => (
+                    <TH key={label} label={label} />
+                  ),
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <UserRowSkeleton key={i} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Error state ────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div data-testid="users-error">
+        <PageHeader title="User Management" subtitle="Failed to load users" />
+        <div className="mt-8 flex flex-col items-center justify-center py-20 rounded-2xl border border-red-200 bg-red-50">
+          <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
+            <Users size={22} className="text-red-400" />
+          </div>
+          <div className="font-bold text-sm text-red-700">
+            Unable to fetch users
+          </div>
+          <div className="text-xs text-red-500 mt-1 mb-4">{error.message}</div>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-white"
+            style={{ background: "#1A3363" }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div onClick={() => setActiveMenu(null)}>
       <PageHeader
         title="User Management"
-        subtitle={`${activeCount} active users across ${deptCount} departments`}
+        subtitle={
+          isReadOnly
+            ? `${activeCount} active users across ${deptCount} departments (read-only)`
+            : `${activeCount} active users across ${deptCount} departments`
+        }
         action={
-          <div className="flex items-center gap-2">
-            {role === 'Researcher' && (
-              <button onClick={() => setShowAssistantForm(true)} className="btn-primary flex items-center gap-2">
-                <Plus size={16} /> Add Assistant Researcher
-              </button>
-            )}
-            {role !== 'Researcher' && (
-              <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-                <Plus size={16} /> Add User
-              </button>
-            )}
-          </div>
+          isReadOnly ? undefined : (
+            <div className="flex items-center gap-2">
+              {role === "Researcher" && (
+                <button
+                  onClick={() => setShowAssistantForm(true)}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus size={16} /> Add Assistant Researcher
+                </button>
+              )}
+              {role !== "Researcher" && (
+                <button
+                  onClick={openCreate}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus size={16} /> Add User
+                </button>
+              )}
+            </div>
+          )
         }
       />
 
       {/* Role summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {ROLES.map(role => {
-          const count = users.filter(u => u.role === role).length;
-          const isActive = roleFilter === role;
+        {ROLES.map((r) => {
+          const count = users.filter((u) => toDisplay(u.role) === r).length;
+          const isActive = roleFilter === r;
           return (
-            <button key={role} onClick={() => setRoleFilter(isActive ? 'All' : role)}
-              className={`rounded-2xl p-4 flex items-center gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-left border ${isActive ? 'border-primary bg-secondary shadow-sm' : 'border-border bg-card'}`}>
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0" style={{ background: ROLE_COLORS[role] + '20' }}>
-                <span className="font-bold text-sm" style={{ color: ROLE_COLORS[role] }}>{count}</span>
+            <button
+              key={r}
+              onClick={() => setRoleFilter(isActive ? "All" : r)}
+              className={`rounded-2xl p-4 flex items-center gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-left border ${isActive ? "border-primary bg-secondary shadow-sm" : "border-border bg-card"}`}
+            >
+              <div
+                className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
+                style={{ background: (ROLE_COLORS[r] ?? "#1A3363") + "20" }}
+              >
+                <span
+                  className="font-bold text-sm"
+                  style={{ color: ROLE_COLORS[r] ?? "#1A3363" }}
+                >
+                  {count}
+                </span>
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-xs text-foreground leading-snug">{role}</div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">{count === 1 ? '1 user' : `${count} users`}</div>
+                <div className="font-bold text-xs text-foreground leading-snug">
+                  {r}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  {count === 1 ? "1 user" : `${count} users`}
+                </div>
               </div>
             </button>
           );
@@ -242,148 +416,324 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 flex-1 bg-card border border-border focus-within:border-primary/50 transition-colors">
           <Search size={15} className="text-muted-foreground flex-shrink-0" />
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name, email, or department..." className="bg-transparent outline-none flex-1 text-[13px] text-foreground min-w-0" />
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search by name, email, or department…"
+            className="bg-transparent outline-none flex-1 text-[13px] text-foreground min-w-0"
+          />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {allRoles.map(r => (
-            <button key={r} onClick={e => { e.stopPropagation(); setRoleFilter(r); setPage(1); }}
-              className={`px-3 py-2 rounded-xl transition-all text-xs border whitespace-nowrap ${roleFilter === r ? 'border-primary bg-primary text-white font-semibold shadow-sm' : 'border-border bg-card text-muted-foreground font-medium hover:bg-muted'}`}>
+          {allRoles.map((r) => (
+            <button
+              key={r}
+              onClick={(e) => {
+                e.stopPropagation();
+                setRoleFilter(r);
+                setPage(1);
+              }}
+              className={`px-3 py-2 rounded-xl transition-all text-xs border whitespace-nowrap ${roleFilter === r ? "border-primary bg-primary text-white font-semibold shadow-sm" : "border-border bg-card text-muted-foreground font-medium hover:bg-muted"}`}
+            >
               {r}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden md:block rounded-2xl overflow-hidden border border-border">
-        <ScrollTable>
-          <table className="w-full">
-            <thead>
-              <tr className="bg-muted border-b border-border">
-                <TH label="User" sortKey="name" active={sortKey === 'name'} dir={dir} onToggle={() => toggle('name')} />
-                <TH label="Role" sortKey="role" active={sortKey === 'role'} dir={dir} onToggle={() => toggle('role')} />
-                <TH label="Department" sortKey="department" active={sortKey === 'department'} dir={dir} onToggle={() => toggle('department')} />
-                <TH label="Joined" sortKey="joined" active={sortKey === 'joined'} dir={dir} onToggle={() => toggle('joined')} />
-                <TH label="Status" sortKey="status" active={sortKey === 'status'} dir={dir} onToggle={() => toggle('status')} />
-                <TH label="" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {paginated.map(u => (
-                <tr key={u.id} className="bg-card hover:bg-muted transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 text-white font-bold text-xs" style={{ background: ROLE_COLORS[u.role] }}>{u.avatar}</div>
-                      <div className="min-w-0">
-                        <div className="font-bold text-[13px] text-foreground truncate">{u.name}</div>
-                        <div className="text-[11px] text-muted-foreground truncate">{u.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3"><Badge status={u.role} size="sm" /></td>
-                  <td className="px-4 py-3"><span className="text-xs text-muted-foreground whitespace-nowrap">{u.department}</span></td>
-                  <td className="px-4 py-3"><span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">{u.joined}</span></td>
-                  <td className="px-4 py-3"><Badge status={u.status} size="sm" /></td>
-                  <td className="px-4 py-3">
-                    <div className="relative" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => setActiveMenu(activeMenu === u.id ? null : u.id)}
-                        className="flex items-center justify-center rounded-lg p-1.5 transition-colors text-muted-foreground hover:bg-muted">
-                        <MoreHorizontal size={16} />
-                      </button>
-                      {activeMenu === u.id && (
-                        <div className="absolute right-0 top-full mt-1 min-w-[190px] rounded-xl shadow-xl z-30 overflow-hidden bg-card border border-border">
-                          {u.status === 'Active' ? (
-                            <button onClick={() => { setConfirmSuspend(u); setActiveMenu(null); }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-amber-500">
-                              <ShieldOff size={14} /> Suspend Account
-                            </button>
-                          ) : (
-                            <button onClick={() => { toggleStatus(u.id, false); setActiveMenu(null); }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-green-500">
-                              <ShieldCheck size={14} /> Activate Account
-                            </button>
-                          )}
-                          <div className="h-px bg-border mx-2" />
-                          <button onClick={() => { setConfirmDelete(u); setActiveMenu(null); }}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-red-500">
-                            <Trash2 size={14} /> Delete User
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </ScrollTable>
-        {paginated.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <Users size={22} className="text-muted-foreground opacity-40" />
-            </div>
-            <div className="font-bold text-sm text-foreground">No users found</div>
-            <div className="text-xs text-muted-foreground mt-1">{search ? `No results for "${search}"` : 'Try a different filter'}</div>
+      {/* Empty state */}
+      {users.length === 0 && !loading && (
+        <div
+          data-testid="users-empty"
+          className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+            <Users size={22} className="text-muted-foreground opacity-40" />
           </div>
-        )}
-        <Pagination page={page} totalPages={totalPages} total={filtered.length} pageSize={8} onPage={setPage} />
-      </div>
+          <div className="font-bold text-sm text-foreground">No users yet</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Add the first user to get started
+          </div>
+        </div>
+      )}
+
+      {/* Desktop table */}
+      {users.length > 0 && (
+        <div className="hidden md:block rounded-2xl overflow-hidden border border-border">
+          <ScrollTable>
+            <table data-testid="users-table" className="w-full">
+              <thead>
+                <tr className="bg-muted border-b border-border">
+                  <TH
+                    label="User"
+                    active={sortKey === "name"}
+                    dir={dir}
+                    onToggle={() => toggle("name")}
+                  />
+                  <TH
+                    label="Role"
+                    active={sortKey === "role"}
+                    dir={dir}
+                    onToggle={() => toggle("role")}
+                  />
+                  <TH
+                    label="Department"
+                    active={sortKey === "department"}
+                    dir={dir}
+                    onToggle={() => toggle("department")}
+                  />
+                  <TH
+                    label="Joined"
+                    active={sortKey === "createdAt"}
+                    dir={dir}
+                    onToggle={() => toggle("createdAt")}
+                  />
+                  <TH
+                    label="Status"
+                    active={sortKey === "status"}
+                    dir={dir}
+                    onToggle={() => toggle("status")}
+                  />
+                  {!isReadOnly && <TH label="" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {paginated.map((u) => (
+                  <tr
+                    key={u.id}
+                    data-testid="user-row"
+                    className="bg-card hover:bg-muted transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 text-white font-bold text-xs"
+                          style={{
+                            background:
+                              ROLE_COLORS[toDisplay(u.role)] ?? "#1A3363",
+                          }}
+                        >
+                          {displayAvatar(u)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-[13px] text-foreground truncate">
+                            {u.name}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground truncate">
+                            {u.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge status={toDisplay(u.role)} size="sm" />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {u.department}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                        {displayDate(u)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge status={u.status} size="sm" />
+                    </td>
+                    {!isReadOnly && (
+                      <td className="px-4 py-3">
+                        <div
+                          className="relative"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() =>
+                              setActiveMenu(activeMenu === u.id ? null : u.id)
+                            }
+                            className="flex items-center justify-center rounded-lg p-1.5 transition-colors text-muted-foreground hover:bg-muted"
+                          >
+                            <MoreHorizontal size={16} />
+                          </button>
+                          {activeMenu === u.id && (
+                            <div className="absolute right-0 top-full mt-1 min-w-[190px] rounded-xl shadow-xl z-30 overflow-hidden bg-card border border-border">
+                              {u.status === "active" ?
+                                <button
+                                  onClick={() => {
+                                    setConfirmSuspend(u);
+                                    setActiveMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-amber-500"
+                                >
+                                  <ShieldOff size={14} /> Suspend Account
+                                </button>
+                              : <button
+                                  onClick={() => {
+                                    toggleStatus(u.id, false);
+                                    setActiveMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-green-500"
+                                >
+                                  <ShieldCheck size={14} /> Activate Account
+                                </button>
+                              }
+                              <div className="h-px bg-border mx-2" />
+                              <button
+                                onClick={() => {
+                                  setConfirmDelete(u);
+                                  setActiveMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors text-left text-[13px] hover:bg-muted text-red-500"
+                              >
+                                <Trash2 size={14} /> Delete User
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollTable>
+
+          {paginated.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                <Users size={22} className="text-muted-foreground opacity-40" />
+              </div>
+              <div className="font-bold text-sm text-foreground">
+                No users found
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {search ?
+                  `No results for "${search}"`
+                : "Try a different filter"}
+              </div>
+            </div>
+          )}
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={filtered.length}
+            pageSize={8}
+            onPage={setPage}
+          />
+        </div>
+      )}
 
       {/* Mobile card list */}
-      <div className="md:hidden space-y-3">
-        {paginated.map(u => (
-          <div key={u.id} className="rounded-2xl bg-card border border-border p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex items-center justify-center w-11 h-11 rounded-full flex-shrink-0 text-white font-bold text-sm" style={{ background: ROLE_COLORS[u.role] }}>{u.avatar}</div>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-[14px] text-foreground">{u.name}</div>
-                <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+      {users.length > 0 && (
+        <div className="md:hidden space-y-3">
+          {paginated.map((u) => (
+            <div
+              key={u.id}
+              data-testid="user-row"
+              className="rounded-2xl bg-card border border-border p-4"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className="flex items-center justify-center w-11 h-11 rounded-full flex-shrink-0 text-white font-bold text-sm"
+                  style={{
+                    background: ROLE_COLORS[toDisplay(u.role)] ?? "#1A3363",
+                  }}
+                >
+                  {displayAvatar(u)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-[14px] text-foreground">
+                    {u.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {u.email}
+                  </div>
+                </div>
+                <Badge status={u.status} size="sm" />
               </div>
-              <Badge status={u.status} size="sm" />
-            </div>
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <div className="text-[10px] text-muted-foreground mb-0.5">Role</div>
-                <div className="text-xs font-semibold text-foreground">{u.role}</div>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-muted">
+                  <div className="text-[10px] text-muted-foreground mb-0.5">
+                    Role
+                  </div>
+                  <div className="text-xs font-semibold text-foreground">
+                    {toDisplay(u.role)}
+                  </div>
+                </div>
+                <div className="p-2 rounded-lg bg-muted">
+                  <div className="text-[10px] text-muted-foreground mb-0.5">
+                    Department
+                  </div>
+                  <div className="text-xs font-semibold text-foreground truncate">
+                    {u.department}
+                  </div>
+                </div>
               </div>
-              <div className="p-2 rounded-lg bg-muted">
-                <div className="text-[10px] text-muted-foreground mb-0.5">Department</div>
-                <div className="text-xs font-semibold text-foreground truncate">{u.department}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 justify-end">
-              {u.status === 'Active' ? (
-                <button onClick={() => setConfirmSuspend(u)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-500 bg-amber-50 border border-amber-300">
-                  <ShieldOff size={12} /> Suspend
-                </button>
-              ) : (
-                <button onClick={() => toggleStatus(u.id, false)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-green-500 bg-green-50 border border-green-300">
-                  <ShieldCheck size={12} /> Activate
-                </button>
+              {!isReadOnly && (
+                <div className="flex items-center gap-2 justify-end">
+                  {u.status === "active" ?
+                    <button
+                      onClick={() => setConfirmSuspend(u)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-500 bg-amber-50 border border-amber-300"
+                    >
+                      <ShieldOff size={12} /> Suspend
+                    </button>
+                  : <button
+                      onClick={() => toggleStatus(u.id, false)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-green-500 bg-green-50 border border-green-300"
+                    >
+                      <ShieldCheck size={12} /> Activate
+                    </button>
+                  }
+                  <button
+                    onClick={() => setConfirmDelete(u)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 bg-red-50 border border-red-300"
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
               )}
-              <button onClick={() => setConfirmDelete(u)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 bg-red-50 border border-red-300">
-                <Trash2 size={12} /> Delete
-              </button>
             </div>
+          ))}
+          {paginated.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed border-border">
+              <Users
+                size={32}
+                className="text-muted-foreground opacity-30 mb-3"
+              />
+              <div className="font-bold text-sm text-foreground">
+                No users found
+              </div>
+            </div>
+          )}
+          <div className="pt-2">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={filtered.length}
+              pageSize={8}
+              onPage={setPage}
+            />
           </div>
-        ))}
-        {paginated.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed border-border">
-            <Users size={32} className="text-muted-foreground opacity-30 mb-3" />
-            <div className="font-bold text-sm text-foreground">No users found</div>
-          </div>
-        )}
-        <div className="pt-2">
-          <Pagination page={page} totalPages={totalPages} total={filtered.length} pageSize={8} onPage={setPage} />
         </div>
-      </div>
+      )}
 
       {/* Add User Modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Add New User" width={520}>
+      <Modal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="Add New User"
+        width={520}
+      >
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1.5">Full Name <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Full Name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 name="name"
@@ -394,11 +744,15 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               />
               {formik.touched.name && formik.errors.name && (
-                <p className="text-xs text-red-500 mt-1">{formik.errors.name}</p>
+                <p className="text-xs text-red-500 mt-1">
+                  {formik.errors.name}
+                </p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1.5">Email Address <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Email Address <span className="text-red-500">*</span>
+              </label>
               <input
                 type="email"
                 name="email"
@@ -409,14 +763,18 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               />
               {formik.touched.email && formik.errors.email && (
-                <p className="text-xs text-red-500 mt-1">{formik.errors.email}</p>
+                <p className="text-xs text-red-500 mt-1">
+                  {formik.errors.email}
+                </p>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1.5">Role</label>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Role
+              </label>
               <select
                 name="role"
                 value={formik.values.role}
@@ -424,11 +782,17 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
                 onBlur={formik.handleBlur}
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               >
-                {allowedRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                {allowedRoles.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1.5">Department</label>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Department
+              </label>
               <select
                 name="department"
                 value={formik.values.department}
@@ -436,14 +800,18 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
                 onBlur={formik.handleBlur}
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               >
-                {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
+                {DEPARTMENTS.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1.5">Staff ID <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Staff ID <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 name="staffId"
@@ -454,11 +822,15 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               />
               {formik.touched.staffId && formik.errors.staffId && (
-                <p className="text-xs text-red-500 mt-1">{formik.errors.staffId}</p>
+                <p className="text-xs text-red-500 mt-1">
+                  {formik.errors.staffId}
+                </p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1.5">Phone Contact <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Phone Contact <span className="text-red-500">*</span>
+              </label>
               <input
                 type="tel"
                 name="phoneContact"
@@ -469,7 +841,9 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
                 className="w-full px-3 py-2.5 rounded-xl outline-none bg-muted border border-border text-[13px] text-foreground"
               />
               {formik.touched.phoneContact && formik.errors.phoneContact && (
-                <p className="text-xs text-red-500 mt-1">{formik.errors.phoneContact}</p>
+                <p className="text-xs text-red-500 mt-1">
+                  {formik.errors.phoneContact}
+                </p>
               )}
             </div>
           </div>
@@ -477,40 +851,67 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
           {/* Preview */}
           {formik.values.name && (
             <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm flex-shrink-0" style={{ background: ROLE_COLORS[formik.values.role as Role] || '#1A3363' }}>
-                {formik.values.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+              <div
+                className="flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm flex-shrink-0"
+                style={{
+                  background: ROLE_COLORS[formik.values.role] ?? "#1A3363",
+                }}
+              >
+                {formik.values.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)}
               </div>
               <div>
-                <div className="font-bold text-[13px] text-foreground">{formik.values.name}</div>
-                <div className="text-xs text-muted-foreground">{formik.values.role} · {formik.values.department}</div>
+                <div className="font-bold text-[13px] text-foreground">
+                  {formik.values.name}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {formik.values.role} · {formik.values.department}
+                </div>
               </div>
               <Badge status="Active" size="sm" />
             </div>
           )}
 
           {formError && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium">{formError}</div>
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+              {formError}
+            </div>
           )}
 
           <div className="p-3 rounded-xl bg-secondary border border-primary/20">
-            <p className="text-xs text-primary">A welcome email with login credentials will be sent to the user's email address.</p>
+            <p className="text-xs text-primary">
+              A welcome email with login credentials will be sent to the user's
+              email address.
+            </p>
           </div>
 
           <div className="flex gap-3">
-            <button onClick={() => setShowCreate(false)} className="btn-secondary flex-1 py-2.5">Cancel</button>
+            <button
+              onClick={() => setShowCreate(false)}
+              className="btn-secondary flex-1 py-2.5"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={formik.isSubmitting || creating}
               onClick={() => formik.handleSubmit()}
               className="btn-primary flex-1 py-2.5 disabled:opacity-50"
             >
-              {formik.isSubmitting || creating ? 'Creating...' : 'Create User'}
+              {formik.isSubmitting || creating ? "Creating…" : "Create User"}
             </button>
           </div>
         </div>
       </Modal>
 
-      <AssistantResearcherForm open={showAssistantForm} onClose={() => setShowAssistantForm(false)} />
+      <AssistantResearcherForm
+        open={showAssistantForm}
+        onClose={() => setShowAssistantForm(false)}
+      />
 
       {tempPasswordData && (
         <TemporaryPasswordModal
@@ -528,7 +929,10 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
         message={`Are you sure you want to delete ${confirmDelete?.name}? This cannot be undone.`}
         confirmLabel="Delete"
         confirmColor="#EF4444"
-        onConfirm={() => { if (confirmDelete) deleteUser(confirmDelete.id); setConfirmDelete(null); }}
+        onConfirm={() => {
+          if (confirmDelete) handleDeleteUser(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
         onCancel={() => setConfirmDelete(null)}
       />
       <ConfirmDialog
@@ -537,7 +941,10 @@ export function UserManagement({ role = 'Admin' }: UserManagementProps) {
         message={`Suspend ${confirmSuspend?.name}'s account? They will lose access immediately.`}
         confirmLabel="Suspend"
         confirmColor="#F59E0B"
-        onConfirm={() => { if (confirmSuspend) toggleStatus(confirmSuspend.id, true); setConfirmSuspend(null); }}
+        onConfirm={() => {
+          if (confirmSuspend) toggleStatus(confirmSuspend.id, true);
+          setConfirmSuspend(null);
+        }}
         onCancel={() => setConfirmSuspend(null)}
       />
     </div>

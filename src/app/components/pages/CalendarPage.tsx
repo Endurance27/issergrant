@@ -9,13 +9,23 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 interface CalendarEvent {
   date: string;
   label: string;
-  type: 'deadline' | 'milestone' | 'award';
+  type: 'deadline' | 'milestone' | 'award' | 'meeting' | 'review';
   color: string;
 }
+
+// Board meetings and proposal review schedules — organization-wide calendar items
+const meetingsAndReviews: CalendarEvent[] = [
+  { date: '2025-06-20', label: 'Research Directorate Board Meeting', type: 'meeting', color: '#0EA5E9' },
+  { date: '2025-07-04', label: 'Quarterly Funding Review Meeting', type: 'meeting', color: '#0EA5E9' },
+  { date: '2025-06-25', label: 'Proposal Review Panel — Biomedical', type: 'review', color: '#A855F7' },
+  { date: '2025-07-18', label: 'Proposal Review Panel — Climate Science', type: 'review', color: '#A855F7' },
+  { date: '2025-08-08', label: 'Mid-Year Budget Review', type: 'review', color: '#A855F7' },
+];
 
 const events: CalendarEvent[] = [
   ...grantCalls.map(g => ({ date: g.deadline, label: g.title, type: 'deadline' as const, color: '#EF4444' })),
   ...milestones.map(m => ({ date: m.dueDate, label: m.title, type: 'milestone' as const, color: 'var(--chart-1)' })),
+  ...meetingsAndReviews,
 ];
 
 export function CalendarPage() {
@@ -96,7 +106,7 @@ export function CalendarPage() {
             })}
           </div>
 
-          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border">
+          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border flex-wrap">
             <div className="flex items-center gap-1.5">
               <span className="rounded-sm inline-block w-2.5 h-2.5 bg-red-500" />
               <span className="text-[11px] text-muted-foreground">Grant Deadlines</span>
@@ -104,6 +114,14 @@ export function CalendarPage() {
             <div className="flex items-center gap-1.5">
               <span className="rounded-sm inline-block w-2.5 h-2.5 bg-chart-1" />
               <span className="text-[11px] text-muted-foreground">Milestones</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="rounded-sm inline-block w-2.5 h-2.5" style={{ background: '#0EA5E9' }} />
+              <span className="text-[11px] text-muted-foreground">Meetings</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="rounded-sm inline-block w-2.5 h-2.5" style={{ background: '#A855F7' }} />
+              <span className="text-[11px] text-muted-foreground">Review Schedules</span>
             </div>
           </div>
         </div>

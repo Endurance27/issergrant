@@ -131,7 +131,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           zustandLogin(user, session.access_token)
         } else {
-          zustandLogout()
+          // Only logout if there is no custom-JWT session already in place.
+          // The app primarily uses a custom GraphQL backend for auth; Supabase
+          // firing INITIAL_SESSION with null must not evict an existing token.
+          if (!useAuthStore.getState().accessToken) {
+            zustandLogout()
+          }
         }
       }
     )
