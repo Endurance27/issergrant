@@ -14,38 +14,57 @@ import {
 import { loginSchema } from "../../../schemas/auth.schema";
 import type { LoginFormValues } from "../../../types/forms";
 import { IsserLogo } from "../ui/IsserLogo";
-import { useAuthStore } from "../../../store/auth.store";
 import { ROLE_BASE_PATH, ROLE_ENUM } from "../../../types/user.types";
 import type { User, DisplayRole } from "../../../types/user.types";
 import { useLogin } from "../../../hooks";
 
 // ─── Demo account data ────────────────────────────────────────────────────────
 
-type DemoRole = DisplayRole
+type DemoRole = DisplayRole;
 
 const roleColors: Record<DemoRole, string> = {
-  'Admin': 'var(--primary)',
-  'Director': '#1A4A7A',
-  'Researcher': '#2D6EA8',
-  'Finance Officer': '#403C3A',
-  'Guest': '#B79A64',
+  Admin: "var(--primary)",
+  Director: "#1A4A7A",
+  Researcher: "#2D6EA8",
+  "Finance Officer": "#403C3A",
+  Guest: "#B79A64",
 };
 
 const demoAccounts: { role: DemoRole; email: string; hint: string }[] = [
-  { role: 'Admin' as DisplayRole,           email: 'sarah.ahmad@iser.edu',   hint: 'System administrator' },
-  { role: 'Director' as DisplayRole,        email: 'kwame.mensah@iser.edu',  hint: 'Institute Director' },
-  { role: 'Researcher' as DisplayRole,      email: 'james.okonkwo@iser.edu', hint: 'Principal Investigator' },
-  { role: 'Finance Officer' as DisplayRole, email: 'fatima.rashid@iser.edu', hint: 'Finance & Accounts' },
-  { role: 'Guest' as DisplayRole,           email: 'guest@iser.edu',         hint: 'Guest collaborator' },
+  {
+    role: "Admin" as DisplayRole,
+    email: "sarah.ahmad@iser.edu",
+    hint: "System administrator",
+  },
+  {
+    role: "Director" as DisplayRole,
+    email: "kwame.mensah@iser.edu",
+    hint: "Institute Director",
+  },
+  {
+    role: "Researcher" as DisplayRole,
+    email: "james.okonkwo@iser.edu",
+    hint: "Principal Investigator",
+  },
+  {
+    role: "Finance Officer" as DisplayRole,
+    email: "fatima.rashid@iser.edu",
+    hint: "Finance & Accounts",
+  },
+  {
+    role: "Guest" as DisplayRole,
+    email: "guest@iser.edu",
+    hint: "Guest collaborator",
+  },
 ];
 
 /** Email → backend enum role */
 const roleByEmail: Record<string, string> = {
-  'sarah.ahmad@iser.edu':    'admin',
-  'kwame.mensah@iser.edu':   'director',
-  'james.okonkwo@iser.edu':  'researcher',
-  'fatima.rashid@iser.edu':  'finance_officer',
-  'guest@iser.edu':          'guest',
+  "sarah.ahmad@iser.edu": "admin",
+  "kwame.mensah@iser.edu": "director",
+  "james.okonkwo@iser.edu": "researcher",
+  "fatima.rashid@iser.edu": "finance_officer",
+  "guest@iser.edu": "guest",
 };
 
 // ─── Visuals ──────────────────────────────────────────────────────────────────

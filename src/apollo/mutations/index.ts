@@ -209,14 +209,14 @@ export const CREATE_PROPOSAL_MUTATION: DocumentNode = gql`
   }
 `;
 
-export const SIGN_UP_ASSISTANT_RESEARCHER_MUTATION: DocumentNode = gql`
-  ${USER_FIELDS}
-  mutation SignUpAssistantResearcher($content: CreateAssistantUserContent!) {
-    signUpAssistantResearcher(content: $content) {
-      temporaryPassword
-      user {
-        ...UserFields
-      }
-    }
-  }
-`;
+// export const SIGN_UP_ASSISTANT_RESEARCHER_MUTATION: DocumentNode = gql`
+//   ${USER_FIELDS}
+//   mutation SignUpAssistantResearcher($content: CreateAssistantUserContent!) {
+//     signUpAssistantResearcher(content: $content) {
+//       temporaryPassword
+//       user {
+//         ...UserFields
+//       }
+//     }
+//   }
+// `;

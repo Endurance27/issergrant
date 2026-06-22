@@ -1,27 +1,41 @@
 import { gql } from '@apollo/client'
 
+// Backend: assignGuestToFundingCall(input: AssignGuestToFundingCallInput!): FundingCallCollaborator!
 export const ASSIGN_GUEST_TO_FUNDING_CALL_MUTATION = gql`
-  mutation AssignGuestToFundingCall($input: AssignGuestInput!) {
+  mutation AssignGuestToFundingCall($input: AssignGuestToFundingCallInput!) {
     assignGuestToFundingCall(input: $input) {
-      success
-      message
-      assignment {
+      id
+      guestId
+      fundingCallId
+      notes
+      createdAt
+      guest {
         id
-        guestId
-        fundingCallId
-        fundingCallTitle
-        notes
-        assignedAt
+        name
+        email
+      }
+      fundingCall {
+        id
+        theme
       }
     }
   }
 `
 
-export const REMOVE_GUEST_ASSIGNMENT_MUTATION = gql`
-  mutation RemoveGuestAssignment($assignmentId: ID!) {
-    removeGuestAssignment(assignmentId: $assignmentId) {
-      success
-      message
+// Backend: assignGuestToProposal(input: AssignGuestToProposalInput!): ProposalCollaborator!
+export const ASSIGN_GUEST_TO_PROPOSAL_MUTATION = gql`
+  mutation AssignGuestToProposal($input: AssignGuestToProposalInput!) {
+    assignGuestToProposal(input: $input) {
+      id
+      guestId
+      proposalId
+      roleDescription
+      createdAt
+      guest {
+        id
+        name
+        email
+      }
     }
   }
 `

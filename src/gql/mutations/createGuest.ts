@@ -1,21 +1,19 @@
 import { gql } from '@apollo/client'
 
+// Backend: createGuest(content: CreateGuestInput!): CreateUserResult!
 export const CREATE_GUEST_MUTATION = gql`
-  mutation CreateGuest($input: CreateGuestInput!) {
-    createGuest(input: $input) {
-      success
-      message
+  mutation CreateGuest($content: CreateGuestInput!) {
+    createGuest(content: $content) {
       temporaryPassword
-      guest {
+      user {
         id
         name
         email
         department
         staffId
         phoneContact
-        notes
+        role
         status
-        assignedResearcherId
         createdAt
       }
     }

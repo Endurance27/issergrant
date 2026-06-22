@@ -4,7 +4,7 @@ import type {
   CreateAssistantResearcherInput,
   SignUpAssistantResearcherResponse,
 } from '../types/assistantResearcher.types';
-import { SIGN_UP_ASSISTANT_RESEARCHER_MUTATION } from '@/apollo/mutations';
+import { SIGN_IN_MUTATION } from '@/apollo/mutations';
 
 export function useCreateAssistantResearcher() {
   const [error, setError] = useState<Error | null>(null);
@@ -12,7 +12,7 @@ export function useCreateAssistantResearcher() {
   const [mutate, { loading, data }] = useMutation<
     SignUpAssistantResearcherResponse,
     { content: CreateAssistantResearcherInput }
-  >(SIGN_UP_ASSISTANT_RESEARCHER_MUTATION, {
+  >(SIGN_IN_MUTATION, {
     onError: (err) => {
       setError(err);
     },
