@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useFormik } from 'formik'
 import { Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react'
 import { createProposalSchema } from '../../../schemas/proposal.schema'
 import { useCreateProposal } from '../../../hooks/useCreateProposal'
+import { useFundingCalls } from '../../../hooks/useFundingCall'
+import { useResearchers } from '../../../hooks/useResearchers'
 import { useAuthStore } from '../../../store/auth.store'
 import { useToast } from '../ui/Toast'
-import { supabase } from '../../../lib/supabase'
-import type { CreateProposalFormValues } from '../../../types/proposal.types'
-import type { ProposalRecord } from '../../../types/proposal.types'
+import { MultiSelect, type MultiSelectOption } from '../ui/MultiSelect'
+import type { CreateProposalFormValues, ProposalRecord } from '../../../types/proposal.types'
 
 // ISSER departments — kept in sync with the rest of the codebase
 const DEPARTMENTS = [
@@ -27,18 +28,6 @@ const DEPARTMENTS = [
   'Research Methods and Data Visualization',
 ]
 
-interface FundingCallOption {
-  id: string
-  label: string
-  maxAward: number
-}
-
-interface ResearcherOption {
-  id: string
-  name: string
-  department: string
-}
-
 interface CreateProposalFormProps {
   /** Pre-selected funding call ID (e.g. navigated from Grant Calls page) */
   defaultFundingCallId?: string
@@ -53,65 +42,23 @@ export function CreateProposalForm({
   onSuccess,
   onCancel,
 }: CreateProposalFormProps) {
-  const currentUserId = useAuthStore((s) => s.user?.id ?? '')
+  const currentUserId = useAuthStore((s) => s.user?.UserId ?? '')
   const { createProposal, loading } = useCreateProposal()
   const { toast } = useToast()
 
-  const [fundingCalls, setFundingCalls] = useState<FundingCallOption[]>([])
-  const [loadingCalls, setLoadingCalls] = useState(true)
-  const [researchers, setResearchers] = useState<ResearcherOption[]>([])
+  const { fundingCalls, loading: loadingCalls } = useFundingCalls()
+  const { researchers, loading: loadingResearchers } = useResearchers()
 
   // Backend response feedback
   const [apiSuccess, setApiSuccess] = useState(false)
   const [apiMessage, setApiMessage] = useState('')
   const [apiErrors, setApiErrors] = useState<string[]>([])
 
-  // Fetch open funding calls for the dropdown
-  useEffect(() => {
-    const fetch = async () => {
-      setLoadingCalls(true)
-      try {
-        const { data, error } = await supabase
-          .from('grant_calls')
-          .select('id, title, totalBudget')
-          .eq('status', 'Open')
-          .order('title')
-
-        if (!error && data) {
-          setFundingCalls(
-            data.map((gc: { id: string; title: string; totalBudget: number }) => ({
-              id: gc.id,
-              label: gc.title,
-              maxAward: gc.totalBudget,
-            }))
-          )
-        }
-      } finally {
-        setLoadingCalls(false)
-      }
-    }
-    fetch()
-  }, [])
-
-  // Fetch researchers for Co-PI dropdown
-  useEffect(() => {
-    const fetchResearchers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, name, department')
-          .eq('role', 'researcher')
-          .order('name')
-
-        if (!error && data) {
-          setResearchers(data as ResearcherOption[])
-        }
-      } catch {
-        // Silently fail — Co-PI dropdown will just be empty
-      }
-    }
-    fetchResearchers()
-  }, [])
+  // Exclude the current user from the Co-PI picker — a researcher cannot be
+  // their own Co-PI.
+  const coPiOptions: MultiSelectOption[] = researchers
+    .filter((r) => r.id !== currentUserId)
+    .map((r) => ({ id: r.id, label: r.name, sublabel: r.department }))
 
   const formik = useFormik<CreateProposalFormValues>({
     initialValues: {
@@ -120,7 +67,7 @@ export function CreateProposalForm({
       fundingCallId: defaultFundingCallId,
       requestedAmount: '',
       department: DEPARTMENTS[0],
-      coPrincipalInvestigatorId: '',
+      coPiIds: [],
     },
     validationSchema: createProposalSchema,
     enableReinitialize: false,
@@ -129,7 +76,7 @@ export function CreateProposalForm({
       setApiMessage('')
       setApiErrors([])
 
-      const { title, abstract, fundingCallId, requestedAmount, department, coPrincipalInvestigatorId } = values
+      const { title, abstract, fundingCallId, requestedAmount, department, coPiIds } = values
 
       const payload = await createProposal({
         title: title.trim(),
@@ -137,7 +84,8 @@ export function CreateProposalForm({
         fundingCallId,
         requestedAmount: Number(requestedAmount),
         department,
-        ...(coPrincipalInvestigatorId ? { coPrincipalInvestigatorId } : {}),
+        userID: currentUserId,
+        coPiIds,
       })
 
       if (!payload) {
@@ -171,15 +119,12 @@ export function CreateProposalForm({
   const isSubmitting = formik.isSubmitting || loading
   const abstractLen = formik.values.abstract.length
 
-  // Filter out current user from Co-PI list
-  const copiOptions = researchers.filter(r => r.id !== currentUserId)
-
   return (
-    <form onSubmit={formik.handleSubmit} noValidate className="space-y-4">
+    <form onSubmit={formik.handleSubmit} noValidate className="space-y-4" data-testid="create-proposal-form">
 
       {/* ── Success banner ────────────────────────────────────────────────── */}
       {apiSuccess && (
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-[13px]">
+        <div data-testid="proposal-success-banner" className="flex items-start gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-[13px]">
           <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Proposal submitted!</p>
@@ -190,7 +135,7 @@ export function CreateProposalForm({
 
       {/* ── API error banner ──────────────────────────────────────────────── */}
       {!apiSuccess && (apiMessage || apiErrors.length > 0) && (
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px]">
+        <div data-testid="proposal-error-banner" className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px]">
           <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
           <div>
             {apiMessage && <p className="font-semibold">{apiMessage}</p>}
@@ -224,6 +169,7 @@ export function CreateProposalForm({
         ) : (
           <select
             name="fundingCallId"
+            data-testid="funding-call-select"
             value={formik.values.fundingCallId}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -233,7 +179,7 @@ export function CreateProposalForm({
             <option value="">— Select a funding call —</option>
             {fundingCalls.map((fc) => (
               <option key={fc.id} value={fc.id}>
-                {fc.label}
+                {fc.theme}
               </option>
             ))}
           </select>
@@ -251,6 +197,7 @@ export function CreateProposalForm({
         </label>
         <input
           name="title"
+          data-testid="title-input"
           value={formik.values.title}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
@@ -276,6 +223,7 @@ export function CreateProposalForm({
         </div>
         <textarea
           name="abstract"
+          data-testid="abstract-input"
           rows={5}
           value={formik.values.abstract}
           onChange={formik.handleChange}
@@ -299,6 +247,7 @@ export function CreateProposalForm({
           <input
             type="number"
             name="requestedAmount"
+            data-testid="amount-input"
             value={formik.values.requestedAmount}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -318,6 +267,7 @@ export function CreateProposalForm({
           </label>
           <select
             name="department"
+            data-testid="department-select"
             value={formik.values.department}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -334,25 +284,27 @@ export function CreateProposalForm({
         </div>
       </div>
 
-      {/* ── Co-Principal Investigator ──────────────────────────────────────── */}
+      {/* ── Co-Principal Investigators ─────────────────────────────────────── */}
       <div>
         <label className={labelCls}>
-          Co-Principal Investigator{' '}
-          <span className="text-muted-foreground font-normal">(optional)</span>
+          Co-Principal Investigators{' '}
+          <span className="text-muted-foreground font-normal">(optional, any number)</span>
         </label>
-        <select
-          name="coPrincipalInvestigatorId"
-          value={formik.values.coPrincipalInvestigatorId}
-          onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
+        <MultiSelect
+          name="coPiIds"
+          data-testid="copi-multiselect"
+          options={coPiOptions}
+          value={formik.values.coPiIds}
+          onChange={(ids) => formik.setFieldValue('coPiIds', ids)}
+          onBlur={() => formik.setFieldTouched('coPiIds', true)}
+          loading={loadingResearchers}
           disabled={isSubmitting}
-          className={inputCls}
-        >
-          <option value="">— No Co-PI —</option>
-          {copiOptions.map(r => (
-            <option key={r.id} value={r.id}>{r.name} — {r.department}</option>
-          ))}
-        </select>
+          placeholder="Search researchers to add as Co-PI…"
+          emptyMessage="No matching researchers"
+        />
+        {formik.touched.coPiIds && formik.errors.coPiIds && (
+          <p className={errCls}>{formik.errors.coPiIds as string}</p>
+        )}
       </div>
 
       {/* ── Auto-filled user note ──────────────────────────────────────────── */}
@@ -375,6 +327,7 @@ export function CreateProposalForm({
         )}
         <button
           type="submit"
+          data-testid="submit-proposal-button"
           disabled={isSubmitting || apiSuccess}
           className="flex-1 py-2.5 rounded-xl text-white font-semibold text-[13px] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           style={{ background: 'linear-gradient(135deg, var(--primary), #2D6EA8)' }}

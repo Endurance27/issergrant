@@ -87,17 +87,8 @@ export const MY_PROPOSALS_QUERY = gql`
   }
 `
 
-export const GET_RESEARCHERS_QUERY = gql`
-  query GetResearchers {
-    researchers {
-      id
-      name
-      email
-      department
-      status
-    }
-  }
-`
+// Researcher lookup now lives in gql/queries/researchers.ts (uses
+// getUsersByRole — there's no top-level "researchers" query on the backend).
 
 export const GET_PROPOSAL_COLLABORATORS_QUERY = gql`
   query GetProposalCollaborators($proposalId: ID!) {

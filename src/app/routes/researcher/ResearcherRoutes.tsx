@@ -31,7 +31,7 @@ export function ResearcherGrantCallsPage() {
 export function ResearcherProposalsPage() {
   const location = useLocation();
   const navState = (location.state as NavState | null) ?? null;
-  return <Proposals role="Researcher" navState={navState} />;
+  return <Proposals role="researcher" navState={navState} />;
 }
 
 export function ResearcherMilestonesPage() {

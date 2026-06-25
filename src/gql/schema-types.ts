@@ -744,7 +744,7 @@ export type CreateProposalDraftInput = {
 
 export type CreateProposalInput = {
   abstract: Scalars['String']['input'];
-  coPiId?: InputMaybe<Scalars['ID']['input']>;
+  coPiIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   department?: InputMaybe<Scalars['String']['input']>;
   fundingCallId: Scalars['ID']['input'];
   requestedAmount?: InputMaybe<Scalars['Float']['input']>;
@@ -1827,6 +1827,7 @@ export type Mutation = {
   rejectTransaction: FinancialPayload;
   removeBookmark: GrantCallBookmarkPayload;
   removeCollaborator: ProposalPayload;
+  removeProposalCoPi: ProposalPayload;
   requestDisbursement: AwardPayload;
   requestProposalReview: ProposalPayload;
   requestReportRevision: ReportPayload;
@@ -2386,6 +2387,12 @@ export type MutationRemoveBookmarkArgs = {
 export type MutationRemoveCollaboratorArgs = {
   collaboratorId: Scalars['ID']['input'];
   proposalId: Scalars['ID']['input'];
+};
+
+
+export type MutationRemoveProposalCoPiArgs = {
+  proposalId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
 };
 
 
@@ -3030,25 +3037,19 @@ export type ProcessDisbursementInput = {
 export type Proposal = {
   __typename?: 'Proposal';
   abstract?: Maybe<Scalars['String']['output']>;
-  coPI?: Maybe<User>;
-  coPiId?: Maybe<Scalars['ID']['output']>;
+  coPIs?: Maybe<Array<User>>;
   collaborators?: Maybe<Array<ProposalCollaborator>>;
   createdAt?: Maybe<Scalars['String']['output']>;
   department?: Maybe<Scalars['String']['output']>;
   fundingCall?: Maybe<FundingCall>;
-  fundingCallId: Scalars['ID']['output'];
-  fundingCallTitle: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   requestedAmount?: Maybe<Scalars['Float']['output']>;
   reviewHistory?: Maybe<Array<ReviewEntry>>;
-  reviewers?: Maybe<Array<ProposalReviewer>>;
-  reviews?: Maybe<Array<ProposalReview>>;
   status: ProposalStatus;
   submitted: Scalars['String']['output'];
   title: Scalars['String']['output'];
   updatedAt?: Maybe<Scalars['String']['output']>;
   user?: Maybe<User>;
-  userID: Scalars['ID']['output'];
 };
 
 export type ProposalAnalytics = {
@@ -3165,13 +3166,13 @@ export type ProposalStats = {
 };
 
 export type ProposalStatus =
-  | 'APPROVED'
-  | 'ARCHIVED'
-  | 'DRAFT'
-  | 'FUNDED'
-  | 'REJECTED'
-  | 'SUBMITTED'
-  | 'UNDER_REVIEW';
+  | 'approved'
+  | 'archived'
+  | 'draft'
+  | 'funded'
+  | 'rejected'
+  | 'submitted'
+  | 'under_review';
 
 export type Query = {
   __typename?: 'Query';
@@ -3296,6 +3297,7 @@ export type Query = {
   grantCalls: GuestGrantCallConnection;
   guestDashboard: GuestDashboard;
   guestNotificationPreferences: NotificationPreferences;
+  guestProposal?: Maybe<Proposal>;
   guestProposalStats: GuestProposalStats;
   guestReportStats: GuestReportStats;
   isFeatureEnabled: Scalars['Boolean']['output'];
@@ -3314,6 +3316,7 @@ export type Query = {
   milestones: MilestoneConnection;
   myAwards: AwardConnection;
   myBookmarkedCalls: GuestGrantCallConnection;
+  myGuestProposals: ProposalConnection;
   myMilestones: MilestoneConnection;
   myNotifications: NotificationConnection;
   myProfile: GuestProfile;
@@ -3331,6 +3334,7 @@ export type Query = {
   proposalCollaborators: Array<Collaborator>;
   proposalStats: ProposalStats;
   proposals: ProposalConnection;
+  proposalsByResearcher: ProposalConnection;
   report?: Maybe<Report>;
   reportStats: ReportStats;
   reportingPreferences: ReportingPreferences;
@@ -3834,6 +3838,11 @@ export type QueryGrantCallsArgs = {
 };
 
 
+export type QueryGuestProposalArgs = {
+  id: Scalars['String']['input'];
+};
+
+
 export type QueryIsFeatureEnabledArgs = {
   key: Scalars['String']['input'];
 };
@@ -3928,6 +3937,14 @@ export type QueryMyBookmarkedCallsArgs = {
 };
 
 
+export type QueryMyGuestProposalsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type QueryMyMilestonesArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
@@ -4001,6 +4018,14 @@ export type QueryProposalsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryProposalsByResearcherArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  researcherId: Scalars['ID']['input'];
   status?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -4723,7 +4748,6 @@ export type UpdateProfileInput = {
 
 export type UpdateProposalInput = {
   abstract?: InputMaybe<Scalars['String']['input']>;
-  coPiId?: InputMaybe<Scalars['ID']['input']>;
   department?: InputMaybe<Scalars['String']['input']>;
   requestedAmount?: InputMaybe<Scalars['Float']['input']>;
   title?: InputMaybe<Scalars['String']['input']>;
