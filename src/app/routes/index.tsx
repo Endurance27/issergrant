@@ -48,6 +48,7 @@ import {
   ResearcherCalendarPage,
   ResearcherSettingsPage,
   ResearcherTeamMembersPage,
+  ResearcherDraftsPage,
 } from "./researcher/ResearcherRoutes";
 import {
   GuestDashboardPage, GuestFundingCallsPage, GuestProposalsPage,
@@ -162,6 +163,7 @@ export function AppRoutes() {
           <Route path="users"         element={<ResearcherTeamMembersPage />} />
           <Route path="guests"        element={<Guests />} />
           <Route path="guests/create" element={<CreateGuest />} />
+          <Route path="drafts"        element={<ResearcherDraftsPage />} />
         </Route>
       </Route>
 

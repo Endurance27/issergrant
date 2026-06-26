@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { ResearcherDashboardPage as ResearcherDashboardFeaturePage } from "../../researcher/dashboard";
+import { DraftsPage } from "../../researcher/drafts/DraftsPage";
 import { GrantCalls } from "../../components/pages/GrantCalls";
 import { Proposals } from "../../components/pages/Proposals";
 import { Milestones } from "../../components/pages/Milestones";
@@ -62,4 +63,8 @@ export function ResearcherSettingsPage() {
 
 export function ResearcherTeamMembersPage() {
   return <UserManagement role="Researcher" />;
+}
+
+export function ResearcherDraftsPage() {
+  return <DraftsPage />;
 }

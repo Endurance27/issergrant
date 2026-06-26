@@ -606,13 +606,23 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setSelected(p)}
-                        className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted"
-                        title="View details"
-                      >
-                        <Eye size={14} />
-                      </button>
+                      {role === 'Researcher' && p.status === 'Draft' ? (
+                        <button
+                          onClick={() => setSelected(p)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors"
+                          title="Continue editing"
+                        >
+                          <Eye size={12} /> Continue Editing
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setSelected(p)}
+                          className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted"
+                          title="View details"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      )}
                       {role === "admin" &&
                         (p.status === "Under Review" ||
                           p.status === "Revised") && (

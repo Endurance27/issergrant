@@ -41,11 +41,12 @@ export interface ProposalRecord {
   abstract: string
   fundingCallId: string
   fundingCallTitle: string
-  fundingCall: ProposalFundingCall
+  fundingCall?: ProposalFundingCall
   status: string
   requestedAmount: number
   department: string
   submitted: boolean
+  updatedAt?: string
   principalInvestigator: ProposalPI
   coPrincipalInvestigator?: ProposalPI | null
   collaborators?: ProposalCollaborator[]
@@ -67,6 +68,44 @@ export interface CreateProposalFormValues {
   title: string
   abstract: string
   fundingCallId: string
+  requestedAmount: number | ''
+  department: string
+  coPrincipalInvestigatorId: string
+}
+
+/** Input for saving a new draft proposal */
+export interface SaveDraftProposalInput {
+  fundingCallId: string
+  title?: string
+  abstract?: string
+  requestedAmount?: number
+  department?: string
+  coPrincipalInvestigatorId?: string
+}
+
+/** Input for updating an existing draft proposal */
+export interface UpdateDraftProposalInput {
+  fundingCallId?: string
+  title?: string
+  abstract?: string
+  requestedAmount?: number
+  department?: string
+  coPrincipalInvestigatorId?: string
+}
+
+/** GraphQL payload returned by draft/submit mutations */
+export interface DraftProposalPayload {
+  success: boolean
+  message: string
+  errors?: string[] | null
+  proposal?: ProposalRecord | null
+}
+
+/** Formik form values for the draft-first proposal form */
+export interface DraftProposalFormValues {
+  fundingCallId: string
+  title: string
+  abstract: string
   requestedAmount: number | ''
   department: string
   coPrincipalInvestigatorId: string

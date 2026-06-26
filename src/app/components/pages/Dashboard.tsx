@@ -1,4 +1,5 @@
-import { FileText, Award, DollarSign, Megaphone, TrendingUp, Clock, CheckCircle2, XCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { FileText, Award, DollarSign, Megaphone, TrendingUp, Clock, CheckCircle2, XCircle, AlertCircle, ArrowRight, FileEdit } from "lucide-react";
+import { useMyDraftProposals } from "../../../hooks/useDraftProposals";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
@@ -141,13 +142,31 @@ function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
 function ResearcherDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
   const myProposals = proposals.filter(p => p.researcherId === 2);
   const myAwards = awards.filter(a => a.researcher === 'Prof. James Okonkwo');
+  const { data: draftsData } = useMyDraftProposals();
+  const myDrafts = draftsData?.myDraftProposals ?? [];
+  const latestDraft = myDrafts.length > 0
+    ? myDrafts.reduce((a: { updatedAt?: string }, b: { updatedAt?: string }) =>
+        (a.updatedAt ?? '') > (b.updatedAt ?? '') ? a : b,
+      )
+    : null;
+
+  const relativeTime = (iso?: string): string => {
+    if (!iso) return '—';
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60_000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="My Proposals" value={myProposals.length} icon={<FileText size={20} />} iconColor="#1A3363" iconBg="#E5EBF5" />
+        <StatCard label="Draft Proposals" value={myDrafts.length} icon={<FileEdit size={20} />} iconColor="#6366F1" iconBg="#EEF2FF" subtitle={latestDraft ? `Last updated: ${relativeTime((latestDraft as { updatedAt?: string }).updatedAt)}` : 'No drafts yet'} />
         <StatCard label="Approved Grants" value={myAwards.length} icon={<Award size={20} />} iconColor="#10B981" iconBg="#ECFDF5" />
-        <StatCard label="Total Awarded" value={`GHS ${(myAwards.reduce((s, a) => s + a.awardedAmount, 0) / 1000).toFixed(0)}k`} icon={<DollarSign size={20} />} iconColor="#F59E0B" iconBg="#FFFBEB" />
         <StatCard label="Open Calls" value={grantCalls.filter(g => g.status === 'Open').length} icon={<Megaphone size={20} />} iconColor="#8B5CF6" iconBg="#F5F3FF" subtitle="Apply now" />
       </div>
 
