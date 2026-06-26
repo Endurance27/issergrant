@@ -163,8 +163,7 @@ const PROPOSAL_FIELDS = gql`
     abstract
     status
     requestedAmount
-    department
-    submitted
+    submittedAt
 
     user {
       id

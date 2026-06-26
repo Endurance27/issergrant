@@ -1,6 +1,7 @@
 import { PageHeader } from "../../components/ui/PageHeader";
 import { ResearcherStatsRow } from "./ResearcherStatsRow";
 import { MyProposalsList } from "./MyProposalsList";
+import { CoPiProjectsList } from "./CoPiProjectsList";
 import { AvailableGrantCalls } from "./AvailableGrantCalls";
 import { UpcomingMilestones } from "./UpcomingMilestones";
 
@@ -19,9 +20,12 @@ export function ResearcherDashboardPage({ onNavigate }: ResearcherDashboardPageP
         <ResearcherStatsRow />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <MyProposalsList onNavigate={onNavigate} />
-          <AvailableGrantCalls />
+          <CoPiProjectsList onNavigate={onNavigate} />
         </div>
-        <UpcomingMilestones onNavigate={onNavigate} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <AvailableGrantCalls />
+          <UpcomingMilestones onNavigate={onNavigate} />
+        </div>
       </div>
     </div>
   );

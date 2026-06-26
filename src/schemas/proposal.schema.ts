@@ -21,7 +21,6 @@ export const createProposalSchema = Yup.object({
     .typeError('Must be a number')
     .positive('Requested amount must be greater than 0')
     .required('Requested amount is required'),
-  department: Yup.string().trim().required('Department is required'),
   // A proposal may have zero or more Co-PIs — no minimum, but every id must
   // be unique (defends against duplicate selection slipping through).
   coPiIds: Yup.array()
@@ -41,5 +40,4 @@ export const updateProposalSchema = Yup.object({
     .typeError('Must be a number')
     .positive('Requested amount must be greater than 0')
     .required('Requested amount is required'),
-  department: Yup.string().trim().required('Department is required'),
 })

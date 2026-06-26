@@ -10,6 +10,7 @@ import { CalendarPage } from "../../components/pages/CalendarPage";
 import { Settings } from "../../components/pages/Settings";
 import { useAuthContext } from "../../context/AuthContext";
 import { UserManagement } from "../../components/pages/UserManagement";
+import { CoPiProjects } from "../../researcher/co-pi-projects/CoPiProjects";
 import type { NavState } from "../../App";
 
 function useResearcherNav() {
@@ -62,4 +63,8 @@ export function ResearcherSettingsPage() {
 
 export function ResearcherTeamMembersPage() {
   return <UserManagement role="Researcher" />;
+}
+
+export function ResearcherCoPiProjectsPage() {
+  return <CoPiProjects />;
 }

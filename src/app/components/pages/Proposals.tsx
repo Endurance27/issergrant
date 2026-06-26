@@ -46,24 +46,10 @@ import { Account_Type } from "@/gql/schema-types";
 import type { ProposalPI, ProposalRecord } from "../../../types/proposal.types";
 import { useAuthStore } from "../../../store/auth.store";
 import { useProposalsByResearcher } from "../../../hooks/useProposalsByResearcher";
+import { toDisplayStatus } from "../../utils/proposalStatus";
+import { fmtDateTime } from "../../utils/formatters";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
-
-// Backend ProposalStatus is UPPER_SNAKE_CASE — map it onto the display
-// labels the rest of this page (and the Badge component) already use.
-const STATUS_DISPLAY: Record<string, StatusBadge> = {
-  DRAFT: "Draft",
-  SUBMITTED: "Submitted",
-  UNDER_REVIEW: "Under Review",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-  FUNDED: "Approved",
-  ARCHIVED: "Closed" as StatusBadge,
-};
-
-function toDisplayStatus(status: string): StatusBadge {
-  return STATUS_DISPLAY[status] ?? (status as StatusBadge);
-}
 
 function toLocalProposal(p: ProposalRecord): ProposalWithHistory {
   return {
@@ -73,10 +59,10 @@ function toLocalProposal(p: ProposalRecord): ProposalWithHistory {
     researcherId: 0,
     grantCallId: p.fundingCall?.id ?? "",
     grantCallTitle: p.fundingCall?.theme ?? "",
-    submitted: p.submitted?.slice(0, 10) ?? "",
+    submitted: p.submittedAt ?? "",
     status: toDisplayStatus(p.status),
     requestedAmount: p.requestedAmount,
-    department: p.department,
+    department: p.user.department,
     abstract: p.abstract,
     coPIs: p.coPIs,
     source: "graphql",
@@ -590,7 +576,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   onToggle={() => toggle("requestedAmount")}
                 />
                 <TH
-                  label="Submitted"
+                  label="Submitted At"
                   sortKey="submitted"
                   active={sortKey === "submitted"}
                   dir={dir}
@@ -664,7 +650,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                      {p.submitted}
+                      {p.source === "graphql" ? fmtDateTime(p.submitted) : p.submitted}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -835,7 +821,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
               {/* Date + actions */}
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
                 <span className="font-mono text-[11px] text-muted-foreground">
-                  {p.submitted}
+                  {p.source === "graphql" ? fmtDateTime(p.submitted) : p.submitted}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -941,7 +927,10 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   label: "Requested Amount",
                   value: fmtCurrency(selected.requestedAmount),
                 },
-                { label: "Submission Date", value: selected.submitted },
+                {
+                  label: "Submitted At",
+                  value: selected.source === "graphql" ? fmtDateTime(selected.submitted) : selected.submitted,
+                },
                 { label: "Status", value: selected.status },
               ].map((item) => (
                 <div key={item.label} className="p-3 rounded-xl bg-muted">
@@ -1284,7 +1273,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                           ...p,
                           title: updated.title,
                           abstract: updated.abstract,
-                          department: updated.department,
+                          department: updated.user.department,
                           requestedAmount: updated.requestedAmount,
                           coPIs: updated.coPIs,
                           raw: updated,

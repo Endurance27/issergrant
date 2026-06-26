@@ -4,7 +4,6 @@ export interface CreateProposalInput {
   abstract: string
   fundingCallId: string
   requestedAmount: number
-  department: string
   userID: string
   /** Zero or more Co-Principal Investigators — a proposal is no longer limited to one Co-PI. */
   coPiIds?: string[]
@@ -14,7 +13,6 @@ export interface CreateProposalInput {
 export interface UpdateProposalInput {
   title?: string
   abstract?: string
-  department?: string
   requestedAmount?: number
 }
 
@@ -53,9 +51,8 @@ export interface ProposalRecord {
   fundingCall: ProposalFundingCall
   status: string
   requestedAmount: number
-  department: string
-  /** ISO date string the proposal was submitted on. */
-  submitted: string
+  /** ISO date-time string the proposal was submitted on. */
+  submittedAt: string
   /** The Principal Investigator — the researcher who created the proposal. */
   user: ProposalPI
   /** Zero or more Co-Principal Investigators. */
@@ -116,7 +113,6 @@ export interface CreateProposalFormValues {
   abstract: string
   fundingCallId: string
   requestedAmount: number | ''
-  department: string
   /** Zero or more selected Co-PI researcher ids. */
   coPiIds: string[]
 }
@@ -126,5 +122,16 @@ export interface EditProposalFormValues {
   title: string
   abstract: string
   requestedAmount: number | ''
-  department: string
+}
+
+// Backend: myCoPiProposals(limit?, offset?, search?, status?): ProposalConnection!
+export interface GetCoPiProposalsResponse {
+  myCoPiProposals: ProposalConnection
+}
+
+export interface GetCoPiProposalsVariables {
+  limit?: number
+  offset?: number
+  search?: string
+  status?: string
 }

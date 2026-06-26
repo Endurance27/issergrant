@@ -745,7 +745,6 @@ export type CreateProposalDraftInput = {
 export type CreateProposalInput = {
   abstract: Scalars['String']['input'];
   coPiIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  department?: InputMaybe<Scalars['String']['input']>;
   fundingCallId: Scalars['ID']['input'];
   requestedAmount?: InputMaybe<Scalars['Float']['input']>;
   title: Scalars['String']['input'];
@@ -2488,6 +2487,7 @@ export type MutationSaveDraftFinanceReportArgs = {
 export type MutationSaveProposalDraftArgs = {
   data: ProposalDataInput;
   id: Scalars['String']['input'];
+  input: SaveProposalDraftInput;
 };
 
 
@@ -3040,14 +3040,13 @@ export type Proposal = {
   coPIs?: Maybe<Array<User>>;
   collaborators?: Maybe<Array<ProposalCollaborator>>;
   createdAt?: Maybe<Scalars['String']['output']>;
-  department?: Maybe<Scalars['String']['output']>;
   fundingCall?: Maybe<FundingCall>;
   id: Scalars['ID']['output'];
   requestedAmount?: Maybe<Scalars['Float']['output']>;
   reviewHistory?: Maybe<Array<ReviewEntry>>;
   status: ProposalStatus;
-  submitted: Scalars['String']['output'];
-  title: Scalars['String']['output'];
+  submittedAt?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
   updatedAt?: Maybe<Scalars['String']['output']>;
   user?: Maybe<User>;
 };
@@ -3316,10 +3315,12 @@ export type Query = {
   milestones: MilestoneConnection;
   myAwards: AwardConnection;
   myBookmarkedCalls: GuestGrantCallConnection;
+  myCoPiProposals: ProposalConnection;
   myGuestProposals: ProposalConnection;
   myMilestones: MilestoneConnection;
   myNotifications: NotificationConnection;
   myProfile: GuestProfile;
+  myProposalDrafts: ProposalConnection;
   myProposals: ProposalConnection;
   myReports: ReportConnection;
   notificationCount: Scalars['Int']['output'];
@@ -3332,6 +3333,7 @@ export type Query = {
   projectFinancials: FinancialSummary;
   proposal?: Maybe<Proposal>;
   proposalCollaborators: Array<Collaborator>;
+  proposalDraft?: Maybe<Proposal>;
   proposalStats: ProposalStats;
   proposals: ProposalConnection;
   proposalsByResearcher: ProposalConnection;
@@ -3937,6 +3939,14 @@ export type QueryMyBookmarkedCallsArgs = {
 };
 
 
+export type QueryMyCoPiProposalsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type QueryMyGuestProposalsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
@@ -3955,6 +3965,13 @@ export type QueryMyMilestonesArgs = {
 export type QueryMyNotificationsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryMyProposalDraftsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -4011,6 +4028,11 @@ export type QueryProposalArgs = {
 
 export type QueryProposalCollaboratorsArgs = {
   proposalId: Scalars['String']['input'];
+};
+
+
+export type QueryProposalDraftArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -4361,6 +4383,15 @@ export type ReviewEntry = {
   date: Scalars['String']['output'];
   reviewer: Scalars['String']['output'];
   reviewerRole: Scalars['String']['output'];
+};
+
+export type SaveProposalDraftInput = {
+  abstract?: InputMaybe<Scalars['String']['input']>;
+  coPiIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  fundingCallId: Scalars['ID']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  requestedAmount?: InputMaybe<Scalars['Float']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ScheduleMeetingInput = {
@@ -4748,7 +4779,6 @@ export type UpdateProfileInput = {
 
 export type UpdateProposalInput = {
   abstract?: InputMaybe<Scalars['String']['input']>;
-  department?: InputMaybe<Scalars['String']['input']>;
   requestedAmount?: InputMaybe<Scalars['Float']['input']>;
   title?: InputMaybe<Scalars['String']['input']>;
 };

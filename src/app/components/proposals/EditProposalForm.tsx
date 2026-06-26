@@ -7,14 +7,6 @@ import { useToast } from '../ui/Toast'
 import { MultiSelect, type MultiSelectOption } from '../ui/MultiSelect'
 import type { EditProposalFormValues, ProposalPI, ProposalRecord } from '../../../types/proposal.types'
 
-const DEPARTMENTS = [
-  'Macroeconomic Policy', 'Trade and Development', 'Public Finance',
-  'Poverty and Inequality', 'Labour Economics', 'Education', 'Health',
-  'Gender Studies', 'Governance', 'Social Protection and Development Policy',
-  'Survey Design and Implementation', 'Statistical Analysis',
-  'Data Management', 'Research Methods and Data Visualization',
-]
-
 interface EditProposalFormProps {
   proposal: ProposalRecord
   onSuccess?: (proposal: ProposalRecord) => void
@@ -36,7 +28,6 @@ export function EditProposalForm({ proposal, onSuccess, onCancel }: EditProposal
       title: proposal.title,
       abstract: proposal.abstract,
       requestedAmount: proposal.requestedAmount,
-      department: proposal.department,
     },
     validationSchema: updateProposalSchema,
     onSubmit: async (values) => {
@@ -46,7 +37,6 @@ export function EditProposalForm({ proposal, onSuccess, onCancel }: EditProposal
       const payload = await updateProposal(proposal.id, {
         title: values.title.trim(),
         abstract: values.abstract.trim(),
-        department: values.department,
         requestedAmount: Number(values.requestedAmount),
       })
 
@@ -118,19 +108,10 @@ export function EditProposalForm({ proposal, onSuccess, onCancel }: EditProposal
         {formik.touched.abstract && formik.errors.abstract && <p className={errCls}>{formik.errors.abstract}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>Requested Amount (GHS)<span className="text-red-500 ml-0.5">*</span></label>
-          <input type="number" name="requestedAmount" data-testid="edit-amount-input" value={formik.values.requestedAmount} onChange={formik.handleChange} onBlur={formik.handleBlur} disabled={loading} className={inputCls} />
-          {formik.touched.requestedAmount && formik.errors.requestedAmount && <p className={errCls}>{formik.errors.requestedAmount as string}</p>}
-        </div>
-        <div>
-          <label className={labelCls}>Department<span className="text-red-500 ml-0.5">*</span></label>
-          <select name="department" data-testid="edit-department-select" value={formik.values.department} onChange={formik.handleChange} onBlur={formik.handleBlur} disabled={loading} className={inputCls}>
-            {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-          {formik.touched.department && formik.errors.department && <p className={errCls}>{formik.errors.department}</p>}
-        </div>
+      <div>
+        <label className={labelCls}>Requested Amount (GHS)<span className="text-red-500 ml-0.5">*</span></label>
+        <input type="number" name="requestedAmount" data-testid="edit-amount-input" value={formik.values.requestedAmount} onChange={formik.handleChange} onBlur={formik.handleBlur} disabled={loading} className={inputCls} />
+        {formik.touched.requestedAmount && formik.errors.requestedAmount && <p className={errCls}>{formik.errors.requestedAmount as string}</p>}
       </div>
 
       <div>

@@ -10,24 +10,6 @@ import { useToast } from '../ui/Toast'
 import { MultiSelect, type MultiSelectOption } from '../ui/MultiSelect'
 import type { CreateProposalFormValues, ProposalRecord } from '../../../types/proposal.types'
 
-// ISSER departments — kept in sync with the rest of the codebase
-const DEPARTMENTS = [
-  'Macroeconomic Policy',
-  'Trade and Development',
-  'Public Finance',
-  'Poverty and Inequality',
-  'Labour Economics',
-  'Education',
-  'Health',
-  'Gender Studies',
-  'Governance',
-  'Social Protection and Development Policy',
-  'Survey Design and Implementation',
-  'Statistical Analysis',
-  'Data Management',
-  'Research Methods and Data Visualization',
-]
-
 interface CreateProposalFormProps {
   /** Pre-selected funding call ID (e.g. navigated from Grant Calls page) */
   defaultFundingCallId?: string
@@ -66,7 +48,6 @@ export function CreateProposalForm({
       abstract: '',
       fundingCallId: defaultFundingCallId,
       requestedAmount: '',
-      department: DEPARTMENTS[0],
       coPiIds: [],
     },
     validationSchema: createProposalSchema,
@@ -76,14 +57,13 @@ export function CreateProposalForm({
       setApiMessage('')
       setApiErrors([])
 
-      const { title, abstract, fundingCallId, requestedAmount, department, coPiIds } = values
+      const { title, abstract, fundingCallId, requestedAmount, coPiIds } = values
 
       const payload = await createProposal({
         title: title.trim(),
         abstract: abstract.trim(),
         fundingCallId,
         requestedAmount: Number(requestedAmount),
-        department,
         userID: currentUserId,
         coPiIds,
       })
@@ -237,51 +217,26 @@ export function CreateProposalForm({
         )}
       </div>
 
-      {/* ── Amount + Department ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>
-            Requested Amount (GHS)
-            <span className="text-red-500 ml-0.5">*</span>
-          </label>
-          <input
-            type="number"
-            name="requestedAmount"
-            data-testid="amount-input"
-            value={formik.values.requestedAmount}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            disabled={isSubmitting}
-            placeholder="e.g. 150000"
-            className={inputCls}
-          />
-          {formik.touched.requestedAmount && formik.errors.requestedAmount && (
-            <p className={errCls}>{formik.errors.requestedAmount as string}</p>
-          )}
-        </div>
-
-        <div>
-          <label className={labelCls}>
-            Department
-            <span className="text-red-500 ml-0.5">*</span>
-          </label>
-          <select
-            name="department"
-            data-testid="department-select"
-            value={formik.values.department}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            disabled={isSubmitting}
-            className={inputCls}
-          >
-            {DEPARTMENTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-          {formik.touched.department && formik.errors.department && (
-            <p className={errCls}>{formik.errors.department}</p>
-          )}
-        </div>
+      {/* ── Amount ────────────────────────────────────────────────────────── */}
+      <div>
+        <label className={labelCls}>
+          Requested Amount (GHS)
+          <span className="text-red-500 ml-0.5">*</span>
+        </label>
+        <input
+          type="number"
+          name="requestedAmount"
+          data-testid="amount-input"
+          value={formik.values.requestedAmount}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          disabled={isSubmitting}
+          placeholder="e.g. 150000"
+          className={inputCls}
+        />
+        {formik.touched.requestedAmount && formik.errors.requestedAmount && (
+          <p className={errCls}>{formik.errors.requestedAmount as string}</p>
+        )}
       </div>
 
       {/* ── Co-Principal Investigators ─────────────────────────────────────── */}

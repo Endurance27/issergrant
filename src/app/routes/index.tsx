@@ -48,6 +48,7 @@ import {
   ResearcherCalendarPage,
   ResearcherSettingsPage,
   ResearcherTeamMembersPage,
+  ResearcherCoPiProjectsPage,
 } from "./researcher/ResearcherRoutes";
 import {
   GuestDashboardPage,
@@ -160,6 +161,7 @@ export function AppRoutes() {
           <Route path="dashboard" element={<ResearcherDashboardPage />} />
           <Route path="grant-calls" element={<ResearcherGrantCallsPage />} />
           <Route path="proposals" element={<ResearcherProposalsPage />} />
+          <Route path="co-pi-projects" element={<ResearcherCoPiProjectsPage />} />
           <Route path="awards" element={<ResearcherAwardsPage />} />
           <Route path="milestones" element={<ResearcherMilestonesPage />} />
           <Route path="reports" element={<ResearcherReportsPage />} />
