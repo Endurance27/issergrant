@@ -1,7 +1,8 @@
-import { Megaphone, FileText, CheckCircle2, XCircle, Award, Wallet } from "lucide-react";
+import { Megaphone, FileText, CheckCircle2, XCircle, Award, Wallet, Send } from "lucide-react";
 import { StatCard } from "../../components/ui/StatCard";
 import { grantCalls, proposals, awards } from "../../data/mockData";
 import { fmtCurrency } from "../../utils/formatters";
+import { useAllSubmittedProposals } from "../../../hooks/useDirectorProposals";
 
 export function DirectorStatsRow() {
   const approved = proposals.filter((p) => p.status === "Approved").length;
@@ -9,12 +10,21 @@ export function DirectorStatsRow() {
   const totalCommitted = grantCalls.reduce((s, g) => s + g.totalBudget, 0);
   const totalAwarded = awards.reduce((s, a) => s + a.awardedAmount, 0);
   const availableBudget = totalCommitted - totalAwarded;
+  const { proposals: submittedProposals, loading: submittedLoading } = useAllSubmittedProposals();
 
   return (
     <div
       data-testid="director-stats-row"
-      className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"
+      className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4"
     >
+      <StatCard
+        label="Submitted Proposals"
+        value={submittedLoading ? '—' : submittedProposals.length}
+        icon={<Send size={18} />}
+        iconColor="#2563EB"
+        iconBg="#EFF6FF"
+        subtitle="All submitted"
+      />
       <StatCard
         label="Funding Calls"
         value={grantCalls.length}

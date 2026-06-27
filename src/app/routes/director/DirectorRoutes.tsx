@@ -1,8 +1,8 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DirectorDashboardPage as DirectorDashboardFeaturePage } from "../../director/dashboard";
 import { DirectorReportsPage as DirectorReportsFeaturePage } from "../../director/reports";
+import { DirectorProposalsPage as DirectorProposalsPageComponent } from "../../director/proposals/DirectorProposalsPage";
 import { GrantCalls } from "../../components/pages/GrantCalls";
-import { Proposals } from "../../components/pages/Proposals";
 import { Awards } from "../../components/pages/Awards";
 import { Financial } from "../../components/pages/Financial";
 import { Analytics } from "../../components/pages/Analytics";
@@ -21,6 +21,7 @@ function useDirectorNav() {
     navigate('/director/' + page, state ? { state } : undefined);
 }
 
+
 export function DirectorDashboardPage() {
   const nav = useDirectorNav();
   return <DirectorDashboardFeaturePage onNavigate={nav} />;
@@ -37,9 +38,7 @@ export function DirectorGrantCallsPage() {
 }
 
 export function DirectorProposalsPage() {
-  const location = useLocation();
-  const navState = (location.state as NavState | null) ?? null;
-  return <Proposals role="Director" navState={navState} />;
+  return <DirectorProposalsPageComponent />;
 }
 
 export function DirectorAwardsPage() {

@@ -45,6 +45,21 @@ export const GET_MY_DRAFT_PROPOSALS_QUERY = gql`
   }
 `
 
+export const GET_ALL_SUBMITTED_PROPOSALS_QUERY = gql`
+  query GetAllSubmittedProposals($filter: SubmittedProposalsFilter) {
+    allSubmittedProposals(filter: $filter) {
+      id title abstract fundingCallId fundingCallTitle status
+      requestedAmount department submitted updatedAt
+      principalInvestigator { id name email department }
+      coPrincipalInvestigator { id name email department }
+      collaborators {
+        id guestId proposalId roleDescription
+        guest { id name email department }
+      }
+    }
+  }
+`
+
 export const GET_PROPOSAL_QUERY = gql`
   ${PROPOSAL_LIST_FIELDS}
   query GetProposal($id: ID!) {

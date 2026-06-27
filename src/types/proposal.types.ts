@@ -1,3 +1,9 @@
+export interface SubmittedProposalsFilter {
+  status?: string
+  department?: string
+  search?: string
+}
+
 export interface CreateProposalInput {
   title: string
   abstract: string
