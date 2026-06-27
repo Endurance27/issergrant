@@ -52,7 +52,10 @@ export const draftProposalSchema = Yup.object({
     .positive('Must be greater than 0')
     .nullable()
     .transform((v, orig) => (orig === '' ? null : v)),
-  department: Yup.string().trim(),
+  coPiIds: Yup.array()
+    .of(Yup.string().required())
+    .test('unique', 'Duplicate Co-PI selected', (ids) => !ids || new Set(ids).size === ids.length)
+    .default([]),
 })
 
 /** Full validation required before submitting a proposal */
@@ -67,5 +70,8 @@ export const submitProposalSchema = Yup.object({
     .typeError('Must be a number')
     .positive('Requested amount must be greater than 0')
     .required('Requested amount is required'),
-  department: Yup.string().trim().required('Department is required'),
+  coPiIds: Yup.array()
+    .of(Yup.string().required())
+    .test('unique', 'Duplicate Co-PI selected', (ids) => !ids || new Set(ids).size === ids.length)
+    .default([]),
 })
