@@ -1,9 +1,3 @@
-export interface SubmittedProposalsFilter {
-  status?: string
-  department?: string
-  search?: string
-}
-
 // Backend: createProposal(input: CreateProposalInput!): ProposalPayload!
 export interface CreateProposalInput {
   title: string
@@ -54,16 +48,17 @@ export interface ProposalRecord {
   id: string
   title: string
   abstract: string
-  fundingCallId: string
-  fundingCallTitle: string
   fundingCall?: ProposalFundingCall
   status: string
   requestedAmount: number
-  department: string
-  submitted: boolean
+  /** ISO date-time string set once the proposal is submitted — null/undefined while still a draft. */
+  submittedAt?: string | null
+  createdAt?: string
   updatedAt?: string
-  principalInvestigator: ProposalPI
-  coPrincipalInvestigator?: ProposalPI | null
+  /** The Principal Investigator — the researcher who created the proposal. */
+  user?: ProposalPI
+  /** Zero or more Co-Principal Investigators. */
+  coPIs?: ProposalPI[]
   collaborators?: ProposalCollaborator[]
 }
 
@@ -143,27 +138,21 @@ export interface GetCoPiProposalsVariables {
   status?: string
 }
 
-/** Input for saving a new draft proposal */
-export interface SaveDraftProposalInput {
+// Backend: saveProposalDraft(input: SaveProposalDraftInput!): ProposalPayload!
+// Omit `id` to create a new draft; supply it to update an existing one in
+// place. fundingCallId is always required; any other field left out of the
+// input is simply left untouched, so a draft can be saved incrementally.
+export interface SaveProposalDraftInput {
+  id?: string
+  title?: string
+  abstract?: string
   fundingCallId: string
-  title?: string
-  abstract?: string
   requestedAmount?: number
-  department?: string
-  coPrincipalInvestigatorId?: string
+  /** Omit to leave the current set of Co-PIs unchanged; pass [] to clear it. */
+  coPiIds?: string[]
 }
 
-/** Input for updating an existing draft proposal */
-export interface UpdateDraftProposalInput {
-  fundingCallId?: string
-  title?: string
-  abstract?: string
-  requestedAmount?: number
-  department?: string
-  coPrincipalInvestigatorId?: string
-}
-
-/** GraphQL payload returned by draft/submit mutations */
+/** GraphQL payload returned by the draft-save/submit mutations. */
 export interface DraftProposalPayload {
   success: boolean
   message: string
@@ -177,6 +166,30 @@ export interface DraftProposalFormValues {
   title: string
   abstract: string
   requestedAmount: number | ''
-  department: string
-  coPrincipalInvestigatorId: string
+  /** Zero or more selected Co-PI researcher ids. */
+  coPiIds: string[]
+}
+
+// Backend: myProposalDrafts(search?, limit?, offset?): ProposalConnection!
+export interface GetMyProposalDraftsResponse {
+  myProposalDrafts: ProposalConnection
+}
+
+export interface GetMyProposalDraftsVariables {
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+// Backend: proposals(search?, status?, limit?, offset?): ProposalConnection!
+// Org-wide listing (not scoped to a single researcher) — used by Director/Admin views.
+export interface GetAllProposalsResponse {
+  proposals: ProposalConnection
+}
+
+export interface GetAllProposalsVariables {
+  search?: string
+  status?: string
+  limit?: number
+  offset?: number
 }

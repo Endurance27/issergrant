@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useQuery } from '@apollo/client/react'
 import { MY_COPI_PROPOSALS_QUERY } from '../gql/queries/proposals'
 import type {
@@ -16,8 +17,11 @@ export function useCoPrincipalInvestigatorProjects(variables?: GetCoPiProposalsV
     fetchPolicy: 'cache-and-network',
   })
 
-  const proposals: ProposalRecord[] =
-    data?.myCoPiProposals.edges.map((e) => e.node) ?? []
+  // Stable reference across re-renders — see useProposalsByResearcher for why.
+  const proposals: ProposalRecord[] = useMemo(
+    () => data?.myCoPiProposals.edges.map((e) => e.node) ?? [],
+    [data],
+  )
 
   return {
     proposals,

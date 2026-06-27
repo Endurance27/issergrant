@@ -1802,6 +1802,7 @@ export type Mutation = {
   generateFinanceReport: FinanceReport;
   generateReport: ReportPayload;
   guestChangePassword: PasswordPayload;
+  guestSaveProposalDraft: ProposalPayload;
   guestUpdateNotificationPreferences: PreferencesPayload;
   guestUpdateProfile: GuestProfilePayload;
   guestUploadProfilePhoto: GuestProfilePayload;
@@ -2269,6 +2270,12 @@ export type MutationGuestChangePasswordArgs = {
 };
 
 
+export type MutationGuestSaveProposalDraftArgs = {
+  data: ProposalDataInput;
+  id: Scalars['String']['input'];
+};
+
+
 export type MutationGuestUpdateNotificationPreferencesArgs = {
   input: NotificationPreferencesInput;
 };
@@ -2485,8 +2492,6 @@ export type MutationSaveDraftFinanceReportArgs = {
 
 
 export type MutationSaveProposalDraftArgs = {
-  data: ProposalDataInput;
-  id: Scalars['String']['input'];
   input: SaveProposalDraftInput;
 };
 

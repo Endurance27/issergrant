@@ -142,12 +142,9 @@ function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
 function ResearcherDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
   const myProposals = proposals.filter(p => p.researcherId === 2);
   const myAwards = awards.filter(a => a.researcher === 'Prof. James Okonkwo');
-  const { data: draftsData } = useMyDraftProposals();
-  const myDrafts = draftsData?.myDraftProposals ?? [];
+  const { drafts: myDrafts } = useMyDraftProposals();
   const latestDraft = myDrafts.length > 0
-    ? myDrafts.reduce((a: { updatedAt?: string }, b: { updatedAt?: string }) =>
-        (a.updatedAt ?? '') > (b.updatedAt ?? '') ? a : b,
-      )
+    ? myDrafts.reduce((a, b) => ((a.updatedAt ?? '') > (b.updatedAt ?? '') ? a : b))
     : null;
 
   const relativeTime = (iso?: string): string => {
@@ -165,7 +162,7 @@ function ResearcherDashboard({ onNavigate }: { onNavigate: (p: string) => void }
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="My Proposals" value={myProposals.length} icon={<FileText size={20} />} iconColor="#1A3363" iconBg="#E5EBF5" />
-        <StatCard label="Draft Proposals" value={myDrafts.length} icon={<FileEdit size={20} />} iconColor="#6366F1" iconBg="#EEF2FF" subtitle={latestDraft ? `Last updated: ${relativeTime((latestDraft as { updatedAt?: string }).updatedAt)}` : 'No drafts yet'} />
+        <StatCard label="Draft Proposals" value={myDrafts.length} icon={<FileEdit size={20} />} iconColor="#6366F1" iconBg="#EEF2FF" subtitle={latestDraft ? `Last updated: ${relativeTime(latestDraft.updatedAt)}` : 'No drafts yet'} />
         <StatCard label="Approved Grants" value={myAwards.length} icon={<Award size={20} />} iconColor="#10B981" iconBg="#ECFDF5" />
         <StatCard label="Open Calls" value={grantCalls.filter(g => g.status === 'Open').length} icon={<Megaphone size={20} />} iconColor="#8B5CF6" iconBg="#F5F3FF" subtitle="Apply now" />
       </div>

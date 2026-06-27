@@ -1,44 +1,49 @@
-import { useState, useMemo } from 'react'
-import { Search, FileText, X } from 'lucide-react'
-import { Badge } from '../../components/ui/Badge'
-import { Modal } from '../../components/ui/Modal'
-import { PageHeader } from '../../components/ui/PageHeader'
-import { Pagination } from '../../components/ui/Pagination'
-import { StatCard } from '../../components/ui/StatCard'
-import { usePagination } from '../../../hooks/usePagination'
-import { useAllSubmittedProposals } from '../../../hooks/useDirectorProposals'
-import type { ProposalRecord } from '../../../types/proposal.types'
+import { useState, useMemo } from "react";
+import { Search, FileText, X } from "lucide-react";
+import { Badge } from "../../components/ui/Badge";
+import { Modal } from "../../components/ui/Modal";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { Pagination } from "../../components/ui/Pagination";
+import { StatCard } from "../../components/ui/StatCard";
+import { usePagination } from "../../../hooks/usePagination";
+import { useAllSubmittedProposals } from "../../../hooks/useDirectorProposals";
+import { toDisplayStatus } from "../../utils/proposalStatus";
+import type { ProposalRecord } from "../../../types/proposal.types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DEPARTMENTS = [
-  'Macroeconomic Policy',
-  'Trade and Development',
-  'Public Finance',
-  'Poverty and Inequality',
-  'Labour Economics',
-  'Education',
-  'Health',
-  'Gender Studies',
-  'Governance',
-  'Social Protection and Development Policy',
-  'Survey Design and Implementation',
-  'Statistical Analysis',
-  'Data Management',
-  'Research Methods and Data Visualization',
-]
+  "Macroeconomic Policy",
+  "Trade and Development",
+  "Public Finance",
+  "Poverty and Inequality",
+  "Labour Economics",
+  "Education",
+  "Health",
+  "Gender Studies",
+  "Governance",
+  "Social Protection and Development Policy",
+  "Survey Design and Implementation",
+  "Statistical Analysis",
+  "Data Management",
+  "Research Methods and Data Visualization",
+];
 
-const STATUSES = ['All', 'Submitted', 'Under Review', 'Approved', 'Rejected']
+const STATUSES = ["All", "Submitted", "Under Review", "Approved", "Rejected"];
 
 const fmtCurrency = (n: number) =>
-  `GHS ${n.toLocaleString('en-GH', { minimumFractionDigits: 0 })}`
+  `GHS ${n.toLocaleString("en-GH", { minimumFractionDigits: 0 })}`;
 
 const fmtDate = (iso: string | boolean | undefined | null): string => {
-  if (!iso || typeof iso === 'boolean') return '—'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return String(iso)
-  return d.toLocaleDateString('en-GH', { year: 'numeric', month: 'short', day: 'numeric' })
-}
+  if (!iso || typeof iso === "boolean") return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  return d.toLocaleDateString("en-GH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -54,7 +59,7 @@ function SkeletonRow() {
         <div className="h-7 w-20 rounded-lg bg-muted" />
       </td>
     </tr>
-  )
+  );
 }
 
 function SkeletonCard() {
@@ -71,7 +76,7 @@ function SkeletonCard() {
         <div className="h-3 w-1/4 rounded bg-muted" />
       </div>
     </div>
-  )
+  );
 }
 
 // ── Detail Modal ──────────────────────────────────────────────────────────────
@@ -80,11 +85,16 @@ function ProposalDetailModal({
   proposal,
   onClose,
 }: {
-  proposal: ProposalRecord | null
-  onClose: () => void
+  proposal: ProposalRecord | null;
+  onClose: () => void;
 }) {
   return (
-    <Modal open={!!proposal} onClose={onClose} title="Proposal Details" width={680}>
+    <Modal
+      open={!!proposal}
+      onClose={onClose}
+      title="Proposal Details"
+      width={680}
+    >
       {proposal && (
         <div className="space-y-5 max-h-[78vh] overflow-y-auto pr-1">
           {/* Title + Status */}
@@ -92,7 +102,7 @@ function ProposalDetailModal({
             <h2 className="font-extrabold text-[17px] text-foreground leading-snug flex-1">
               {proposal.title}
             </h2>
-            <Badge status={proposal.status} />
+            <Badge status={toDisplayStatus(proposal.status)} />
           </div>
 
           {/* Abstract */}
@@ -108,17 +118,23 @@ function ProposalDetailModal({
           {/* Meta grid */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Funding Call', value: proposal.fundingCallTitle || '—' },
               {
-                label: 'Requested Amount',
-                value: fmtCurrency(proposal.requestedAmount),
+                label: "Funding Call",
+                value: proposal.fundingCall?.theme || "—",
               },
-              { label: 'Department', value: proposal.department },
-              { label: 'Last Updated', value: fmtDate(proposal.updatedAt) },
+              {
+                label: "Requested Amount",
+                value: fmtCurrency(proposal.requestedAmount ?? 0.0),
+              },
+              { label: "Last Updated", value: fmtDate(proposal.updatedAt) },
             ].map((item) => (
               <div key={item.label} className="p-3 rounded-xl bg-muted">
-                <div className="text-[11px] text-muted-foreground mb-0.5">{item.label}</div>
-                <div className="font-bold text-[13px] text-foreground">{item.value}</div>
+                <div className="text-[11px] text-muted-foreground mb-0.5">
+                  {item.label}
+                </div>
+                <div className="font-bold text-[13px] text-foreground">
+                  {item.value}
+                </div>
               </div>
             ))}
           </div>
@@ -132,49 +148,64 @@ function ProposalDetailModal({
               <div>
                 <div className="text-[11px] text-muted-foreground">Name</div>
                 <div className="font-semibold text-[13px] text-foreground">
-                  {proposal.principalInvestigator.name}
+                  {proposal.user?.name ?? "—"}
                 </div>
               </div>
               <div>
                 <div className="text-[11px] text-muted-foreground">Email</div>
                 <div className="font-semibold text-[13px] text-foreground truncate">
-                  {proposal.principalInvestigator.email}
+                  {proposal.user?.email ?? "—"}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-muted-foreground">Department</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Department
+                </div>
                 <div className="font-semibold text-[13px] text-foreground">
-                  {proposal.principalInvestigator.department}
+                  {proposal.user?.department ?? "—"}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Co-PI */}
-          {proposal.coPrincipalInvestigator && (
+          {/* Co-PIs */}
+          {proposal.coPIs && proposal.coPIs.length > 0 && (
             <div>
               <div className="font-bold text-[13px] text-foreground mb-2">
-                Co-Principal Investigator
+                Co-Principal Investigators ({proposal.coPIs.length})
               </div>
-              <div className="p-3 rounded-xl bg-muted grid grid-cols-3 gap-2">
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Name</div>
-                  <div className="font-semibold text-[13px] text-foreground">
-                    {proposal.coPrincipalInvestigator.name}
+              <div className="space-y-2">
+                {proposal.coPIs.map((coPi) => (
+                  <div
+                    key={coPi.id}
+                    className="p-3 rounded-xl bg-muted grid grid-cols-3 gap-2"
+                  >
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Name
+                      </div>
+                      <div className="font-semibold text-[13px] text-foreground">
+                        {coPi.name}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Email
+                      </div>
+                      <div className="font-semibold text-[13px] text-foreground truncate">
+                        {coPi.email}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Department
+                      </div>
+                      <div className="font-semibold text-[13px] text-foreground">
+                        {coPi.department}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Email</div>
-                  <div className="font-semibold text-[13px] text-foreground truncate">
-                    {proposal.coPrincipalInvestigator.email}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Department</div>
-                  <div className="font-semibold text-[13px] text-foreground">
-                    {proposal.coPrincipalInvestigator.department}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           )}
@@ -187,15 +218,22 @@ function ProposalDetailModal({
               </div>
               <div className="space-y-2">
                 {proposal.collaborators.map((c) => (
-                  <div key={c.id} className="p-3 rounded-xl bg-muted flex items-center gap-3">
+                  <div
+                    key={c.id}
+                    className="p-3 rounded-xl bg-muted flex items-center gap-3"
+                  >
                     <div className="flex-1">
                       <div className="font-semibold text-[13px] text-foreground">
                         {c.guest.name}
                       </div>
-                      <div className="text-[11px] text-muted-foreground">{c.guest.email}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {c.guest.email}
+                      </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[11px] text-muted-foreground">Role</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Role
+                      </div>
                       <div className="text-[12px] text-foreground font-medium">
                         {c.roleDescription}
                       </div>
@@ -208,41 +246,49 @@ function ProposalDetailModal({
         </div>
       )}
     </Modal>
-  )
+  );
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function DirectorProposalsPage() {
-  const { proposals, loading, error } = useAllSubmittedProposals()
+  const { proposals, loading, error } = useAllSubmittedProposals();
 
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
-  const [deptFilter, setDeptFilter] = useState('All')
-  const [selected, setSelected] = useState<ProposalRecord | null>(null)
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [deptFilter, setDeptFilter] = useState("All");
+  const [selected, setSelected] = useState<ProposalRecord | null>(null);
 
   // Client-side filtering
   const filtered = useMemo(() => {
     return proposals.filter((p) => {
-      const q = search.toLowerCase()
+      const q = search.toLowerCase();
       const matchSearch =
         !q ||
         p.title.toLowerCase().includes(q) ||
-        p.principalInvestigator?.name?.toLowerCase().includes(q) ||
-        (p.fundingCallTitle ?? '').toLowerCase().includes(q)
-      const matchStatus = statusFilter === 'All' || p.status === statusFilter
-      const matchDept = deptFilter === 'All' || p.department === deptFilter
-      return matchSearch && matchStatus && matchDept
-    })
-  }, [proposals, search, statusFilter, deptFilter])
+        p.user?.name?.toLowerCase().includes(q) ||
+        (p.fundingCall?.theme ?? "").toLowerCase().includes(q);
+      const matchStatus =
+        statusFilter === "All" || toDisplayStatus(p.status) === statusFilter;
+      const matchDept =
+        deptFilter === "All" || p.user?.department === deptFilter;
+      return matchSearch && matchStatus && matchDept;
+    });
+  }, [proposals, search, statusFilter, deptFilter]);
 
-  const { paginated, page, totalPages, setPage } = usePagination(filtered, 10)
+  const { paginated, page, totalPages, setPage } = usePagination(filtered, 10);
 
   // Stats
-  const totalCount = proposals.length
-  const submittedCount = proposals.filter((p) => p.status === 'Submitted').length
-  const underReviewCount = proposals.filter((p) => p.status === 'Under Review').length
-  const approvedCount = proposals.filter((p) => p.status === 'Approved').length
+  const totalCount = proposals.length;
+  const submittedCount = proposals.filter(
+    (p) => toDisplayStatus(p.status) === "Submitted",
+  ).length;
+  const underReviewCount = proposals.filter(
+    (p) => toDisplayStatus(p.status) === "Under Review",
+  ).length;
+  const approvedCount = proposals.filter(
+    (p) => toDisplayStatus(p.status) === "Approved",
+  ).length;
 
   return (
     <div>
@@ -255,7 +301,7 @@ export function DirectorProposalsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           label="Total"
-          value={loading ? '—' : totalCount}
+          value={loading ? "—" : totalCount}
           icon={<FileText size={18} />}
           iconColor="#1A3363"
           iconBg="#E5EBF5"
@@ -263,7 +309,7 @@ export function DirectorProposalsPage() {
         />
         <StatCard
           label="Submitted"
-          value={loading ? '—' : submittedCount}
+          value={loading ? "—" : submittedCount}
           icon={<FileText size={18} />}
           iconColor="#2563EB"
           iconBg="#EFF6FF"
@@ -271,7 +317,7 @@ export function DirectorProposalsPage() {
         />
         <StatCard
           label="Under Review"
-          value={loading ? '—' : underReviewCount}
+          value={loading ? "—" : underReviewCount}
           icon={<FileText size={18} />}
           iconColor="#C2410C"
           iconBg="#FFF7ED"
@@ -279,7 +325,7 @@ export function DirectorProposalsPage() {
         />
         <StatCard
           label="Approved"
-          value={loading ? '—' : approvedCount}
+          value={loading ? "—" : approvedCount}
           icon={<FileText size={18} />}
           iconColor="#15803D"
           iconBg="#F0FDF4"
@@ -293,12 +339,21 @@ export function DirectorProposalsPage() {
           <Search size={15} className="text-muted-foreground" />
           <input
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             placeholder="Search by title, PI name, or funding call..."
             className="bg-transparent outline-none flex-1 text-[13px] text-foreground"
           />
           {search && (
-            <button onClick={() => { setSearch(''); setPage(1) }} className="text-muted-foreground hover:text-foreground">
+            <button
+              onClick={() => {
+                setSearch("");
+                setPage(1);
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
               <X size={13} />
             </button>
           )}
@@ -306,22 +361,32 @@ export function DirectorProposalsPage() {
 
         <select
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
           className="rounded-xl px-3 py-2 bg-card border border-border text-[13px] text-foreground outline-none cursor-pointer"
         >
           {STATUSES.map((s) => (
-            <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>
+            <option key={s} value={s}>
+              {s === "All" ? "All Statuses" : s}
+            </option>
           ))}
         </select>
 
         <select
           value={deptFilter}
-          onChange={(e) => { setDeptFilter(e.target.value); setPage(1) }}
+          onChange={(e) => {
+            setDeptFilter(e.target.value);
+            setPage(1);
+          }}
           className="rounded-xl px-3 py-2 bg-card border border-border text-[13px] text-foreground outline-none cursor-pointer max-w-[220px]"
         >
           <option value="All">All Departments</option>
           {DEPARTMENTS.map((d) => (
-            <option key={d} value={d}>{d}</option>
+            <option key={d} value={d}>
+              {d}
+            </option>
           ))}
         </select>
       </div>
@@ -339,7 +404,14 @@ export function DirectorProposalsPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-muted border-b border-border">
-                {['Title / Funding Call', 'Status', 'Principal Investigator', 'Amount', 'Updated', ''].map((h) => (
+                {[
+                  "Title / Funding Call",
+                  "Status",
+                  "Principal Investigator",
+                  "Amount",
+                  "Updated",
+                  "",
+                ].map((h) => (
                   <th
                     key={h}
                     className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground whitespace-nowrap uppercase tracking-[0.05em]"
@@ -353,29 +425,32 @@ export function DirectorProposalsPage() {
               {loading ?
                 Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
               : paginated.map((p) => (
-                  <tr key={p.id} className="bg-card hover:bg-muted transition-colors">
+                  <tr
+                    key={p.id}
+                    className="bg-card hover:bg-muted transition-colors"
+                  >
                     <td className="px-4 py-3 max-w-[260px]">
                       <div className="font-semibold text-[13px] text-foreground truncate">
                         {p.title}
                       </div>
                       <div className="text-[11px] text-muted-foreground truncate">
-                        {p.fundingCallTitle || '—'}
+                        {p.fundingCall?.theme || "—"}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge status={p.status} size="sm" />
+                      <Badge status={toDisplayStatus(p.status)} size="sm" />
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-[13px] text-foreground whitespace-nowrap">
-                        {p.principalInvestigator?.name ?? '—'}
+                        {p.user?.name ?? "—"}
                       </div>
                       <div className="text-[11px] text-muted-foreground">
-                        {p.principalInvestigator?.department ?? ''}
+                        {p.user?.department ?? ""}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-mono font-semibold text-xs text-foreground whitespace-nowrap">
-                        {fmtCurrency(p.requestedAmount)}
+                        {fmtCurrency(p.requestedAmount ?? 0.0)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -402,11 +477,18 @@ export function DirectorProposalsPage() {
         {!loading && paginated.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <FileText size={24} className="opacity-40 text-muted-foreground" />
+              <FileText
+                size={24}
+                className="opacity-40 text-muted-foreground"
+              />
             </div>
-            <div className="font-bold text-sm text-foreground">No proposals found</div>
+            <div className="font-bold text-sm text-foreground">
+              No proposals found
+            </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {search ? `No results for "${search}"` : 'Try changing your filters'}
+              {search ?
+                `No results for "${search}"`
+              : "Try changing your filters"}
             </div>
           </div>
         )}
@@ -427,28 +509,40 @@ export function DirectorProposalsPage() {
         : paginated.length === 0 ?
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <FileText size={24} className="opacity-40 text-muted-foreground" />
+              <FileText
+                size={24}
+                className="opacity-40 text-muted-foreground"
+              />
             </div>
-            <div className="font-bold text-sm text-foreground">No proposals found</div>
+            <div className="font-bold text-sm text-foreground">
+              No proposals found
+            </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {search ? `No results for "${search}"` : 'Try changing your filters'}
+              {search ?
+                `No results for "${search}"`
+              : "Try changing your filters"}
             </div>
           </div>
         : paginated.map((p) => (
-            <div key={p.id} className="rounded-2xl bg-card border border-border p-4 space-y-2.5">
+            <div
+              key={p.id}
+              className="rounded-2xl bg-card border border-border p-4 space-y-2.5"
+            >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] text-muted-foreground truncate flex-1">
-                  {p.fundingCallTitle || '—'}
+                  {p.fundingCall?.theme || "—"}
                 </span>
-                <Badge status={p.status} size="sm" />
+                <Badge status={toDisplayStatus(p.status)} size="sm" />
               </div>
-              <div className="font-bold text-[13px] text-foreground leading-snug">{p.title}</div>
+              <div className="font-bold text-[13px] text-foreground leading-snug">
+                {p.title}
+              </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-foreground">
-                  {p.principalInvestigator?.name ?? '—'}
+                  {p.user?.name ?? "—"}
                 </span>
                 <span className="font-mono font-semibold text-xs text-foreground">
-                  {fmtCurrency(p.requestedAmount)}
+                  {fmtCurrency(p.requestedAmount ?? 0.0)}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
@@ -475,7 +569,10 @@ export function DirectorProposalsPage() {
       </div>
 
       {/* Detail modal */}
-      <ProposalDetailModal proposal={selected} onClose={() => setSelected(null)} />
+      <ProposalDetailModal
+        proposal={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
-  )
+  );
 }

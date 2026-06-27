@@ -1,115 +1,107 @@
-import { useState } from 'react'
-import { useMutation, useQuery } from '@apollo/client/react'
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import type {
-  SaveDraftProposalInput,
-  UpdateDraftProposalInput,
   DraftProposalPayload,
-} from '../types/proposal.types'
+  ProposalRecord,
+  GetMyProposalDraftsResponse,
+  GetMyProposalDraftsVariables,
+} from '../types/proposal.types';
 import {
-  SAVE_DRAFT_PROPOSAL_MUTATION,
-  UPDATE_DRAFT_PROPOSAL_MUTATION,
+  SAVE_PROPOSAL_DRAFT_MUTATION,
   SUBMIT_PROPOSAL_MUTATION,
-} from '../gql/mutations/proposal'
+} from '../gql/mutations/proposal';
+import { MY_PROPOSAL_DRAFTS_QUERY } from '../gql/queries/proposals';
 import {
-  GET_MY_PROPOSALS_QUERY,
-  GET_MY_DRAFT_PROPOSALS_QUERY,
-} from '../gql/queries/proposals'
+  Mutation,
+  MutationSaveProposalDraftArgs,
+  ProposalPayload,
+  SaveProposalDraftInput,
+} from '@/gql/schema-types';
 
 // ── Save Draft ────────────────────────────────────────────────────────────────
+// Creates a new draft when input.id is omitted, or updates an existing one in
+// place when it's supplied — the backend exposes both behind a single mutation.
 
-interface SaveDraftResponse {
-  saveDraftProposal: DraftProposalPayload
+interface SaveProposalDraftResponse {
+  saveProposalDraft: DraftProposalPayload;
 }
 
 export function useSaveDraft() {
-  const [error, setError] = useState<Error | null>(null)
-
-  const [mutate, { loading }] = useMutation<SaveDraftResponse, { input: SaveDraftProposalInput }>(
-    SAVE_DRAFT_PROPOSAL_MUTATION,
-    { onError: (err) => setError(err) },
-  )
-
-  const saveDraft = async (input: SaveDraftProposalInput): Promise<DraftProposalPayload | null> => {
-    setError(null)
-    try {
-      const result = await mutate({ variables: { input } })
-      return result.data?.saveDraftProposal ?? null
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
-      return null
-    }
-  }
-
-  return { saveDraft, loading, error }
-}
-
-// ── Update Draft ──────────────────────────────────────────────────────────────
-
-interface UpdateDraftResponse {
-  updateDraftProposal: DraftProposalPayload
-}
-
-export function useUpdateDraft() {
-  const [error, setError] = useState<Error | null>(null)
+  const [error, setError] = useState<Error | null>(null);
 
   const [mutate, { loading }] = useMutation<
-    UpdateDraftResponse,
-    { id: string; input: UpdateDraftProposalInput }
-  >(UPDATE_DRAFT_PROPOSAL_MUTATION, { onError: (err) => setError(err) })
+    Mutation,
+    MutationSaveProposalDraftArgs
+  >(SAVE_PROPOSAL_DRAFT_MUTATION, { onError: (err) => setError(err) });
 
-  const updateDraft = async (
-    id: string,
-    input: UpdateDraftProposalInput,
-  ): Promise<DraftProposalPayload | null> => {
-    setError(null)
+  const saveDraft = async (
+    input: SaveProposalDraftInput,
+  ): Promise<ProposalPayload | null> => {
+    setError(null);
     try {
-      const result = await mutate({ variables: { id, input } })
-      return result.data?.updateDraftProposal ?? null
+      const result = await mutate({ variables: { input } });
+      return result.data?.saveProposalDraft ?? null;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
-      return null
+      setError(err instanceof Error ? err : new Error(String(err)));
+      return null;
     }
-  }
+  };
 
-  return { updateDraft, loading, error }
+  return { saveDraft, loading, error };
 }
 
 // ── Submit Proposal ───────────────────────────────────────────────────────────
+// Validates the draft is complete and transitions it to submitted.
 
 interface SubmitProposalResponse {
-  submitProposal: DraftProposalPayload
+  submitProposal: DraftProposalPayload;
 }
 
 export function useSubmitProposal() {
-  const [error, setError] = useState<Error | null>(null)
+  const [error, setError] = useState<Error | null>(null);
 
-  const [mutate, { loading }] = useMutation<SubmitProposalResponse, { id: string }>(
-    SUBMIT_PROPOSAL_MUTATION,
-    { onError: (err) => setError(err) },
-  )
+  const [mutate, { loading }] = useMutation<
+    SubmitProposalResponse,
+    { id: string }
+  >(SUBMIT_PROPOSAL_MUTATION, { onError: (err) => setError(err) });
 
-  const submitProposal = async (id: string): Promise<DraftProposalPayload | null> => {
-    setError(null)
+  const submitProposal = async (
+    id: string,
+  ): Promise<DraftProposalPayload | null> => {
+    setError(null);
     try {
-      const result = await mutate({ variables: { id } })
-      return result.data?.submitProposal ?? null
+      const result = await mutate({ variables: { id } });
+      return result.data?.submitProposal ?? null;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
-      return null
+      setError(err instanceof Error ? err : new Error(String(err)));
+      return null;
     }
-  }
+  };
 
-  return { submitProposal, loading, error }
-}
-
-// ── My Proposals ──────────────────────────────────────────────────────────────
-
-export function useMyProposals() {
-  return useQuery(GET_MY_PROPOSALS_QUERY)
+  return { submitProposal, loading, error };
 }
 
 // ── My Draft Proposals ────────────────────────────────────────────────────────
 
-export function useMyDraftProposals() {
-  return useQuery(GET_MY_DRAFT_PROPOSALS_QUERY)
+export function useMyDraftProposals(search?: string) {
+  const { data, loading, error, refetch } = useQuery<
+    GetMyProposalDraftsResponse,
+    GetMyProposalDraftsVariables
+  >(MY_PROPOSAL_DRAFTS_QUERY, {
+    variables: { search, limit: 200, offset: 0 },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const drafts: ProposalRecord[] = useMemo(
+    () => data?.myProposalDrafts.edges.map((e) => e.node) ?? [],
+    [data],
+  );
+
+  return {
+    drafts,
+    totalCount: data?.myProposalDrafts.totalCount ?? 0,
+    loading,
+    error,
+    refetch,
+  };
 }

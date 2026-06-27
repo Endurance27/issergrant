@@ -1,7 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import { useFormik } from "formik";
-import { proposalSchema } from "../../../schemas/proposal.schema";
-import type { ProposalFormValues } from "../../../types/forms";
 import { CreateProposalForm } from "../proposals/CreateProposalForm";
 import { EditProposalForm } from "../proposals/EditProposalForm";
 import {
@@ -30,10 +27,6 @@ import { Pagination } from "../ui/Pagination";
 import { usePagination } from "../../../hooks/usePagination";
 import { useSortable } from "../../../hooks/useSortable";
 import { useAppContext } from "../../context/AppContext";
-import {
-  grantCalls as mockGrantCalls,
-  currentUsers,
-} from "../../data/mockData";
 import { supabase } from "../../../lib/supabase";
 import type {
   Role,
@@ -49,20 +42,20 @@ import { useProposalsByResearcher } from "../../../hooks/useProposalsByResearche
 import { toDisplayStatus } from "../../utils/proposalStatus";
 import { fmtDateTime } from "../../utils/formatters";
 
-const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
+const fmtCurrency = (n: number = 0) => `GHS ${n.toLocaleString() || "0.00"}`;
 
 function toLocalProposal(p: ProposalRecord): ProposalWithHistory {
   return {
     id: p.id,
     title: p.title,
-    researcher: p.user.name,
+    researcher: p.user?.name ?? "",
     researcherId: 0,
     grantCallId: p.fundingCall?.id ?? "",
     grantCallTitle: p.fundingCall?.theme ?? "",
     submitted: p.submittedAt ?? "",
     status: toDisplayStatus(p.status),
     requestedAmount: p.requestedAmount,
-    department: p.user.department,
+    department: p.user?.department ?? "",
     abstract: p.abstract,
     coPIs: p.coPIs,
     source: "graphql",
@@ -124,7 +117,6 @@ const TH = ({
 export function Proposals({ role, navState }: ProposalsProps) {
   const { addAward, addNotification, addAuditLog } = useAppContext();
   const [proposals, setProposals] = useState<ProposalWithHistory[]>([]);
-  const [grantCalls, setGrantCalls] = useState(mockGrantCalls);
 
   const isResearcher = role === "researcher";
   const currentUser = useAuthStore((s) => s.user);
@@ -155,57 +147,12 @@ export function Proposals({ role, navState }: ProposalsProps) {
     fetchProposals();
   }, [isResearcher]);
 
-  useEffect(() => {
-    // Fetch grant calls for dropdown
-    const fetchGrantCalls = async () => {
-      const { data, error } = await supabase.from("grant_calls").select("*");
-      if (!error && data && data.length > 0) {
-        setGrantCalls(data as typeof mockGrantCalls);
-      }
-    };
-    fetchGrantCalls();
-  }, []);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selected, setSelected] = useState<ProposalWithHistory | null>(null);
   const [showNew, setShowNew] = useState(navState?.grantCallId ? true : false);
-  const [editingProposal, setEditingProposal] = useState<ProposalWithHistory | null>(null);
-
-  const proposalFormik = useFormik<ProposalFormValues>({
-    initialValues: {
-      title: "",
-      grantCallId: navState?.grantCallId || "",
-      requestedAmount: 0,
-      department: currentUsers["Researcher (PI)"]?.department,
-      abstract: "",
-    },
-    validationSchema: proposalSchema,
-    onSubmit: (values, { resetForm }) => {
-      const gc = grantCalls.find((g) => g.id === values.grantCallId);
-      const newP: ProposalWithHistory = {
-        id: `PR-${Date.now()}`,
-        title: values.title,
-        researcher: currentUsers["Researcher (PI)"]?.name,
-        researcherId: currentUsers["Researcher (PI)"]?.id,
-        grantCallId: values.grantCallId,
-        grantCallTitle: gc?.title || "",
-        submitted: new Date().toISOString().slice(0, 10),
-        status: "Submitted",
-        requestedAmount: values.requestedAmount,
-        department: values.department,
-        abstract: values.abstract,
-      };
-      setProposals((p) => [newP, ...p]);
-      supabase
-        .from("proposals")
-        .insert([newP])
-        .then(() => {});
-
-      toast("Proposal submitted successfully");
-      setShowNew(false);
-      resetForm();
-    },
-  });
+  const [editingProposal, setEditingProposal] =
+    useState<ProposalWithHistory | null>(null);
 
   const [reviewAction, setReviewAction] = useState<{
     proposal: ProposalWithHistory;
@@ -221,8 +168,9 @@ export function Proposals({ role, navState }: ProposalsProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
-  const myId = role === 'Researcher' ? 2 : null;
-  const visibleProposals = myId ? proposals.filter(p => p.researcherId === myId) : proposals;
+  const myId = role === "Researcher" ? 2 : null;
+  const visibleProposals =
+    myId ? proposals.filter((p) => p.researcherId === myId) : proposals;
 
   const filtered = useMemo(
     () =>
@@ -397,7 +345,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
     addAward(award);
     addNotification({
       title: "Award Created",
-      message: `Award for "${showAwardModal.title}" has been created (${fmtCurrency(amt)}).`,
+      message: `Award for "${showAwardModal.title}" has been created (${fmtCurrency(amt ?? 0)}).`,
       time: "Just now",
       type: "approval",
     });
@@ -413,12 +361,18 @@ export function Proposals({ role, navState }: ProposalsProps) {
     <div>
       <PageHeader
         title="Proposals"
-        subtitle={`${proposals.filter(p => p.status === 'Under Review').length} proposals pending review`}
-        action={role === 'researcher' ? (
-          <button onClick={() => setShowNew(true)} data-testid="new-proposal-button" className="btn-primary flex items-center gap-2">
-            <Plus size={16} /> New Proposal
-          </button>
-        ) : undefined}
+        subtitle={`${proposals.filter((p) => p.status === "Under Review").length} proposals pending review`}
+        action={
+          role === "researcher" ?
+            <button
+              onClick={() => setShowNew(true)}
+              data-testid="new-proposal-button"
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus size={16} /> New Proposal
+            </button>
+          : undefined
+        }
       />
 
       {/* Stats bar */}
@@ -645,12 +599,14 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-mono font-semibold text-xs text-foreground whitespace-nowrap">
-                      {fmtCurrency(p.requestedAmount)}
+                      {fmtCurrency(p.requestedAmount ?? 0.0)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                      {p.source === "graphql" ? fmtDateTime(p.submitted) : p.submitted}
+                      {p.source === "graphql" ?
+                        fmtDateTime(p.submitted)
+                      : p.submitted}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -666,7 +622,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      {role === 'Researcher' && p.status === 'Draft' ? (
+                      {role === "Researcher" && p.status === "Draft" ?
                         <button
                           onClick={() => setSelected(p)}
                           className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors"
@@ -674,15 +630,14 @@ export function Proposals({ role, navState }: ProposalsProps) {
                         >
                           <Eye size={12} /> Continue Editing
                         </button>
-                      ) : (
-                        <button
+                      : <button
                           onClick={() => setSelected(p)}
                           className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted"
                           title="View details"
                         >
                           <Eye size={14} />
                         </button>
-                      )}
+                      }
                       {role === "admin" &&
                         (p.status === "Under Review" ||
                           p.status === "Revised") && (
@@ -807,11 +762,14 @@ export function Proposals({ role, navState }: ProposalsProps) {
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-foreground">{p.researcher}</span>
                 <span className="font-mono font-semibold text-xs text-foreground">
-                  {fmtCurrency(p.requestedAmount)}
+                  {fmtCurrency(p.requestedAmount ?? 0.0)}
                 </span>
               </div>
               {(p.coPIs?.length ?? 0) > 0 && (
-                <div className="flex items-center gap-1 text-[11px] text-muted-foreground" data-testid="proposal-row-copis">
+                <div
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground"
+                  data-testid="proposal-row-copis"
+                >
                   <Users size={11} />
                   {p.coPIs!.map((c) => c.name).join(", ")}
                 </div>
@@ -819,7 +777,9 @@ export function Proposals({ role, navState }: ProposalsProps) {
               {/* Date + actions */}
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
                 <span className="font-mono text-[11px] text-muted-foreground">
-                  {p.source === "graphql" ? fmtDateTime(p.submitted) : p.submitted}
+                  {p.source === "graphql" ?
+                    fmtDateTime(p.submitted)
+                  : p.submitted}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -927,7 +887,10 @@ export function Proposals({ role, navState }: ProposalsProps) {
                 },
                 {
                   label: "Submitted At",
-                  value: selected.source === "graphql" ? fmtDateTime(selected.submitted) : selected.submitted,
+                  value:
+                    selected.source === "graphql" ?
+                      fmtDateTime(selected.submitted)
+                    : selected.submitted,
                 },
                 { label: "Status", value: selected.status },
               ].map((item) => (
@@ -945,7 +908,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
               <div className="text-[11px] text-muted-foreground mb-2">
                 Co-Principal Investigators
               </div>
-              {(selected.coPIs?.length ?? 0) > 0 ? (
+              {(selected.coPIs?.length ?? 0) > 0 ?
                 <div className="flex flex-wrap gap-2">
                   {selected.coPIs!.map((c) => (
                     <span
@@ -956,9 +919,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                     </span>
                   ))}
                 </div>
-              ) : (
-                <p className="text-[12px] text-muted-foreground">None</p>
-              )}
+              : <p className="text-[12px] text-muted-foreground">None</p>}
             </div>
             {(selected.reviewHistory?.length ?? 0) > 0 && (
               <div>
@@ -1266,17 +1227,17 @@ export function Proposals({ role, navState }: ProposalsProps) {
               onSuccess={(updated) => {
                 setProposals((prev) =>
                   prev.map((p) =>
-                    p.id === updated.id
-                      ? {
-                          ...p,
-                          title: updated.title,
-                          abstract: updated.abstract,
-                          department: updated.user.department,
-                          requestedAmount: updated.requestedAmount,
-                          coPIs: updated.coPIs,
-                          raw: updated,
-                        }
-                      : p,
+                    p.id === updated.id ?
+                      {
+                        ...p,
+                        title: updated.title,
+                        abstract: updated.abstract,
+                        department: updated.user?.department ?? "",
+                        requestedAmount: updated.requestedAmount,
+                        coPIs: updated.coPIs,
+                        raw: updated,
+                      }
+                    : p,
                   ),
                 );
                 setEditingProposal(null);

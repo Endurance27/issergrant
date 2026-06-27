@@ -6,6 +6,7 @@ import { Modal } from '../../components/ui/Modal'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Pagination } from '../../components/ui/Pagination'
 import { usePagination } from '../../../hooks/usePagination'
+import { toDisplayStatus } from '../../utils/proposalStatus'
 import type { ProposalRecord } from '../../../types/proposal.types'
 
 const PAGE_SIZE = 8
@@ -33,13 +34,12 @@ function StatusBadge({ status }: { status: string }) {
 
 function MiniProgress({ proposal }: { proposal: ProposalRecord }) {
   const filled = [
-    proposal.fundingCallId,
+    proposal.fundingCall?.id,
     proposal.title,
     proposal.abstract,
     proposal.requestedAmount,
-    proposal.department,
   ].filter(v => v !== undefined && v !== null && v !== '' && v !== 0).length
-  const pct = Math.round((filled / 5) * 100)
+  const pct = Math.round((filled / 4) * 100)
   return (
     <div className="flex items-center gap-1.5">
       <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -70,20 +70,19 @@ function relativeTime(iso?: string): string {
 // ── DraftsPage ────────────────────────────────────────────────────────────────
 
 export function DraftsPage() {
-  const { data, loading, error, refetch } = useMyDraftProposals()
+  const { drafts: allDrafts, loading, error, refetch } = useMyDraftProposals()
   const [search, setSearch] = useState('')
   const [editingProposal, setEditingProposal] = useState<ProposalRecord | null>(null)
 
   const drafts: ProposalRecord[] = useMemo(() => {
-    const all: ProposalRecord[] = data?.myDraftProposals ?? []
-    if (!search.trim()) return all
+    if (!search.trim()) return allDrafts
     const q = search.toLowerCase()
-    return all.filter(
+    return allDrafts.filter(
       p =>
         (p.title ?? '').toLowerCase().includes(q) ||
-        (p.fundingCallTitle ?? '').toLowerCase().includes(q),
+        (p.fundingCall?.theme ?? '').toLowerCase().includes(q),
     )
-  }, [data, search])
+  }, [allDrafts, search])
 
   const { paginated, page, totalPages, setPage } = usePagination(
     drafts as unknown as Record<string, unknown>[],
@@ -94,7 +93,7 @@ export function DraftsPage() {
     <div>
       <PageHeader
         title="Draft Proposals"
-        subtitle={`${(data?.myDraftProposals ?? []).length} draft${(data?.myDraftProposals ?? []).length === 1 ? '' : 's'} in progress`}
+        subtitle={`${allDrafts.length} draft${allDrafts.length === 1 ? '' : 's'} in progress`}
         action={
           <button
             onClick={() => setEditingProposal({} as ProposalRecord)}
@@ -165,17 +164,14 @@ export function DraftsPage() {
                       <div className="font-semibold text-[13px] text-foreground truncate">
                         {p.title || <span className="italic text-muted-foreground">Untitled Draft</span>}
                       </div>
-                      {p.department && (
-                        <div className="text-[11px] text-muted-foreground">{p.department}</div>
-                      )}
                     </td>
                     <td className="px-4 py-3 max-w-[180px]">
                       <span className="text-xs text-muted-foreground truncate block">
-                        {p.fundingCallTitle || '—'}
+                        {p.fundingCall?.theme || '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={p.status} />
+                      <StatusBadge status={toDisplayStatus(p.status)} />
                     </td>
                     <td className="px-4 py-3">
                       <MiniProgress proposal={p} />
@@ -185,7 +181,7 @@ export function DraftsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        {p.status === 'Draft' ? (
+                        {toDisplayStatus(p.status) === 'Draft' ? (
                           <button
                             onClick={() => setEditingProposal(p)}
                             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors"
@@ -221,20 +217,20 @@ export function DraftsPage() {
             {(paginated as unknown as ProposalRecord[]).map(p => (
               <div key={p.id} className="rounded-2xl bg-card border border-border p-4 space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <StatusBadge status={p.status} />
+                  <StatusBadge status={toDisplayStatus(p.status)} />
                   <span className="text-[11px] text-muted-foreground">{relativeTime(p.updatedAt)}</span>
                 </div>
                 <div>
                   <div className="font-bold text-[13px] text-foreground leading-snug">
                     {p.title || <span className="italic text-muted-foreground">Untitled Draft</span>}
                   </div>
-                  {p.fundingCallTitle && (
-                    <div className="text-[11px] text-muted-foreground mt-0.5">{p.fundingCallTitle}</div>
+                  {p.fundingCall?.theme && (
+                    <div className="text-[11px] text-muted-foreground mt-0.5">{p.fundingCall.theme}</div>
                   )}
                 </div>
                 <MiniProgress proposal={p} />
                 <div className="pt-1 border-t border-border">
-                  {p.status === 'Draft' ? (
+                  {toDisplayStatus(p.status) === 'Draft' ? (
                     <button
                       onClick={() => setEditingProposal(p)}
                       className="flex items-center gap-1.5 text-[12px] font-semibold text-primary"

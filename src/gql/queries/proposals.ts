@@ -1,82 +1,83 @@
 import { gql } from '@apollo/client'
 
-const PROPOSAL_LIST_FIELDS = gql`
-  fragment ProposalListFields on Proposal {
-    id
-    title
-    abstract
-    fundingCallId
-    fundingCallTitle
-    status
-    requestedAmount
-    department
-    submitted
-    updatedAt
-    principalInvestigator {
-      id
-      name
-      email
-      department
-    }
-    coPrincipalInvestigator {
-      id
-      name
-      email
-      department
-    }
-  }
-`
-
-export const GET_MY_PROPOSALS_QUERY = gql`
-  ${PROPOSAL_LIST_FIELDS}
-  query GetMyProposals {
-    myProposals {
-      ...ProposalListFields
-    }
-  }
-`
-
-export const GET_MY_DRAFT_PROPOSALS_QUERY = gql`
-  ${PROPOSAL_LIST_FIELDS}
-  query GetMyDraftProposals {
-    myDraftProposals {
-      ...ProposalListFields
-    }
-  }
-`
-
-export const GET_ALL_SUBMITTED_PROPOSALS_QUERY = gql`
-  query GetAllSubmittedProposals($filter: SubmittedProposalsFilter) {
-    allSubmittedProposals(filter: $filter) {
-      id title abstract fundingCallId fundingCallTitle status
-      requestedAmount department submitted updatedAt
-      principalInvestigator { id name email department }
-      coPrincipalInvestigator { id name email department }
-      collaborators {
-        id guestId proposalId roleDescription
-        guest { id name email department }
-      }
-    }
-  }
-`
-
-export const GET_PROPOSAL_QUERY = gql`
-  ${PROPOSAL_LIST_FIELDS}
-  query GetProposal($id: ID!) {
-    proposal(id: $id) {
-      ...ProposalListFields
-      collaborators {
+// Shared selection set for any Proposal returned inside a ProposalConnection.
+const PROPOSAL_CONNECTION_FIELDS = gql`
+  fragment ProposalConnectionFields on ProposalConnection {
+    edges {
+      cursor
+      node {
         id
-        guestId
-        proposalId
-        roleDescription
-        guest {
+        title
+        abstract
+        status
+        requestedAmount
+        submittedAt
+        createdAt
+        updatedAt
+
+        user {
           id
           name
           email
           department
         }
+
+        coPIs {
+          id
+          name
+          email
+          department
+        }
+
+        fundingCall {
+          id
+          funder
+          totalAvailable
+          maximumAward
+          theme
+          description
+          hasMinMaxAward
+          minimumAward
+          allowsMultipleApplications
+          openDate
+          originalCallLink
+          eligibility
+          createdBy
+          createdAt
+          updatedAt
+        }
       }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+      currentPage
+      totalPages
+    }
+    totalCount
+  }
+`
+
+// Backend: myProposalDrafts(search?, limit?, offset?): ProposalConnection!
+// Draft proposals where the logged-in researcher is the PI or a Co-PI.
+export const MY_PROPOSAL_DRAFTS_QUERY = gql`
+  ${PROPOSAL_CONNECTION_FIELDS}
+  query MyProposalDrafts($search: String, $limit: Int, $offset: Int) {
+    myProposalDrafts(search: $search, limit: $limit, offset: $offset) {
+      ...ProposalConnectionFields
+    }
+  }
+`
+
+// Backend: proposals(search?, status?, limit?, offset?): ProposalConnection!
+// Org-wide listing (not scoped to a single researcher) — used by Director/Admin views.
+export const GET_ALL_PROPOSALS_QUERY = gql`
+  ${PROPOSAL_CONNECTION_FIELDS}
+  query GetAllProposals($search: String, $status: String, $limit: Int, $offset: Int) {
+    proposals(search: $search, status: $status, limit: $limit, offset: $offset) {
+      ...ProposalConnectionFields
     }
   }
 `

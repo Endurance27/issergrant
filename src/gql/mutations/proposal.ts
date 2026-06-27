@@ -5,46 +5,50 @@ const PROPOSAL_FIELDS = gql`
     id
     title
     abstract
-    fundingCallId
-    fundingCallTitle
     status
     requestedAmount
-    department
-    submitted
-    principalInvestigator {
-      id
-      name
-      email
-      department
-    }
-    coPrincipalInvestigator {
-      id
-      name
-      email
-      department
-    }
+    submittedAt
+    createdAt
     updatedAt
-  }
-`
-
-export const SAVE_DRAFT_PROPOSAL_MUTATION = gql`
-  ${PROPOSAL_FIELDS}
-  mutation SaveDraftProposal($input: SaveDraftProposalInput!) {
-    saveDraftProposal(input: $input) {
-      success
-      message
-      errors
-      proposal {
-        ...ProposalFields
-      }
+    user {
+      id
+      name
+      email
+      department
+    }
+    coPIs {
+      id
+      name
+      email
+      department
+    }
+    fundingCall {
+      id
+      funder
+      totalAvailable
+      maximumAward
+      theme
+      description
+      hasMinMaxAward
+      minimumAward
+      allowsMultipleApplications
+      openDate
+      originalCallLink
+      eligibility
+      createdBy
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const UPDATE_DRAFT_PROPOSAL_MUTATION = gql`
+// Creates a new draft when input.id is omitted, or updates an existing one
+// in place when it's supplied. Only field-format validation runs here —
+// completeness is enforced separately by SUBMIT_PROPOSAL_MUTATION.
+export const SAVE_PROPOSAL_DRAFT_MUTATION = gql`
   ${PROPOSAL_FIELDS}
-  mutation UpdateDraftProposal($id: ID!, $input: UpdateDraftProposalInput!) {
-    updateDraftProposal(id: $id, input: $input) {
+  mutation SaveProposalDraft($input: SaveProposalDraftInput!) {
+    saveProposalDraft(input: $input) {
       success
       message
       errors
@@ -57,7 +61,7 @@ export const UPDATE_DRAFT_PROPOSAL_MUTATION = gql`
 
 export const SUBMIT_PROPOSAL_MUTATION = gql`
   ${PROPOSAL_FIELDS}
-  mutation SubmitProposal($id: ID!) {
+  mutation SubmitProposal($id: String!) {
     submitProposal(id: $id) {
       success
       message

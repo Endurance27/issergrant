@@ -4,41 +4,17 @@ import {
   Loader2, X, CheckCircle2, AlertCircle, Save, Send, Edit3
 } from 'lucide-react'
 import { draftProposalSchema } from '../../../schemas/proposal.schema'
-import { useSaveDraft, useUpdateDraft, useSubmitProposal } from '../../../hooks/useDraftProposals'
+import { useSaveDraft, useSubmitProposal } from '../../../hooks/useDraftProposals'
+import { useFundingCalls } from '../../../hooks/useFundingCall'
+import { useResearchers } from '../../../hooks/useResearchers'
 import { useAuthStore } from '../../../store/auth.store'
 import { useToast } from '../ui/Toast'
-import { supabase } from '../../../lib/supabase'
-import type { DraftProposalFormValues, ProposalRecord } from '../../../types/proposal.types'
-
-// ISSER departments — kept in sync with the rest of the codebase
-const DEPARTMENTS = [
-  'Macroeconomic Policy',
-  'Trade and Development',
-  'Public Finance',
-  'Poverty and Inequality',
-  'Labour Economics',
-  'Education',
-  'Health',
-  'Gender Studies',
-  'Governance',
-  'Social Protection and Development Policy',
-  'Survey Design and Implementation',
-  'Statistical Analysis',
-  'Data Management',
-  'Research Methods and Data Visualization',
-]
-
-interface FundingCallOption {
-  id: string
-  label: string
-  maxAward: number
-}
-
-interface ResearcherOption {
-  id: string
-  name: string
-  department: string
-}
+import { MultiSelect, type MultiSelectOption } from '../ui/MultiSelect'
+import type {
+  DraftProposalFormValues,
+  ProposalRecord,
+  SaveProposalDraftInput,
+} from '../../../types/proposal.types'
 
 interface CreateProposalFormProps {
   /** Pre-selected funding call ID (e.g. navigated from Grant Calls page) */
@@ -55,7 +31,7 @@ type AutoSaveStatus = 'idle' | 'saving' | 'saved'
 
 function computeProgress(values: DraftProposalFormValues): number {
   const fields: (keyof DraftProposalFormValues)[] = [
-    'fundingCallId', 'title', 'abstract', 'requestedAmount', 'department',
+    'fundingCallId', 'title', 'abstract', 'requestedAmount',
   ]
   const filled = fields.filter(f => {
     const v = values[f]
@@ -70,9 +46,8 @@ export function CreateProposalForm({
   onSuccess,
   onCancel,
 }: CreateProposalFormProps) {
-  const currentUserId = useAuthStore((s) => s.user?.id ?? '')
+  const currentUserId = useAuthStore((s) => s.user?.UserId ?? '')
   const { saveDraft, loading: savingDraft } = useSaveDraft()
-  const { updateDraft, loading: updatingDraft } = useUpdateDraft()
   const { submitProposal, loading: submitting } = useSubmitProposal()
   const { toast } = useToast()
 
@@ -92,62 +67,19 @@ export function CreateProposalForm({
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
 
-  // Fetch open funding calls for the dropdown
-  useEffect(() => {
-    const fetch = async () => {
-      setLoadingCalls(true)
-      try {
-        const { data, error } = await supabase
-          .from('grant_calls')
-          .select('id, title, totalBudget')
-          .eq('status', 'Open')
-          .order('title')
-
-        if (!error && data) {
-          setFundingCalls(
-            data.map((gc: { id: string; title: string; totalBudget: number }) => ({
-              id: gc.id,
-              label: gc.title,
-              maxAward: gc.totalBudget,
-            }))
-          )
-        }
-      } finally {
-        setLoadingCalls(false)
-      }
-    }
-    fetch()
-  }, [])
-
-  // Fetch researchers for Co-PI dropdown
-  useEffect(() => {
-    const fetchResearchers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, name, department')
-          .eq('role', 'researcher')
-          .order('name')
-
-        if (!error && data) {
-          setResearchers(data as ResearcherOption[])
-        }
-      } catch {
-        // Silently fail — Co-PI dropdown will just be empty
-      }
-    }
-    fetchResearchers()
-  }, [])
+  // Exclude the current user from the Co-PI picker — a researcher cannot be their own Co-PI.
+  const coPiOptions: MultiSelectOption[] = researchers
+    .filter((r) => r.id !== currentUserId)
+    .map((r) => ({ id: r.id, label: r.name, sublabel: r.department }))
 
   const formik = useFormik<DraftProposalFormValues>({
     enableReinitialize: true,
     initialValues: {
-      fundingCallId: existingProposal?.fundingCallId ?? defaultFundingCallId,
+      fundingCallId: existingProposal?.fundingCall?.id ?? defaultFundingCallId,
       title: existingProposal?.title ?? '',
       abstract: existingProposal?.abstract ?? '',
       requestedAmount: existingProposal?.requestedAmount ?? '',
-      department: existingProposal?.department ?? DEPARTMENTS[0],
-      coPrincipalInvestigatorId: existingProposal?.coPrincipalInvestigator?.id ?? '',
+      coPiIds: existingProposal?.coPIs?.map((c) => c.id) ?? [],
     },
     validationSchema: draftProposalSchema,
     onSubmit: () => {
@@ -155,19 +87,28 @@ export function CreateProposalForm({
     },
   })
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  // Builds the saveProposalDraft input — omit `id` to create a new draft,
+  // supply it to update an existing one in place.
+  function buildDraftInput(values: DraftProposalFormValues, id: string | null): SaveProposalDraftInput {
+    return {
+      ...(id ? { id } : {}),
+      fundingCallId: values.fundingCallId,
+      ...(values.title ? { title: values.title.trim() } : {}),
+      ...(values.abstract ? { abstract: values.abstract.trim() } : {}),
+      ...(values.requestedAmount !== '' ? { requestedAmount: Number(values.requestedAmount) } : {}),
+      coPiIds: values.coPiIds,
+    }
+  }
+
   // Auto-save: debounce 45 seconds after last change
   useEffect(() => {
-    if (formik.dirty) {
+    if (formik.dirty && formik.values.fundingCallId) {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
       autoSaveTimerRef.current = setTimeout(async () => {
         setAutoSaveStatus('saving')
-        const values = formik.values
-        if (proposalId) {
-          await updateDraft(proposalId, buildUpdateInput(values))
-        } else if (values.fundingCallId) {
-          const payload = await saveDraft(buildSaveInput(values))
-          if (payload?.proposal?.id) setProposalId(payload.proposal.id)
-        }
+        const payload = await saveDraft(buildDraftInput(formik.values, proposalId))
+        if (payload?.proposal?.id) setProposalId(payload.proposal.id)
         setAutoSaveStatus('saved')
         setTimeout(() => setAutoSaveStatus('idle'), 3000)
       }, 45_000)
@@ -177,29 +118,6 @@ export function CreateProposalForm({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formik.values, formik.dirty])
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function buildSaveInput(values: DraftProposalFormValues) {
-    return {
-      fundingCallId: values.fundingCallId,
-      ...(values.title ? { title: values.title.trim() } : {}),
-      ...(values.abstract ? { abstract: values.abstract.trim() } : {}),
-      ...(values.requestedAmount !== '' ? { requestedAmount: Number(values.requestedAmount) } : {}),
-      ...(values.department ? { department: values.department } : {}),
-      ...(values.coPrincipalInvestigatorId ? { coPrincipalInvestigatorId: values.coPrincipalInvestigatorId } : {}),
-    }
-  }
-
-  function buildUpdateInput(values: DraftProposalFormValues) {
-    return {
-      ...(values.fundingCallId ? { fundingCallId: values.fundingCallId } : {}),
-      ...(values.title ? { title: values.title.trim() } : {}),
-      ...(values.abstract ? { abstract: values.abstract.trim() } : {}),
-      ...(values.requestedAmount !== '' ? { requestedAmount: Number(values.requestedAmount) } : {}),
-      ...(values.department ? { department: values.department } : {}),
-      ...(values.coPrincipalInvestigatorId ? { coPrincipalInvestigatorId: values.coPrincipalInvestigatorId } : {}),
-    }
-  }
 
   const clearFeedback = () => {
     setApiSuccess(false)
@@ -215,12 +133,7 @@ export function CreateProposalForm({
     }
     clearFeedback()
 
-    let payload
-    if (proposalId) {
-      payload = await updateDraft(proposalId, buildUpdateInput(formik.values))
-    } else {
-      payload = await saveDraft(buildSaveInput(formik.values))
-    }
+    const payload = await saveDraft(buildDraftInput(formik.values, proposalId))
 
     if (!payload) {
       setApiErrors(['A network error occurred. Please try again.'])
@@ -250,7 +163,7 @@ export function CreateProposalForm({
     // Ensure we have a saved draft first
     let id = proposalId
     if (!id) {
-      const savePayload = await saveDraft(buildSaveInput(formik.values))
+      const savePayload = await saveDraft(buildDraftInput(formik.values, null))
       if (!savePayload?.success || !savePayload.proposal?.id) {
         setApiErrors(savePayload?.errors ?? ['Failed to save draft before submitting.'])
         return
@@ -292,20 +205,18 @@ export function CreateProposalForm({
   const labelCls = 'block text-xs font-semibold text-foreground mb-1.5'
   const errCls = 'text-xs text-red-500 mt-1'
 
-  const isAnyLoading = savingDraft || updatingDraft || submitting
+  const isAnyLoading = savingDraft || submitting
   const abstractLen = formik.values.abstract.length
-  const copiOptions = researchers.filter(r => r.id !== currentUserId)
 
   const progress = computeProgress(formik.values)
 
-  // Submit is enabled when all 5 required fields are filled
+  // Submit is enabled when all required fields are filled
   const canSubmit =
     Boolean(formik.values.fundingCallId) &&
     Boolean(formik.values.title?.trim()) &&
     (formik.values.abstract?.trim().length ?? 0) >= 50 &&
     formik.values.requestedAmount !== '' &&
-    Number(formik.values.requestedAmount) > 0 &&
-    Boolean(formik.values.department)
+    Number(formik.values.requestedAmount) > 0
 
   return (
     <form onSubmit={formik.handleSubmit} noValidate className="space-y-4" data-testid="create-proposal-form">
@@ -397,7 +308,7 @@ export function CreateProposalForm({
           >
             <option value="">— Select a funding call —</option>
             {fundingCalls.map((fc) => (
-              <option key={fc.id} value={fc.id}>{fc.label}</option>
+              <option key={fc.id} value={fc.id}>{fc.theme}</option>
             ))}
           </select>
         )}
@@ -449,71 +360,45 @@ export function CreateProposalForm({
         )}
       </div>
 
-      {/* ── Amount + Department ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>Requested Amount (GHS)</label>
-          <input
-            type="number"
-            name="requestedAmount"
-            value={formik.values.requestedAmount}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            disabled={isAnyLoading}
-            placeholder="e.g. 150000"
-            className={inputCls}
-          />
-          {formik.touched.requestedAmount && formik.errors.requestedAmount && (
-            <p className={errCls}>{formik.errors.requestedAmount as string}</p>
-          )}
-        </div>
-
-        <div>
-          <label className={labelCls}>Department</label>
-          <select
-            name="department"
-            value={formik.values.department}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            disabled={isAnyLoading}
-            className={inputCls}
-          >
-            <option value="">— Select department —</option>
-            {DEPARTMENTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-          {formik.touched.department && formik.errors.department && (
-            <p className={errCls}>{formik.errors.department}</p>
-          )}
-        </div>
+      {/* ── Amount ────────────────────────────────────────────────────────── */}
+      <div>
+        <label className={labelCls}>Requested Amount (GHS)</label>
+        <input
+          type="number"
+          name="requestedAmount"
+          data-testid="amount-input"
+          value={formik.values.requestedAmount}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          disabled={isAnyLoading}
+          placeholder="e.g. 150000"
+          className={inputCls}
+        />
+        {formik.touched.requestedAmount && formik.errors.requestedAmount && (
+          <p className={errCls}>{formik.errors.requestedAmount as string}</p>
+        )}
       </div>
 
-      {/* ── Co-Principal Investigator (single) ────────────────────────────── */}
+      {/* ── Co-Principal Investigators ─────────────────────────────────────── */}
       <div>
         <label className={labelCls}>
-          Co-Principal Investigator{' '}
-          <span className="text-muted-foreground font-normal">(optional)</span>
+          Co-Principal Investigators{' '}
+          <span className="text-muted-foreground font-normal">(optional, any number)</span>
         </label>
-        {loadingResearchers ? (
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted border border-border text-[13px] text-muted-foreground">
-            <Loader2 size={13} className="animate-spin" />
-            Loading researchers…
-          </div>
-        ) : (
-          <select
-            name="coPrincipalInvestigatorId"
-            value={formik.values.coPrincipalInvestigatorId}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            disabled={isAnyLoading}
-            className={inputCls}
-          >
-            <option value="">— None —</option>
-            {copiOptions.map((r) => (
-              <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
-            ))}
-          </select>
+        <MultiSelect
+          name="coPiIds"
+          data-testid="copi-multiselect"
+          options={coPiOptions}
+          value={formik.values.coPiIds}
+          onChange={(ids) => formik.setFieldValue('coPiIds', ids)}
+          onBlur={() => formik.setFieldTouched('coPiIds', true)}
+          loading={loadingResearchers}
+          disabled={isAnyLoading}
+          placeholder="Search researchers to add as Co-PI…"
+          emptyMessage="No matching researchers"
+        />
+        {formik.touched.coPiIds && formik.errors.coPiIds && (
+          <p className={errCls}>{formik.errors.coPiIds as string}</p>
         )}
       </div>
 
@@ -557,7 +442,7 @@ export function CreateProposalForm({
             disabled={isAnyLoading}
             className="flex-1 py-2.5 rounded-xl border border-border font-semibold text-[13px] text-foreground hover:bg-muted transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {savingDraft || updatingDraft ? (
+            {savingDraft ? (
               <><Loader2 size={14} className="animate-spin" /> Saving…</>
             ) : (
               <><Save size={14} /> Save Draft</>
@@ -583,7 +468,7 @@ export function CreateProposalForm({
 
         {!canSubmit && (
           <p className="text-[11px] text-muted-foreground text-center">
-            Complete all fields (title, abstract ≥50 chars, amount, department) to submit.
+            Complete all fields (title, abstract ≥50 chars, amount) to submit.
           </p>
         )}
       </div>
