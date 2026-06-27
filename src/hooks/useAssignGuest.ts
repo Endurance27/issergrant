@@ -1,34 +1,74 @@
 import { useState } from 'react'
 import { useMutation } from '@apollo/client/react'
-import { ASSIGN_GUEST_TO_FUNDING_CALL_MUTATION, REMOVE_GUEST_ASSIGNMENT_MUTATION } from '../gql/mutations/assignGuestToFundingCall'
+import {
+  ASSIGN_GUEST_TO_FUNDING_CALL_MUTATION,
+  ASSIGN_GUEST_TO_PROPOSAL_MUTATION,
+} from '../gql/mutations/assignGuestToFundingCall'
 
 export interface AssignGuestInput {
   guestId: string; fundingCallId: string; notes?: string
 }
 
+export interface AssignGuestToProposalInput {
+  guestId: string; proposalId: string; roleDescription?: string
+}
+
+interface FundingCallCollaborator {
+  id: string; guestId: string; fundingCallId: string; notes?: string | null
+  createdAt: string
+  guest?: { id: string; name: string; email: string } | null
+  fundingCall?: { id: string; theme: string } | null
+}
+
+interface ProposalCollaborator {
+  id: string; guestId: string; proposalId: string; roleDescription?: string | null
+  createdAt: string
+  guest?: { id: string; name: string; email: string } | null
+}
+
+// Backend exposes assignGuestToFundingCall / assignGuestToProposal — there is no
+// "remove assignment" mutation yet, so unassigning isn't supported here.
 export function useAssignGuest() {
   const [error, setError] = useState<Error | null>(null)
-  interface AssignResult { assignGuestToFundingCall: { success: boolean; message: string; assignment?: unknown } }
-  interface RemoveResult { removeGuestAssignment: { success: boolean; message: string } }
 
-  const [assignMutate, { loading: assigning }] = useMutation<AssignResult>(ASSIGN_GUEST_TO_FUNDING_CALL_MUTATION, { onError: (e) => setError(e) })
-  const [removeMutate, { loading: removing }] = useMutation<RemoveResult>(REMOVE_GUEST_ASSIGNMENT_MUTATION, { onError: (e) => setError(e) })
+  const [assignToFundingCallMutate, { loading: assigningToFundingCall }] = useMutation<
+    { assignGuestToFundingCall: FundingCallCollaborator },
+    { input: AssignGuestInput }
+  >(ASSIGN_GUEST_TO_FUNDING_CALL_MUTATION, { onError: (e) => setError(e) })
 
-  const assignGuest = async (input: AssignGuestInput) => {
+  const [assignToProposalMutate, { loading: assigningToProposal }] = useMutation<
+    { assignGuestToProposal: ProposalCollaborator },
+    { input: AssignGuestToProposalInput }
+  >(ASSIGN_GUEST_TO_PROPOSAL_MUTATION, { onError: (e) => setError(e) })
+
+  const assignGuest = async (input: AssignGuestInput): Promise<FundingCallCollaborator | null> => {
     setError(null)
     try {
-      const r = await assignMutate({ variables: { input } })
+      const r = await assignToFundingCallMutate({ variables: { input } })
       return r.data?.assignGuestToFundingCall ?? null
-    } catch (e) { setError(e instanceof Error ? e : new Error(String(e))); return null }
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)))
+      return null
+    }
   }
 
-  const removeAssignment = async (assignmentId: string) => {
+  const assignGuestToProposal = async (
+    input: AssignGuestToProposalInput,
+  ): Promise<ProposalCollaborator | null> => {
     setError(null)
     try {
-      const r = await removeMutate({ variables: { assignmentId } })
-      return r.data?.removeGuestAssignment ?? null
-    } catch (e) { setError(e instanceof Error ? e : new Error(String(e))); return null }
+      const r = await assignToProposalMutate({ variables: { input } })
+      return r.data?.assignGuestToProposal ?? null
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)))
+      return null
+    }
   }
 
-  return { assignGuest, removeAssignment, loading: assigning || removing, error }
+  return {
+    assignGuest,
+    assignGuestToProposal,
+    loading: assigningToFundingCall || assigningToProposal,
+    error,
+  }
 }

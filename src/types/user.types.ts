@@ -1,20 +1,25 @@
 export interface User {
-  id: string
-  authUserId: string
-  name: string
-  email: string
-  role: string
-  status: string
-  department: string
-  staffId: string
-  phoneContact: string
-  avatar?: string | null
-  lastLogin?: string | null
-  createdAt: string
-  updatedAt: string
+  UserId: string;
+  authUserId: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  department: string;
+  staffId: string;
+  phoneContact: string;
+  avatar?: string | null;
+  lastLogin?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export type DisplayRole = 'Admin' | 'Director' | 'Finance Officer' | 'Researcher' | 'Guest'
+export type DisplayRole =
+  | 'Admin'
+  | 'Director'
+  | 'Finance Officer'
+  | 'Researcher'
+  | 'Guest';
 
 export const ROLE_DISPLAY: Record<string, DisplayRole> = {
   admin: 'Admin',
@@ -22,7 +27,7 @@ export const ROLE_DISPLAY: Record<string, DisplayRole> = {
   finance_officer: 'Finance Officer',
   researcher: 'Researcher',
   guest: 'Guest',
-}
+};
 
 export const ROLE_ENUM: Record<DisplayRole, string> = {
   Admin: 'admin',
@@ -30,7 +35,7 @@ export const ROLE_ENUM: Record<DisplayRole, string> = {
   'Finance Officer': 'finance_officer',
   Researcher: 'researcher',
   Guest: 'guest',
-}
+};
 
 export const ROLE_BASE_PATH: Record<string, string> = {
   admin: '/admin',
@@ -38,4 +43,4 @@ export const ROLE_BASE_PATH: Record<string, string> = {
   finance_officer: '/finance',
   researcher: '/researcher',
   guest: '/guest',
-}
+};

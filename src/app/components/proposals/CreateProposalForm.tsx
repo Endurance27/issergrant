@@ -76,9 +76,8 @@ export function CreateProposalForm({
   const { submitProposal, loading: submitting } = useSubmitProposal()
   const { toast } = useToast()
 
-  const [fundingCalls, setFundingCalls] = useState<FundingCallOption[]>([])
-  const [loadingCalls, setLoadingCalls] = useState(true)
-  const [researchers, setResearchers] = useState<ResearcherOption[]>([])
+  const { fundingCalls, loading: loadingCalls } = useFundingCalls()
+  const { researchers, loading: loadingResearchers } = useResearchers()
 
   // The proposal ID once it's been saved (either from existingProposal or after first save)
   const [proposalId, setProposalId] = useState<string | null>(existingProposal?.id ?? null)
@@ -309,7 +308,7 @@ export function CreateProposalForm({
     Boolean(formik.values.department)
 
   return (
-    <form onSubmit={formik.handleSubmit} noValidate className="space-y-4">
+    <form onSubmit={formik.handleSubmit} noValidate className="space-y-4" data-testid="create-proposal-form">
 
       {/* ── Auto-save status + Progress bar ───────────────────────────────── */}
       <div className="space-y-2">
@@ -339,7 +338,7 @@ export function CreateProposalForm({
 
       {/* ── Success banner ─────────────────────────────────────────────────── */}
       {apiSuccess && (
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-[13px]">
+        <div data-testid="proposal-success-banner" className="flex items-start gap-3 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-[13px]">
           <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">
@@ -355,7 +354,7 @@ export function CreateProposalForm({
 
       {/* ── API error banner ──────────────────────────────────────────────── */}
       {!apiSuccess && (apiMessage || apiErrors.length > 0) && (
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px]">
+        <div data-testid="proposal-error-banner" className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px]">
           <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
           <div>
             {apiMessage && <p className="font-semibold">{apiMessage}</p>}
@@ -389,6 +388,7 @@ export function CreateProposalForm({
         ) : (
           <select
             name="fundingCallId"
+            data-testid="funding-call-select"
             value={formik.values.fundingCallId}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -412,6 +412,7 @@ export function CreateProposalForm({
         <input
           ref={titleInputRef}
           name="title"
+          data-testid="title-input"
           value={formik.values.title}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
@@ -434,6 +435,7 @@ export function CreateProposalForm({
         </div>
         <textarea
           name="abstract"
+          data-testid="abstract-input"
           rows={5}
           value={formik.values.abstract}
           onChange={formik.handleChange}
@@ -487,25 +489,32 @@ export function CreateProposalForm({
         </div>
       </div>
 
-      {/* ── Co-Principal Investigator ──────────────────────────────────────── */}
+      {/* ── Co-Principal Investigator (single) ────────────────────────────── */}
       <div>
         <label className={labelCls}>
           Co-Principal Investigator{' '}
           <span className="text-muted-foreground font-normal">(optional)</span>
         </label>
-        <select
-          name="coPrincipalInvestigatorId"
-          value={formik.values.coPrincipalInvestigatorId}
-          onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
-          disabled={isAnyLoading}
-          className={inputCls}
-        >
-          <option value="">— No Co-PI —</option>
-          {copiOptions.map(r => (
-            <option key={r.id} value={r.id}>{r.name} — {r.department}</option>
-          ))}
-        </select>
+        {loadingResearchers ? (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted border border-border text-[13px] text-muted-foreground">
+            <Loader2 size={13} className="animate-spin" />
+            Loading researchers…
+          </div>
+        ) : (
+          <select
+            name="coPrincipalInvestigatorId"
+            value={formik.values.coPrincipalInvestigatorId}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            disabled={isAnyLoading}
+            className={inputCls}
+          >
+            <option value="">— None —</option>
+            {copiOptions.map((r) => (
+              <option key={r.id} value={r.id}>{r.name} ({r.department})</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* ── Auto-filled user note ──────────────────────────────────────────── */}

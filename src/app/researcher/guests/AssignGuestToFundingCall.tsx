@@ -34,7 +34,7 @@ export function AssignGuestToFundingCallModal({
     enableReinitialize: true,
     onSubmit: async (values, { resetForm }) => {
       const result = await assignGuest({ guestId: values.guestId, fundingCallId: values.fundingCallId, notes: values.notes || undefined })
-      if (!result?.success) { toast(result?.message ?? 'Failed to assign guest', 'error'); return }
+      if (!result) { toast('Failed to assign guest', 'error'); return }
       toast('Guest assigned to funding call', 'success')
       resetForm()
       onSuccess?.()

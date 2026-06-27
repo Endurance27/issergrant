@@ -11,6 +11,7 @@ import { CalendarPage } from "../../components/pages/CalendarPage";
 import { Settings } from "../../components/pages/Settings";
 import { useAuthContext } from "../../context/AuthContext";
 import { UserManagement } from "../../components/pages/UserManagement";
+import { CoPiProjects } from "../../researcher/co-pi-projects/CoPiProjects";
 import type { NavState } from "../../App";
 
 function useResearcherNav() {
@@ -32,7 +33,7 @@ export function ResearcherGrantCallsPage() {
 export function ResearcherProposalsPage() {
   const location = useLocation();
   const navState = (location.state as NavState | null) ?? null;
-  return <Proposals role="Researcher" navState={navState} />;
+  return <Proposals role="researcher" navState={navState} />;
 }
 
 export function ResearcherMilestonesPage() {
@@ -67,4 +68,8 @@ export function ResearcherTeamMembersPage() {
 
 export function ResearcherDraftsPage() {
   return <DraftsPage />;
+}
+
+export function ResearcherCoPiProjectsPage() {
+  return <CoPiProjects />;
 }

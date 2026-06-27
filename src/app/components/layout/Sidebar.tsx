@@ -2,7 +2,7 @@ import {
   LayoutDashboard, FileText, Award, Milestone, DollarSign,
   BarChart3, Bell, Users, Settings, Shield, Calendar,
   ChevronLeft, ChevronRight, LogOut, Megaphone, ClipboardList,
-  TrendingUp, UserPlus, FileEdit
+  TrendingUp, UserPlus, FileEdit, Users2
 } from "lucide-react";
 import type { Role } from "../../data/mockData";
 import { IsserLogo } from "../ui/IsserLogo";
@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { id: 'grant-calls',   label: 'Grant Calls',      icon: <Megaphone size={18} />,       roles: ['Admin', 'Director', 'Researcher'] },
   { id: 'proposals',     label: 'Proposals',        icon: <FileText size={18} />,        roles: ['Admin', 'Director', 'Researcher'] },
   { id: 'drafts',        label: 'Draft Proposals',  icon: <FileEdit size={18} />,        roles: ['Researcher'] },
+  { id: 'co-pi-projects', label: 'Co-PI Projects',  icon: <Users2 size={18} />,          roles: ['Researcher'] },
   { id: 'awards',        label: 'Awards & Funding', icon: <Award size={18} />,           roles: ['Admin', 'Director', 'Finance Officer'] },
   { id: 'milestones',    label: 'Milestones',       icon: <Milestone size={18} />,       roles: ['Admin', 'Researcher'] },
   { id: 'financial',     label: 'Financial',        icon: <DollarSign size={18} />,      roles: ['Admin', 'Director', 'Finance Officer'] },
@@ -35,7 +36,7 @@ const navItems: NavItem[] = [
 
 const navSections = [
   { label: null,       ids: ['dashboard'] },
-  { label: 'Grants',   ids: ['grant-calls', 'proposals', 'drafts', 'awards', 'milestones'] },
+  { label: 'Grants',   ids: ['grant-calls', 'proposals', 'drafts', 'co-pi-projects', 'awards', 'milestones'] },
   { label: 'Finance',  ids: ['financial', 'reports'] },
   { label: 'Insights', ids: ['calendar', 'analytics'] },
   { label: 'System',   ids: ['notifications', 'users', 'guests', 'settings', 'audit'] },

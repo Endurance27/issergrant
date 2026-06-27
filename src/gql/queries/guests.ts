@@ -1,18 +1,44 @@
 import { gql } from '@apollo/client'
 
-export const GET_GUESTS_QUERY = gql`
-  query GetGuests {
-    guests {
+// Backend has no top-level "guests" query — guests are reached either via
+// getUsersByRole(role: GUEST) for org-wide visibility (Admin/Director), or via
+// getUser(id).guests for a researcher's own assigned guests.
+export const GET_GUESTS_BY_ROLE_QUERY = gql`
+  query GetGuestsByRole($pagination: PaginationInput) {
+    getUsersByRole(role: guest, pagination: $pagination) {
+      users {
+        id
+        name
+        email
+        department
+        status
+        staffId
+        phoneContact
+        role
+        assignedResearcherId
+        createdAt
+      }
+      totalCount
+    }
+  }
+`
+
+export const GET_MY_GUESTS_QUERY = gql`
+  query GetMyGuests($id: ID!) {
+    getUser(id: $id) {
       id
-      name
-      email
-      department
-      status
-      staffId
-      phoneContact
-      notes
-      assignedResearcherId
-      createdAt
+      guests {
+        id
+        name
+        email
+        department
+        status
+        staffId
+        phoneContact
+        role
+        assignedResearcherId
+        createdAt
+      }
     }
   }
 `
@@ -33,45 +59,8 @@ export const MY_FUNDING_CALLS_QUERY = gql`
   }
 `
 
-export const MY_PROPOSALS_QUERY = gql`
-  query MyProposals {
-    myProposals {
-      id
-      title
-      abstract
-      status
-      requestedAmount
-      department
-      submitted
-      fundingCallId
-      fundingCallTitle
-      principalInvestigator {
-        id
-        name
-        email
-        department
-      }
-      coPrincipalInvestigator {
-        id
-        name
-        email
-        department
-      }
-    }
-  }
-`
-
-export const GET_RESEARCHERS_QUERY = gql`
-  query GetResearchers {
-    researchers {
-      id
-      name
-      email
-      department
-      status
-    }
-  }
-`
+// Researcher lookup now lives in gql/queries/researchers.ts (uses
+// getUsersByRole — there's no top-level "researchers" query on the backend).
 
 export const GET_PROPOSAL_COLLABORATORS_QUERY = gql`
   query GetProposalCollaborators($proposalId: ID!) {

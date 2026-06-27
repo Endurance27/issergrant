@@ -26,8 +26,8 @@ export type Account_Type =
   | 'admin'
   | 'director'
   | 'finance_officer'
-  | 'researcher_co_pi'
-  | 'researcher_pi';
+  | 'guest'
+  | 'researcher';
 
 export type Admin = {
   __typename?: 'Admin';
@@ -189,6 +189,18 @@ export type ApproveTransactionInput = {
   transactionId: Scalars['ID']['input'];
 };
 
+export type AssignGuestToFundingCallInput = {
+  fundingCallId: Scalars['ID']['input'];
+  guestId: Scalars['ID']['input'];
+  notes?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type AssignGuestToProposalInput = {
+  guestId: Scalars['ID']['input'];
+  proposalId: Scalars['ID']['input'];
+  roleDescription?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type AssignReviewersInput = {
   proposalId: Scalars['ID']['input'];
   reviewerIds: Array<Scalars['ID']['input']>;
@@ -209,97 +221,6 @@ export type AssignmentType =
   | 'project'
   | 'proposal'
   | 'report';
-
-export type AssistantDashboard = {
-  __typename?: 'AssistantDashboard';
-  recentProposals: Array<Proposal>;
-  stats: DashboardStats;
-  upcomingMilestones: Array<Milestone>;
-};
-
-export type AssistantGrantCall = {
-  __typename?: 'AssistantGrantCall';
-  applicationCount: Scalars['Int']['output'];
-  bookmarkNotes?: Maybe<Scalars['String']['output']>;
-  category: Scalars['String']['output'];
-  deadline: Scalars['String']['output'];
-  description?: Maybe<Scalars['String']['output']>;
-  eligibility?: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  isBookmarked: Scalars['Boolean']['output'];
-  status: Scalars['String']['output'];
-  title: Scalars['String']['output'];
-  totalBudget: Scalars['Float']['output'];
-};
-
-export type AssistantGrantCallConnection = {
-  __typename?: 'AssistantGrantCallConnection';
-  edges: Array<AssistantGrantCallEdge>;
-  pageInfo: PageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type AssistantGrantCallEdge = {
-  __typename?: 'AssistantGrantCallEdge';
-  cursor: Scalars['String']['output'];
-  node: AssistantGrantCall;
-};
-
-export type AssistantMilestoneStats = {
-  __typename?: 'AssistantMilestoneStats';
-  approved: Scalars['Int']['output'];
-  completed: Scalars['Int']['output'];
-  draft: Scalars['Int']['output'];
-  locked: Scalars['Int']['output'];
-  overdue: Scalars['Int']['output'];
-  submitted: Scalars['Int']['output'];
-  total: Scalars['Int']['output'];
-  underReview: Scalars['Int']['output'];
-};
-
-export type AssistantProfilePayload = {
-  __typename?: 'AssistantProfilePayload';
-  message: Scalars['String']['output'];
-  profile?: Maybe<AssistantResearcherProfile>;
-  success: Scalars['Boolean']['output'];
-};
-
-export type AssistantProposalStats = {
-  __typename?: 'AssistantProposalStats';
-  approved: Scalars['Int']['output'];
-  draft: Scalars['Int']['output'];
-  inProgress: Scalars['Int']['output'];
-  pendingReview: Scalars['Int']['output'];
-  rejected: Scalars['Int']['output'];
-  submitted: Scalars['Int']['output'];
-  total: Scalars['Int']['output'];
-};
-
-export type AssistantReportStats = {
-  __typename?: 'AssistantReportStats';
-  approved: Scalars['Int']['output'];
-  draft: Scalars['Int']['output'];
-  rejected: Scalars['Int']['output'];
-  submitted: Scalars['Int']['output'];
-  total: Scalars['Int']['output'];
-  underReview: Scalars['Int']['output'];
-};
-
-export type AssistantResearcherProfile = {
-  __typename?: 'AssistantResearcherProfile';
-  bio?: Maybe<Scalars['String']['output']>;
-  department: Scalars['String']['output'];
-  email: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  joinedAt: Scalars['String']['output'];
-  name: Scalars['String']['output'];
-  officeLocation?: Maybe<Scalars['String']['output']>;
-  phoneNumber?: Maybe<Scalars['String']['output']>;
-  photoUrl?: Maybe<Scalars['String']['output']>;
-  role: Scalars['String']['output'];
-  status: Scalars['String']['output'];
-  userId: Scalars['Int']['output'];
-};
 
 export type Attachment = {
   __typename?: 'Attachment';
@@ -718,20 +639,6 @@ export type CreateApplicationInput = {
   submissionDeadline: Scalars['String']['input'];
 };
 
-export type CreateAssistantUserContent = {
-  assignedTo: Scalars['ID']['input'];
-  assignmentType?: InputMaybe<AssignmentType>;
-  department: Scalars['String']['input'];
-  email: Scalars['String']['input'];
-  name: Scalars['String']['input'];
-  notes?: InputMaybe<Scalars['String']['input']>;
-  phoneContact: Scalars['String']['input'];
-  resourceId?: InputMaybe<Scalars['String']['input']>;
-  resourceTitle?: InputMaybe<Scalars['String']['input']>;
-  role?: InputMaybe<UserRole>;
-  staffId: Scalars['String']['input'];
-};
-
 export type CreateAwardInput = {
   awardedAmount: Scalars['Float']['input'];
   description?: InputMaybe<Scalars['String']['input']>;
@@ -806,6 +713,19 @@ export type CreateFundingCallInput = {
   totalAvailable: Scalars['Float']['input'];
 };
 
+export type CreateGuestInput = {
+  assignedResearcherId: Scalars['ID']['input'];
+  assignmentType?: InputMaybe<AssignmentType>;
+  department?: InputMaybe<Scalars['String']['input']>;
+  email: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  notes?: InputMaybe<Scalars['String']['input']>;
+  phoneContact?: InputMaybe<Scalars['String']['input']>;
+  resourceId?: InputMaybe<Scalars['String']['input']>;
+  resourceTitle?: InputMaybe<Scalars['String']['input']>;
+  staffId?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CreateMilestoneInput = {
   awardId: Scalars['ID']['input'];
   deliverables?: InputMaybe<Array<Scalars['String']['input']>>;
@@ -824,7 +744,7 @@ export type CreateProposalDraftInput = {
 
 export type CreateProposalInput = {
   abstract: Scalars['String']['input'];
-  department?: InputMaybe<Scalars['String']['input']>;
+  coPiIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   fundingCallId: Scalars['ID']['input'];
   requestedAmount?: InputMaybe<Scalars['Float']['input']>;
   title: Scalars['String']['input'];
@@ -906,10 +826,10 @@ export type DashboardEvent = {
 export type DashboardMetrics = {
   __typename?: 'DashboardMetrics';
   activeAdministrators: Scalars['Int']['output'];
-  activeAssistantResearchers: Scalars['Int']['output'];
   activeAwards: Scalars['Int']['output'];
   activeFinanceOfficers: Scalars['Int']['output'];
   activeGrantCalls: Scalars['Int']['output'];
+  activeGuests: Scalars['Int']['output'];
   activeMilestones: Scalars['Int']['output'];
   activeResearchers: Scalars['Int']['output'];
   approvedProposals: Scalars['Int']['output'];
@@ -1331,6 +1251,7 @@ export type FundingAnalytics = {
 export type FundingCall = {
   __typename?: 'FundingCall';
   allowsMultipleApplications: MultipleApplicationsAllowed;
+  collaborators?: Maybe<Array<FundingCallCollaborator>>;
   createdAt?: Maybe<Scalars['String']['output']>;
   createdBy: Scalars['ID']['output'];
   description?: Maybe<Scalars['String']['output']>;
@@ -1345,6 +1266,20 @@ export type FundingCall = {
   theme?: Maybe<Scalars['String']['output']>;
   totalAvailable: Scalars['Float']['output'];
   updatedAt?: Maybe<Scalars['String']['output']>;
+};
+
+export type FundingCallCollaborator = {
+  __typename?: 'FundingCallCollaborator';
+  assignedBy: Scalars['ID']['output'];
+  assigner?: Maybe<User>;
+  createdAt: Scalars['String']['output'];
+  fundingCall?: Maybe<FundingCall>;
+  fundingCallId: Scalars['ID']['output'];
+  guest?: Maybe<User>;
+  guestId: Scalars['ID']['output'];
+  id: Scalars['ID']['output'];
+  notes?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['String']['output'];
 };
 
 export type FundingCategoryData = {
@@ -1528,7 +1463,7 @@ export type GrantCallBookmark = {
 export type GrantCallBookmarkPayload = {
   __typename?: 'GrantCallBookmarkPayload';
   bookmark?: Maybe<GrantCallBookmark>;
-  grantCall?: Maybe<AssistantGrantCall>;
+  grantCall?: Maybe<GuestGrantCall>;
   message: Scalars['String']['output'];
   success: Scalars['Boolean']['output'];
 };
@@ -1546,6 +1481,97 @@ export type GrowthData = {
   month: Scalars['String']['output'];
   newUsers: Scalars['Int']['output'];
   totalUsers: Scalars['Int']['output'];
+};
+
+export type GuestDashboard = {
+  __typename?: 'GuestDashboard';
+  recentProposals: Array<Proposal>;
+  stats: DashboardStats;
+  upcomingMilestones: Array<Milestone>;
+};
+
+export type GuestGrantCall = {
+  __typename?: 'GuestGrantCall';
+  applicationCount: Scalars['Int']['output'];
+  bookmarkNotes?: Maybe<Scalars['String']['output']>;
+  category: Scalars['String']['output'];
+  deadline: Scalars['String']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  eligibility?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isBookmarked: Scalars['Boolean']['output'];
+  status: Scalars['String']['output'];
+  title: Scalars['String']['output'];
+  totalBudget: Scalars['Float']['output'];
+};
+
+export type GuestGrantCallConnection = {
+  __typename?: 'GuestGrantCallConnection';
+  edges: Array<GuestGrantCallEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type GuestGrantCallEdge = {
+  __typename?: 'GuestGrantCallEdge';
+  cursor: Scalars['String']['output'];
+  node: GuestGrantCall;
+};
+
+export type GuestMilestoneStats = {
+  __typename?: 'GuestMilestoneStats';
+  approved: Scalars['Int']['output'];
+  completed: Scalars['Int']['output'];
+  draft: Scalars['Int']['output'];
+  locked: Scalars['Int']['output'];
+  overdue: Scalars['Int']['output'];
+  submitted: Scalars['Int']['output'];
+  total: Scalars['Int']['output'];
+  underReview: Scalars['Int']['output'];
+};
+
+export type GuestProfile = {
+  __typename?: 'GuestProfile';
+  bio?: Maybe<Scalars['String']['output']>;
+  department: Scalars['String']['output'];
+  email: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  joinedAt: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  officeLocation?: Maybe<Scalars['String']['output']>;
+  phoneNumber?: Maybe<Scalars['String']['output']>;
+  photoUrl?: Maybe<Scalars['String']['output']>;
+  role: Scalars['String']['output'];
+  status: Scalars['String']['output'];
+  userId: Scalars['Int']['output'];
+};
+
+export type GuestProfilePayload = {
+  __typename?: 'GuestProfilePayload';
+  message: Scalars['String']['output'];
+  profile?: Maybe<GuestProfile>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type GuestProposalStats = {
+  __typename?: 'GuestProposalStats';
+  approved: Scalars['Int']['output'];
+  draft: Scalars['Int']['output'];
+  inProgress: Scalars['Int']['output'];
+  pendingReview: Scalars['Int']['output'];
+  rejected: Scalars['Int']['output'];
+  submitted: Scalars['Int']['output'];
+  total: Scalars['Int']['output'];
+};
+
+export type GuestReportStats = {
+  __typename?: 'GuestReportStats';
+  approved: Scalars['Int']['output'];
+  draft: Scalars['Int']['output'];
+  rejected: Scalars['Int']['output'];
+  submitted: Scalars['Int']['output'];
+  total: Scalars['Int']['output'];
+  underReview: Scalars['Int']['output'];
 };
 
 export type LoginActivityData = {
@@ -1719,14 +1745,11 @@ export type Mutation = {
   archiveNotification: NotificationPayload;
   archiveProposal: ProposalPayload;
   archiveReport: ReportPayload;
+  assignGuestToFundingCall: FundingCallCollaborator;
+  assignGuestToProposal: ProposalCollaborator;
   assignMilestone: MilestonePayload;
   assignReviewers: ProposalPayload;
   assignRole?: Maybe<User>;
-  assistantChangePassword: PasswordPayload;
-  assistantUpdateNotificationPreferences: PreferencesPayload;
-  assistantUpdateProfile: AssistantProfilePayload;
-  assistantUploadProfilePhoto: AssistantProfilePayload;
-  assistantUploadReportAttachment: ReportPayload;
   bookmarkGrantCall: GrantCallBookmarkPayload;
   bulkApproveProposals: BulkProposalActionResult;
   bulkCreateUsers: BulkCreateUsersResult;
@@ -1748,6 +1771,7 @@ export type Mutation = {
   createFinanceEvent: FinanceEvent;
   createFundingAllocation: FundingAllocation;
   createFundingCall: FundingCall;
+  createGuest: CreateUserResult;
   createMilestone: MilestonePayload;
   createProposal: ProposalPayload;
   createProposalDraft: ProposalPayload;
@@ -1777,6 +1801,11 @@ export type Mutation = {
   forgotPassword: Scalars['Boolean']['output'];
   generateFinanceReport: FinanceReport;
   generateReport: ReportPayload;
+  guestChangePassword: PasswordPayload;
+  guestUpdateNotificationPreferences: PreferencesPayload;
+  guestUpdateProfile: GuestProfilePayload;
+  guestUploadProfilePhoto: GuestProfilePayload;
+  guestUploadReportAttachment: ReportPayload;
   markAllAsRead: BulkNotificationResult;
   markAllNotificationsAsRead: Scalars['Boolean']['output'];
   markAsRead: NotificationPayload;
@@ -1797,6 +1826,7 @@ export type Mutation = {
   rejectTransaction: FinancialPayload;
   removeBookmark: GrantCallBookmarkPayload;
   removeCollaborator: ProposalPayload;
+  removeProposalCoPi: ProposalPayload;
   requestDisbursement: AwardPayload;
   requestProposalReview: ProposalPayload;
   requestReportRevision: ReportPayload;
@@ -1822,7 +1852,6 @@ export type Mutation = {
   setNewPassword: GenericPayload;
   setReminder: EventPayload;
   signIn?: Maybe<AuthUser>;
-  signUpAssistantResearcher: CreateUserResult;
   submitApplication: Application;
   submitFinanceReport: FinanceReport;
   submitMilestoneEvidence: MilestonePayload;
@@ -1967,6 +1996,16 @@ export type MutationArchiveReportArgs = {
 };
 
 
+export type MutationAssignGuestToFundingCallArgs = {
+  input: AssignGuestToFundingCallInput;
+};
+
+
+export type MutationAssignGuestToProposalArgs = {
+  input: AssignGuestToProposalInput;
+};
+
+
 export type MutationAssignMilestoneArgs = {
   id: Scalars['ID']['input'];
   researcherId: Scalars['ID']['input'];
@@ -1980,33 +2019,6 @@ export type MutationAssignReviewersArgs = {
 
 export type MutationAssignRoleArgs = {
   input: AssignRoleInput;
-};
-
-
-export type MutationAssistantChangePasswordArgs = {
-  currentPassword: Scalars['String']['input'];
-  newPassword: Scalars['String']['input'];
-};
-
-
-export type MutationAssistantUpdateNotificationPreferencesArgs = {
-  input: NotificationPreferencesInput;
-};
-
-
-export type MutationAssistantUpdateProfileArgs = {
-  input: UpdateProfileInput;
-};
-
-
-export type MutationAssistantUploadProfilePhotoArgs = {
-  file: Scalars['String']['input'];
-};
-
-
-export type MutationAssistantUploadReportAttachmentArgs = {
-  file: Scalars['String']['input'];
-  reportId: Scalars['String']['input'];
 };
 
 
@@ -2121,6 +2133,11 @@ export type MutationCreateFundingAllocationArgs = {
 
 export type MutationCreateFundingCallArgs = {
   content: CreateFundingCallInput;
+};
+
+
+export type MutationCreateGuestArgs = {
+  content: CreateGuestInput;
 };
 
 
@@ -2246,6 +2263,33 @@ export type MutationGenerateReportArgs = {
 };
 
 
+export type MutationGuestChangePasswordArgs = {
+  currentPassword: Scalars['String']['input'];
+  newPassword: Scalars['String']['input'];
+};
+
+
+export type MutationGuestUpdateNotificationPreferencesArgs = {
+  input: NotificationPreferencesInput;
+};
+
+
+export type MutationGuestUpdateProfileArgs = {
+  input: UpdateProfileInput;
+};
+
+
+export type MutationGuestUploadProfilePhotoArgs = {
+  file: Scalars['String']['input'];
+};
+
+
+export type MutationGuestUploadReportAttachmentArgs = {
+  file: Scalars['String']['input'];
+  reportId: Scalars['String']['input'];
+};
+
+
 export type MutationMarkAllAsReadArgs = {
   userId: Scalars['ID']['input'];
 };
@@ -2345,6 +2389,12 @@ export type MutationRemoveCollaboratorArgs = {
 };
 
 
+export type MutationRemoveProposalCoPiArgs = {
+  proposalId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+
 export type MutationRequestDisbursementArgs = {
   id: Scalars['String']['input'];
   input: RequestDisbursementInput;
@@ -2437,6 +2487,7 @@ export type MutationSaveDraftFinanceReportArgs = {
 export type MutationSaveProposalDraftArgs = {
   data: ProposalDataInput;
   id: Scalars['String']['input'];
+  input: SaveProposalDraftInput;
 };
 
 
@@ -2475,11 +2526,6 @@ export type MutationSetReminderArgs = {
 
 export type MutationSignInArgs = {
   content?: InputMaybe<SignInContent>;
-};
-
-
-export type MutationSignUpAssistantResearcherArgs = {
-  content: CreateAssistantUserContent;
 };
 
 
@@ -2991,23 +3037,18 @@ export type ProcessDisbursementInput = {
 export type Proposal = {
   __typename?: 'Proposal';
   abstract?: Maybe<Scalars['String']['output']>;
+  coPIs?: Maybe<Array<User>>;
   collaborators?: Maybe<Array<ProposalCollaborator>>;
   createdAt?: Maybe<Scalars['String']['output']>;
-  department?: Maybe<Scalars['String']['output']>;
   fundingCall?: Maybe<FundingCall>;
-  fundingCallId: Scalars['ID']['output'];
-  fundingCallTitle: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   requestedAmount?: Maybe<Scalars['Float']['output']>;
   reviewHistory?: Maybe<Array<ReviewEntry>>;
-  reviewers?: Maybe<Array<ProposalReviewer>>;
-  reviews?: Maybe<Array<ProposalReview>>;
   status: ProposalStatus;
-  submitted: Scalars['String']['output'];
-  title: Scalars['String']['output'];
+  submittedAt?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
   updatedAt?: Maybe<Scalars['String']['output']>;
   user?: Maybe<User>;
-  userID: Scalars['ID']['output'];
 };
 
 export type ProposalAnalytics = {
@@ -3025,11 +3066,15 @@ export type ProposalAnalytics = {
 
 export type ProposalCollaborator = {
   __typename?: 'ProposalCollaborator';
-  email: Scalars['String']['output'];
+  assignedBy: Scalars['ID']['output'];
+  assigner?: Maybe<User>;
+  createdAt: Scalars['String']['output'];
+  guest?: Maybe<User>;
+  guestId: Scalars['ID']['output'];
   id: Scalars['ID']['output'];
-  joinedAt: Scalars['String']['output'];
-  name: Scalars['String']['output'];
-  role: Scalars['String']['output'];
+  proposalId: Scalars['ID']['output'];
+  roleDescription?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['String']['output'];
 };
 
 export type ProposalConnection = {
@@ -3120,21 +3165,17 @@ export type ProposalStats = {
 };
 
 export type ProposalStatus =
-  | 'APPROVED'
-  | 'ARCHIVED'
-  | 'DRAFT'
-  | 'FUNDED'
-  | 'REJECTED'
-  | 'SUBMITTED'
-  | 'UNDER_REVIEW';
+  | 'approved'
+  | 'archived'
+  | 'draft'
+  | 'funded'
+  | 'rejected'
+  | 'submitted'
+  | 'under_review';
 
 export type Query = {
   __typename?: 'Query';
   accountSettings: AccountSettings;
-  assistantDashboard: AssistantDashboard;
-  assistantNotificationPreferences: NotificationPreferences;
-  assistantProposalStats: AssistantProposalStats;
-  assistantReportStats: AssistantReportStats;
   auditLog?: Maybe<AuditLog>;
   auditLogs: AuditLogConnection;
   auditMetrics: AuditMetrics;
@@ -3195,11 +3236,13 @@ export type Query = {
   getFundingAnalytics: FundingAnalytics;
   getFundingByCategory: Array<FundingCategoryData>;
   getFundingCall?: Maybe<FundingCall>;
+  getFundingCallCollaborators: Array<FundingCallCollaborator>;
   getFundingCalls: Array<FundingCall>;
   getFundingRequests: Array<FundingRequest>;
   getFundingStats: AwardStats;
   getFundingTrend: Array<TrendData>;
   getGrantCallAnalytics: GrantCallAnalytics;
+  getGuestsForResearcher: Array<User>;
   getMilestone?: Maybe<Milestone>;
   getMilestoneEvidence: Array<MilestoneEvidence>;
   getMilestoneStats: MilestoneStats;
@@ -3249,8 +3292,13 @@ export type Query = {
   getYearlyApplicationStats: Array<MonthlyApplicationStat>;
   get_Admin?: Maybe<Admin>;
   get_Users?: Maybe<Array<Maybe<AuthUser>>>;
-  grantCall?: Maybe<AssistantGrantCall>;
-  grantCalls: AssistantGrantCallConnection;
+  grantCall?: Maybe<GuestGrantCall>;
+  grantCalls: GuestGrantCallConnection;
+  guestDashboard: GuestDashboard;
+  guestNotificationPreferences: NotificationPreferences;
+  guestProposal?: Maybe<Proposal>;
+  guestProposalStats: GuestProposalStats;
+  guestReportStats: GuestReportStats;
   isFeatureEnabled: Scalars['Boolean']['output'];
   listAwards: AwardConnection;
   listBudgets: BudgetConnection;
@@ -3263,13 +3311,16 @@ export type Query = {
   listTransactions: TransactionConnection;
   milestone?: Maybe<Milestone>;
   milestoneStat: MilestoneStats;
-  milestoneStats: AssistantMilestoneStats;
+  milestoneStats: GuestMilestoneStats;
   milestones: MilestoneConnection;
   myAwards: AwardConnection;
-  myBookmarkedCalls: AssistantGrantCallConnection;
+  myBookmarkedCalls: GuestGrantCallConnection;
+  myCoPiProposals: ProposalConnection;
+  myGuestProposals: ProposalConnection;
   myMilestones: MilestoneConnection;
   myNotifications: NotificationConnection;
-  myProfile: AssistantResearcherProfile;
+  myProfile: GuestProfile;
+  myProposalDrafts: ProposalConnection;
   myProposals: ProposalConnection;
   myReports: ReportConnection;
   notificationCount: Scalars['Int']['output'];
@@ -3282,8 +3333,10 @@ export type Query = {
   projectFinancials: FinancialSummary;
   proposal?: Maybe<Proposal>;
   proposalCollaborators: Array<Collaborator>;
+  proposalDraft?: Maybe<Proposal>;
   proposalStats: ProposalStats;
   proposals: ProposalConnection;
+  proposalsByResearcher: ProposalConnection;
   report?: Maybe<Report>;
   reportStats: ReportStats;
   reportingPreferences: ReportingPreferences;
@@ -3529,6 +3582,11 @@ export type QueryGetFundingCallArgs = {
 };
 
 
+export type QueryGetFundingCallCollaboratorsArgs = {
+  fundingCallId: Scalars['ID']['input'];
+};
+
+
 export type QueryGetFundingCallsArgs = {
   filter?: InputMaybe<GetFundingCallFilter>;
 };
@@ -3548,6 +3606,11 @@ export type QueryGetFundingTrendArgs = {
 
 export type QueryGetGrantCallAnalyticsArgs = {
   filter?: InputMaybe<AnalyticsFilterInput>;
+};
+
+
+export type QueryGetGuestsForResearcherArgs = {
+  researcherId: Scalars['ID']['input'];
 };
 
 
@@ -3777,6 +3840,11 @@ export type QueryGrantCallsArgs = {
 };
 
 
+export type QueryGuestProposalArgs = {
+  id: Scalars['String']['input'];
+};
+
+
 export type QueryIsFeatureEnabledArgs = {
   key: Scalars['String']['input'];
 };
@@ -3871,6 +3939,22 @@ export type QueryMyBookmarkedCallsArgs = {
 };
 
 
+export type QueryMyCoPiProposalsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryMyGuestProposalsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type QueryMyMilestonesArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
@@ -3881,6 +3965,13 @@ export type QueryMyMilestonesArgs = {
 export type QueryMyNotificationsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryMyProposalDraftsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -3940,10 +4031,23 @@ export type QueryProposalCollaboratorsArgs = {
 };
 
 
+export type QueryProposalDraftArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type QueryProposalsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryProposalsByResearcherArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  researcherId: Scalars['ID']['input'];
   status?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -4279,6 +4383,15 @@ export type ReviewEntry = {
   date: Scalars['String']['output'];
   reviewer: Scalars['String']['output'];
   reviewerRole: Scalars['String']['output'];
+};
+
+export type SaveProposalDraftInput = {
+  abstract?: InputMaybe<Scalars['String']['input']>;
+  coPiIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  fundingCallId: Scalars['ID']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  requestedAmount?: InputMaybe<Scalars['Float']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ScheduleMeetingInput = {
@@ -4666,7 +4779,6 @@ export type UpdateProfileInput = {
 
 export type UpdateProposalInput = {
   abstract?: InputMaybe<Scalars['String']['input']>;
-  department?: InputMaybe<Scalars['String']['input']>;
   requestedAmount?: InputMaybe<Scalars['Float']['input']>;
   title?: InputMaybe<Scalars['String']['input']>;
 };
@@ -4721,11 +4833,14 @@ export type UploadProfileImageInput = {
 
 export type User = {
   __typename?: 'User';
+  assignedResearcher?: Maybe<User>;
+  assignedResearcherId?: Maybe<Scalars['ID']['output']>;
   authUserId?: Maybe<Scalars['ID']['output']>;
   avatar?: Maybe<Scalars['String']['output']>;
   createdAt?: Maybe<Scalars['String']['output']>;
   department?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
+  guests?: Maybe<Array<User>>;
   id?: Maybe<Scalars['ID']['output']>;
   lastLogin?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
@@ -4740,8 +4855,8 @@ export type UserAnalytics = {
   __typename?: 'UserAnalytics';
   activeUsers: Scalars['Int']['output'];
   administrators: Scalars['Int']['output'];
-  assistantResearchers: Scalars['Int']['output'];
   financeOfficers: Scalars['Int']['output'];
+  guests: Scalars['Int']['output'];
   inactiveUsers: Scalars['Int']['output'];
   newUsersThisMonth: Scalars['Int']['output'];
   newUsersThisYear: Scalars['Int']['output'];
@@ -4760,8 +4875,8 @@ export type UserRole =
   | 'admin'
   | 'director'
   | 'finance_officer'
-  | 'researcher_co_pi'
-  | 'researcher_pi';
+  | 'guest'
+  | 'researcher';
 
 export type UserRoleCount = {
   __typename?: 'UserRoleCount';

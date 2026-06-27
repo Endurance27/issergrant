@@ -20,7 +20,7 @@ function toUser(authUser: AuthUser): any {
     phoneContact: authUser?.user?.phoneContact ?? '',
     avatar: authUser?.user?.avatar ?? null,
     lastLogin: authUser?.user?.lastLogin ?? null,
-    userId: authUser?.user?.id ?? '',
+    UserId: authUser?.user?.id ?? '',
     role: authUser?.user?.role ?? '',
   };
 }

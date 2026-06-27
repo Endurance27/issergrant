@@ -3,6 +3,7 @@ import { useFormik } from "formik";
 import { proposalSchema } from "../../../schemas/proposal.schema";
 import type { ProposalFormValues } from "../../../types/forms";
 import { CreateProposalForm } from "../proposals/CreateProposalForm";
+import { EditProposalForm } from "../proposals/EditProposalForm";
 import {
   Search,
   Plus,
@@ -17,6 +18,8 @@ import {
   ChevronUp,
   ChevronDown,
   Trash2,
+  Pencil,
+  Users,
 } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
@@ -28,7 +31,6 @@ import { usePagination } from "../../../hooks/usePagination";
 import { useSortable } from "../../../hooks/useSortable";
 import { useAppContext } from "../../context/AppContext";
 import {
-  proposals as initialProposals,
   grantCalls as mockGrantCalls,
   currentUsers,
 } from "../../data/mockData";
@@ -41,8 +43,32 @@ import type {
 } from "../../data/mockData";
 import type { NavState } from "../../App";
 import { Account_Type } from "@/gql/schema-types";
+import type { ProposalPI, ProposalRecord } from "../../../types/proposal.types";
+import { useAuthStore } from "../../../store/auth.store";
+import { useProposalsByResearcher } from "../../../hooks/useProposalsByResearcher";
+import { toDisplayStatus } from "../../utils/proposalStatus";
+import { fmtDateTime } from "../../utils/formatters";
 
 const fmtCurrency = (n: number) => `GHS ${n.toLocaleString()}`;
+
+function toLocalProposal(p: ProposalRecord): ProposalWithHistory {
+  return {
+    id: p.id,
+    title: p.title,
+    researcher: p.user.name,
+    researcherId: 0,
+    grantCallId: p.fundingCall?.id ?? "",
+    grantCallTitle: p.fundingCall?.theme ?? "",
+    submitted: p.submittedAt ?? "",
+    status: toDisplayStatus(p.status),
+    requestedAmount: p.requestedAmount,
+    department: p.user.department,
+    abstract: p.abstract,
+    coPIs: p.coPIs,
+    source: "graphql",
+    raw: p,
+  };
+}
 
 interface ReviewEntry {
   action: "Approved" | "Rejected" | "Revised";
@@ -51,7 +77,15 @@ interface ReviewEntry {
   date: string;
 }
 
-type ProposalWithHistory = Proposal & { reviewHistory?: ReviewEntry[] };
+type ProposalWithHistory = Proposal & {
+  reviewHistory?: ReviewEntry[];
+  /** Zero or more Co-Principal Investigators (only populated for proposals created via the real backend). */
+  coPIs?: ProposalPI[];
+  /** Marks rows backed by a real GraphQL record — only these can be edited. */
+  source?: "graphql";
+  /** The full backend record, kept around so the edit form has everything it needs. */
+  raw?: ProposalRecord;
+};
 
 interface ProposalsProps {
   role: Account_Type;
@@ -89,11 +123,25 @@ const TH = ({
 
 export function Proposals({ role, navState }: ProposalsProps) {
   const { addAward, addNotification, addAuditLog } = useAppContext();
-  const [proposals, setProposals] =
-    useState<ProposalWithHistory[]>(initialProposals);
+  const [proposals, setProposals] = useState<ProposalWithHistory[]>([]);
   const [grantCalls, setGrantCalls] = useState(mockGrantCalls);
 
+  const isResearcher = role === "researcher";
+  const currentUser = useAuthStore((s) => s.user);
+  const { proposals: myProposals } = useProposalsByResearcher(
+    isResearcher ? (currentUser?.UserId ?? "") : "",
+  );
+
+  // Researchers see their own proposals, looked up by their userId — kept in
+  // sync with the GraphQL backend rather than the (legacy) Supabase table below.
   useEffect(() => {
+    if (isResearcher) {
+      setProposals(myProposals.map(toLocalProposal));
+    }
+  }, [isResearcher, myProposals]);
+
+  useEffect(() => {
+    if (isResearcher) return;
     // Fetch proposals from Supabase
     const fetchProposals = async () => {
       const { data, error } = await supabase
@@ -102,11 +150,12 @@ export function Proposals({ role, navState }: ProposalsProps) {
         .order("submitted", { ascending: false });
       if (!error && data && data.length > 0) {
         setProposals(data as ProposalWithHistory[]);
-      } else if (!error && data && data.length === 0) {
-        await supabase.from("proposals").insert(initialProposals);
-        setProposals(initialProposals);
       }
     };
+    fetchProposals();
+  }, [isResearcher]);
+
+  useEffect(() => {
     // Fetch grant calls for dropdown
     const fetchGrantCalls = async () => {
       const { data, error } = await supabase.from("grant_calls").select("*");
@@ -114,13 +163,13 @@ export function Proposals({ role, navState }: ProposalsProps) {
         setGrantCalls(data as typeof mockGrantCalls);
       }
     };
-    fetchProposals();
     fetchGrantCalls();
   }, []);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selected, setSelected] = useState<ProposalWithHistory | null>(null);
   const [showNew, setShowNew] = useState(navState?.grantCallId ? true : false);
+  const [editingProposal, setEditingProposal] = useState<ProposalWithHistory | null>(null);
 
   const proposalFormik = useFormik<ProposalFormValues>({
     initialValues: {
@@ -365,8 +414,8 @@ export function Proposals({ role, navState }: ProposalsProps) {
       <PageHeader
         title="Proposals"
         subtitle={`${proposals.filter(p => p.status === 'Under Review').length} proposals pending review`}
-        action={role === 'Researcher' ? (
-          <button onClick={() => setShowNew(true)} className="btn-primary flex items-center gap-2">
+        action={role === 'researcher' ? (
+          <button onClick={() => setShowNew(true)} data-testid="new-proposal-button" className="btn-primary flex items-center gap-2">
             <Plus size={16} /> New Proposal
           </button>
         ) : undefined}
@@ -527,7 +576,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   onToggle={() => toggle("requestedAmount")}
                 />
                 <TH
-                  label="Submitted"
+                  label="Submitted At"
                   sortKey="submitted"
                   active={sortKey === "submitted"}
                   dir={dir}
@@ -577,6 +626,17 @@ export function Proposals({ role, navState }: ProposalsProps) {
                     <span className="text-xs text-foreground">
                       {p.researcher}
                     </span>
+                    {(p.coPIs?.length ?? 0) > 0 && (
+                      <div
+                        className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground"
+                        data-testid="proposal-row-copis"
+                      >
+                        <Users size={10} />
+                        <span className="truncate max-w-[140px]">
+                          {p.coPIs!.map((c) => c.name).join(", ")}
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 max-w-[160px]">
                     <span className="text-xs text-muted-foreground truncate block">
@@ -590,7 +650,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                      {p.submitted}
+                      {p.source === "graphql" ? fmtDateTime(p.submitted) : p.submitted}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -750,10 +810,16 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   {fmtCurrency(p.requestedAmount)}
                 </span>
               </div>
+              {(p.coPIs?.length ?? 0) > 0 && (
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground" data-testid="proposal-row-copis">
+                  <Users size={11} />
+                  {p.coPIs!.map((c) => c.name).join(", ")}
+                </div>
+              )}
               {/* Date + actions */}
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
                 <span className="font-mono text-[11px] text-muted-foreground">
-                  {p.submitted}
+                  {p.source === "graphql" ? fmtDateTime(p.submitted) : p.submitted}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -763,6 +829,18 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   >
                     <Eye size={14} />
                   </button>
+                  {p.source === "graphql" &&
+                    (p.status === "Under Review" ||
+                      p.status === "Draft" ||
+                      p.status === "Revised") && (
+                      <button
+                        onClick={() => setEditingProposal(p)}
+                        className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted hover:text-primary"
+                        title="Edit proposal"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    )}
                   {role === "admin" &&
                     (p.status === "Under Review" || p.status === "Revised") && (
                       <>
@@ -847,7 +925,10 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   label: "Requested Amount",
                   value: fmtCurrency(selected.requestedAmount),
                 },
-                { label: "Submission Date", value: selected.submitted },
+                {
+                  label: "Submitted At",
+                  value: selected.source === "graphql" ? fmtDateTime(selected.submitted) : selected.submitted,
+                },
                 { label: "Status", value: selected.status },
               ].map((item) => (
                 <div key={item.label} className="p-3 rounded-xl bg-muted">
@@ -859,6 +940,25 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   </div>
                 </div>
               ))}
+            </div>
+            <div data-testid="proposal-details-copis">
+              <div className="text-[11px] text-muted-foreground mb-2">
+                Co-Principal Investigators
+              </div>
+              {(selected.coPIs?.length ?? 0) > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {selected.coPIs!.map((c) => (
+                    <span
+                      key={c.id}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary text-primary text-[12px] font-medium"
+                    >
+                      <Users size={11} /> {c.name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[12px] text-muted-foreground">None</p>
+              )}
             </div>
             {(selected.reviewHistory?.length ?? 0) > 0 && (
               <div>
@@ -957,6 +1057,20 @@ export function Proposals({ role, navState }: ProposalsProps) {
                 <Award size={15} /> Create Award from This Proposal
               </button>
             )}
+            {selected.source === "graphql" &&
+              (selected.status === "Under Review" ||
+                selected.status === "Draft" ||
+                selected.status === "Revised") && (
+                <button
+                  onClick={() => {
+                    setEditingProposal(selected);
+                    setSelected(null);
+                  }}
+                  className="w-full py-2.5 rounded-xl border border-border font-semibold text-[13px] text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2"
+                >
+                  <Pencil size={14} /> Edit Proposal
+                </button>
+              )}
           </div>
         )}
       </Modal>
@@ -1130,26 +1244,47 @@ export function Proposals({ role, navState }: ProposalsProps) {
             defaultFundingCallId={navState?.grantCallId ?? ""}
             onSuccess={(created) => {
               // Merge the returned record into the local proposals list
-              const localProposal = {
-                id: created.id,
-                title: created.title,
-                researcher: created.user?.name ?? "You",
-                researcherId: 0,
-                grantCallId: created.fundingCallId,
-                grantCallTitle:
-                  created.fundingCallTitle ?? created.fundingCall?.theme ?? "",
-                submitted: new Date().toISOString().slice(0, 10),
-                status: "Under Review" as const,
-                requestedAmount: created.requestedAmount,
-                department: created.department,
-                abstract: created.abstract,
-              };
-              setProposals((prev) => [localProposal, ...prev]);
+              setProposals((prev) => [toLocalProposal(created), ...prev]);
               setShowNew(false);
             }}
             onCancel={() => setShowNew(false)}
           />
         </div>
+      </Modal>
+
+      {/* Edit proposal modal — only available for proposals backed by a real record */}
+      <Modal
+        open={!!editingProposal}
+        onClose={() => setEditingProposal(null)}
+        title="Edit Proposal"
+        width={620}
+      >
+        {editingProposal?.raw && (
+          <div className="max-h-[75vh] overflow-y-auto pr-1">
+            <EditProposalForm
+              proposal={editingProposal.raw}
+              onSuccess={(updated) => {
+                setProposals((prev) =>
+                  prev.map((p) =>
+                    p.id === updated.id
+                      ? {
+                          ...p,
+                          title: updated.title,
+                          abstract: updated.abstract,
+                          department: updated.user.department,
+                          requestedAmount: updated.requestedAmount,
+                          coPIs: updated.coPIs,
+                          raw: updated,
+                        }
+                      : p,
+                  ),
+                );
+                setEditingProposal(null);
+              }}
+              onCancel={() => setEditingProposal(null)}
+            />
+          </div>
+        )}
       </Modal>
     </div>
   );

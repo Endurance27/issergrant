@@ -4,12 +4,10 @@ import { UnauthorizedPage } from "../components/auth/UnauthorizedPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminLayout } from "./admin/AdminLayout";
 import { ResearcherLayout } from "./researcher/ResearcherLayout";
-import { DirectorLayout } from "./director/DirectorLayout";
 import { GuestLayout } from "./guest/GuestLayout";
 import { FinanceLayout } from "./finance/FinanceLayout";
 import { DirectorLayout } from "./director/DirectorLayout";
 import {
-  DirectorDashboard,
   DirectorGrantCallsPage,
   DirectorProposalsPage,
   DirectorAwardsPage,
@@ -21,6 +19,8 @@ import {
   DirectorUsersPage,
   DirectorSettingsPage,
   DirectorAuditPage,
+  DirectorDashboardPage,
+  DirectorGuestsPage,
 } from "./director/DirectorRoutes";
 import {
   AdminDashboardPage,
@@ -49,10 +49,14 @@ import {
   ResearcherSettingsPage,
   ResearcherTeamMembersPage,
   ResearcherDraftsPage,
+  ResearcherCoPiProjectsPage,
 } from "./researcher/ResearcherRoutes";
 import {
-  GuestDashboardPage, GuestFundingCallsPage, GuestProposalsPage,
-  GuestNotificationsPage, GuestSettingsPage,
+  GuestDashboardPage,
+  GuestFundingCallsPage,
+  GuestProposalsPage,
+  GuestNotificationsPage,
+  GuestSettingsPage,
 } from "./guest/GuestRoutes";
 import {
   FinanceDashboardPage,
@@ -118,13 +122,13 @@ export function AppRoutes() {
           <Route path="financial" element={<AdminFinancialPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
           <Route path="notifications" element={<AdminNotificationsPage />} />
-          <Route path="analytics"     element={<AdminAnalyticsPage />} />
-          <Route path="users"         element={<AdminUsersPage />} />
-          <Route path="guests"        element={<Guests />} />
+          <Route path="analytics" element={<AdminAnalyticsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="guests" element={<Guests />} />
           <Route path="guests/create" element={<CreateGuest />} />
-          <Route path="audit"         element={<AdminAuditPage />} />
-          <Route path="calendar"      element={<AdminCalendarPage />} />
-          <Route path="settings"      element={<AdminSettingsPage />} />
+          <Route path="audit" element={<AdminAuditPage />} />
+          <Route path="calendar" element={<AdminCalendarPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
       </Route>
 
@@ -132,36 +136,44 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={["director"]} />}>
         <Route path="/director" element={<DirectorLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard"     element={<DirectorDashboardPage />} />
-          <Route path="grant-calls"   element={<DirectorGrantCallsPage />} />
-          <Route path="proposals"     element={<DirectorProposalsPage />} />
-          <Route path="awards"        element={<DirectorAwardsPage />} />
-          <Route path="financial"     element={<DirectorFinancialPage />} />
-          <Route path="reports"       element={<DirectorReportsPage />} />
-          <Route path="analytics"     element={<DirectorAnalyticsPage />} />
-          <Route path="calendar"      element={<DirectorCalendarPage />} />
+          <Route path="dashboard" element={<DirectorDashboardPage />} />
+          <Route path="grant-calls" element={<DirectorGrantCallsPage />} />
+          {/* "funding-calls" alias — same page, kept for naming parity with the spec */}
+          <Route path="funding-calls" element={<DirectorGrantCallsPage />} />
+          <Route path="proposals" element={<DirectorProposalsPage />} />
+          <Route path="awards" element={<DirectorAwardsPage />} />
+          <Route path="financial" element={<DirectorFinancialPage />} />
+          <Route path="reports" element={<DirectorReportsPage />} />
+          <Route path="analytics" element={<DirectorAnalyticsPage />} />
+          <Route path="calendar" element={<DirectorCalendarPage />} />
+          <Route path="users" element={<DirectorUsersPage />} />
+          <Route path="audit" element={<DirectorAuditPage />} />
           <Route path="notifications" element={<DirectorNotificationsPage />} />
-          <Route path="settings"      element={<DirectorSettingsPage />} />
-          <Route path="guests"        element={<DirectorGuestsPage />} />
+          <Route path="settings" element={<DirectorSettingsPage />} />
+          <Route path="guests" element={<DirectorGuestsPage />} />
           <Route path="guests/create" element={<CreateGuest />} />
         </Route>
       </Route>
 
       {/* Researcher — backend enum: "researcher" */}
-      <Route element={<ProtectedRoute allowedRoles={["researcher_pi"]} />}>
-        <Route path="/researcher-pi" element={<ResearcherLayout />}>
+      <Route element={<ProtectedRoute allowedRoles={["researcher"]} />}>
+        <Route path="/researcher" element={<ResearcherLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard"     element={<ResearcherDashboardPage />} />
-          <Route path="grant-calls"   element={<ResearcherGrantCallsPage />} />
-          <Route path="proposals"     element={<ResearcherProposalsPage />} />
-          <Route path="awards"        element={<ResearcherAwardsPage />} />
-          <Route path="milestones"    element={<ResearcherMilestonesPage />} />
-          <Route path="reports"       element={<ResearcherReportsPage />} />
-          <Route path="notifications" element={<ResearcherNotificationsPage />} />
-          <Route path="calendar"      element={<ResearcherCalendarPage />} />
-          <Route path="settings"      element={<ResearcherSettingsPage />} />
-          <Route path="users"         element={<ResearcherTeamMembersPage />} />
-          <Route path="guests"        element={<Guests />} />
+          <Route path="dashboard" element={<ResearcherDashboardPage />} />
+          <Route path="grant-calls" element={<ResearcherGrantCallsPage />} />
+          <Route path="proposals" element={<ResearcherProposalsPage />} />
+          <Route path="co-pi-projects" element={<ResearcherCoPiProjectsPage />} />
+          <Route path="awards" element={<ResearcherAwardsPage />} />
+          <Route path="milestones" element={<ResearcherMilestonesPage />} />
+          <Route path="reports" element={<ResearcherReportsPage />} />
+          <Route
+            path="notifications"
+            element={<ResearcherNotificationsPage />}
+          />
+          <Route path="calendar" element={<ResearcherCalendarPage />} />
+          <Route path="settings" element={<ResearcherSettingsPage />} />
+          <Route path="users" element={<ResearcherTeamMembersPage />} />
+          <Route path="guests" element={<Guests />} />
           <Route path="guests/create" element={<CreateGuest />} />
           <Route path="drafts"        element={<ResearcherDraftsPage />} />
         </Route>
@@ -171,11 +183,11 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={["guest"]} />}>
         <Route path="/guest" element={<GuestLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard"     element={<GuestDashboardPage />} />
+          <Route path="dashboard" element={<GuestDashboardPage />} />
           <Route path="funding-calls" element={<GuestFundingCallsPage />} />
-          <Route path="proposals"     element={<GuestProposalsPage />} />
+          <Route path="proposals" element={<GuestProposalsPage />} />
           <Route path="notifications" element={<GuestNotificationsPage />} />
-          <Route path="settings"      element={<GuestSettingsPage />} />
+          <Route path="settings" element={<GuestSettingsPage />} />
         </Route>
       </Route>
 
@@ -191,27 +203,6 @@ export function AppRoutes() {
           <Route path="notifications" element={<FinanceNotificationsPage />} />
           <Route path="calendar" element={<FinanceCalendarPage />} />
           <Route path="settings" element={<FinanceSettingsPage />} />
-        </Route>
-      </Route>
-
-      {/* Director — backend enum: "director" */}
-      <Route element={<ProtectedRoute allowedRoles={["director"]} />}>
-        <Route path="/director" element={<DirectorLayout />}>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<DirectorDashboard />} />
-          <Route path="proposals" element={<DirectorProposalsPage />} />
-          <Route path="grant-calls" element={<DirectorGrantCallsPage />} />
-          {/* "funding-calls" alias — same page, kept for naming parity with the spec */}
-          <Route path="funding-calls" element={<DirectorGrantCallsPage />} />
-          <Route path="awards" element={<DirectorAwardsPage />} />
-          <Route path="financial" element={<DirectorFinancialPage />} />
-          <Route path="reports" element={<DirectorReportsPage />} />
-          <Route path="analytics" element={<DirectorAnalyticsPage />} />
-          <Route path="calendar" element={<DirectorCalendarPage />} />
-          <Route path="users" element={<DirectorUsersPage />} />
-          <Route path="audit" element={<DirectorAuditPage />} />
-          <Route path="notifications" element={<DirectorNotificationsPage />} />
-          <Route path="settings" element={<DirectorSettingsPage />} />
         </Route>
       </Route>
 
