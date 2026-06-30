@@ -46,6 +46,26 @@ const PROPOSAL_CONNECTION_FIELDS = gql`
           createdAt
           updatedAt
         }
+        reviews {
+          id
+          proposalId
+          director {
+            id
+            name
+            email
+          }
+          decision
+          comment
+          createdAt
+          updatedAt
+        }
+        reviewHistory {
+          action
+          comment
+          reviewer
+          reviewerRole
+          date
+        }
       }
     }
     pageInfo {
@@ -127,6 +147,22 @@ export const GET_PROPOSALS_BY_RESEARCHER_QUERY = gql`
             createdAt
             updatedAt
           }
+          reviews {
+            id
+            proposalId
+            director { id name email }
+            decision
+            comment
+            createdAt
+            updatedAt
+          }
+          reviewHistory {
+            action
+            comment
+            reviewer
+            reviewerRole
+            date
+          }
         }
       }
       pageInfo {
@@ -187,6 +223,22 @@ export const MY_COPI_PROPOSALS_QUERY = gql`
             createdBy
             createdAt
             updatedAt
+          }
+          reviews {
+            id
+            proposalId
+            director { id name email }
+            decision
+            comment
+            createdAt
+            updatedAt
+          }
+          reviewHistory {
+            action
+            comment
+            reviewer
+            reviewerRole
+            date
           }
         }
       }

@@ -1,5 +1,14 @@
 import { useState, useMemo } from "react";
-import { Search, FileText, X } from "lucide-react";
+import {
+  Search,
+  FileText,
+  X,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 import { Badge } from "../../components/ui/Badge";
 import { Modal } from "../../components/ui/Modal";
 import { PageHeader } from "../../components/ui/PageHeader";
@@ -7,8 +16,13 @@ import { Pagination } from "../../components/ui/Pagination";
 import { StatCard } from "../../components/ui/StatCard";
 import { usePagination } from "../../../hooks/usePagination";
 import { useAllSubmittedProposals } from "../../../hooks/useDirectorProposals";
+import {
+  useApproveProposal,
+  useRejectProposal,
+  useRequestRevision,
+} from "../../../hooks/useProposalReview";
 import { toDisplayStatus } from "../../utils/proposalStatus";
-import type { ProposalRecord } from "../../../types/proposal.types";
+import type { ProposalRecord, ProposalReview } from "../../../types/proposal.types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -29,7 +43,9 @@ const DEPARTMENTS = [
   "Research Methods and Data Visualization",
 ];
 
-const STATUSES = ["All", "Submitted", "Under Review", "Approved", "Rejected"];
+const STATUSES = ["All", "Submitted", "Under Review", "Approved", "Rejected", "Revised"];
+
+const REVIEWABLE_STATUSES = new Set(["submitted", "under_review"]);
 
 const fmtCurrency = (n: number) =>
   `GHS ${n.toLocaleString("en-GH", { minimumFractionDigits: 0 })}`;
@@ -42,6 +58,19 @@ const fmtDate = (iso: string | boolean | undefined | null): string => {
     year: "numeric",
     month: "short",
     day: "numeric",
+  });
+};
+
+const fmtDateTime = (iso: string | undefined | null): string => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -79,20 +108,170 @@ function SkeletonCard() {
   );
 }
 
-// ── Detail Modal ──────────────────────────────────────────────────────────────
+// ── Review badge helpers ───────────────────────────────────────────────────────
+
+const DECISION_CONFIG = {
+  approved: {
+    color: "#22C55E",
+    label: "Approved",
+    icon: <CheckCircle2 size={13} className="text-green-500" />,
+    bg: "#22C55E18",
+  },
+  rejected: {
+    color: "#EF4444",
+    label: "Rejected",
+    icon: <XCircle size={13} className="text-red-500" />,
+    bg: "#EF444418",
+  },
+  revised: {
+    color: "#A855F7",
+    label: "Revision Requested",
+    icon: <RotateCcw size={13} className="text-purple-500" />,
+    bg: "#A855F718",
+  },
+} as const;
+
+// ── Existing Reviews list ─────────────────────────────────────────────────────
+
+function ReviewsList({ reviews }: { reviews: ProposalReview[] }) {
+  if (reviews.length === 0) return null;
+  return (
+    <div>
+      <div className="font-bold text-[13px] text-foreground mb-2">
+        Director Reviews ({reviews.length})
+      </div>
+      <div className="space-y-3">
+        {reviews.map((r) => {
+          const cfg = DECISION_CONFIG[r.decision] ?? DECISION_CONFIG.approved;
+          return (
+            <div key={r.id} className="flex gap-3">
+              <div
+                className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 mt-0.5"
+                style={{ background: cfg.bg }}
+              >
+                {cfg.icon}
+              </div>
+              <div className="flex-1 p-3 rounded-xl bg-muted">
+                <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                  <span className="font-bold text-xs" style={{ color: cfg.color }}>
+                    {cfg.label}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground">
+                      {r.director.name}
+                    </span>
+                    <Clock size={11} className="text-muted-foreground" />
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {fmtDateTime(r.createdAt)}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-foreground leading-relaxed">{r.comment}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Inline review form ────────────────────────────────────────────────────────
+
+type ReviewAction = "approve" | "reject" | "revision";
+
+const ACTION_CONFIG: Record<
+  ReviewAction,
+  { label: string; btnLabel: string; placeholder: string; color: string; commentLabel: string }
+> = {
+  approve: {
+    label: "Approve Proposal",
+    btnLabel: "Approve",
+    placeholder: "Add approval notes…",
+    color: "#22C55E",
+    commentLabel: "Approval Notes",
+  },
+  reject: {
+    label: "Reject Proposal",
+    btnLabel: "Reject",
+    placeholder: "Provide a reason for rejection…",
+    color: "#EF4444",
+    commentLabel: "Rejection Reason",
+  },
+  revision: {
+    label: "Request Revision",
+    btnLabel: "Request Revision",
+    placeholder: "Describe what needs to be revised…",
+    color: "#A855F7",
+    commentLabel: "Revision Instructions",
+  },
+};
+
+// ── Detail + Review Modal ─────────────────────────────────────────────────────
 
 function ProposalDetailModal({
   proposal,
   onClose,
+  onReviewSuccess,
 }: {
   proposal: ProposalRecord | null;
   onClose: () => void;
+  onReviewSuccess: (updated: ProposalRecord) => void;
 }) {
+  const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null);
+  const [comment, setComment] = useState("");
+  const [commentError, setCommentError] = useState("");
+
+  const { approveProposal, loading: approveLoading } = useApproveProposal();
+  const { rejectProposal, loading: rejectLoading } = useRejectProposal();
+  const { requestRevision, loading: revisionLoading } = useRequestRevision();
+
+  const submitting = approveLoading || rejectLoading || revisionLoading;
+
+  const canReview = proposal != null && REVIEWABLE_STATUSES.has(proposal.status);
+
+  const handleClose = () => {
+    setReviewAction(null);
+    setComment("");
+    setCommentError("");
+    onClose();
+  };
+
+  const handleSubmitReview = async () => {
+    if (!proposal || !reviewAction) return;
+    if (!comment.trim()) {
+      setCommentError("A comment is required.");
+      return;
+    }
+
+    let result = null;
+    if (reviewAction === "approve") {
+      result = await approveProposal({ id: proposal.id, comment: comment.trim() });
+    } else if (reviewAction === "reject") {
+      result = await rejectProposal({ id: proposal.id, reason: comment.trim() });
+    } else {
+      result = await requestRevision({ id: proposal.id, comment: comment.trim() });
+    }
+
+    if (result?.success && result.proposal) {
+      onReviewSuccess(result.proposal as ProposalRecord);
+      handleClose();
+    } else if (result && !result.success) {
+      setCommentError(result.message ?? "Review failed.");
+    }
+  };
+
+  const startReview = (action: ReviewAction) => {
+    setReviewAction(action);
+    setComment("");
+    setCommentError("");
+  };
+
   return (
     <Modal
       open={!!proposal}
-      onClose={onClose}
-      title="Proposal Details"
+      onClose={handleClose}
+      title={reviewAction ? ACTION_CONFIG[reviewAction].label : "Proposal Details"}
       width={680}
     >
       {proposal && (
@@ -106,70 +285,75 @@ function ProposalDetailModal({
           </div>
 
           {/* Abstract */}
-          <div className="p-4 rounded-xl bg-muted border-l-4 border-primary">
-            <div className="font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.05em] mb-2">
-              Abstract
+          {!reviewAction && (
+            <div className="p-4 rounded-xl bg-muted border-l-4 border-primary">
+              <div className="font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.05em] mb-2">
+                Abstract
+              </div>
+              <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">
+                {proposal.abstract}
+              </p>
             </div>
-            <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">
-              {proposal.abstract}
-            </p>
-          </div>
+          )}
 
           {/* Meta grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              {
-                label: "Funding Call",
-                value: proposal.fundingCall?.theme || "—",
-              },
-              {
-                label: "Requested Amount",
-                value: fmtCurrency(proposal.requestedAmount ?? 0.0),
-              },
-              { label: "Last Updated", value: fmtDate(proposal.updatedAt) },
-            ].map((item) => (
-              <div key={item.label} className="p-3 rounded-xl bg-muted">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  {item.label}
+          {!reviewAction && (
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {
+                  label: "Funding Call",
+                  value: proposal.fundingCall?.theme || "—",
+                },
+                {
+                  label: "Requested Amount",
+                  value: fmtCurrency(proposal.requestedAmount ?? 0.0),
+                },
+                { label: "Submitted At", value: fmtDateTime(proposal.submittedAt) },
+                { label: "Last Updated", value: fmtDate(proposal.updatedAt) },
+              ].map((item) => (
+                <div key={item.label} className="p-3 rounded-xl bg-muted">
+                  <div className="text-[11px] text-muted-foreground mb-0.5">
+                    {item.label}
+                  </div>
+                  <div className="font-bold text-[13px] text-foreground">
+                    {item.value}
+                  </div>
                 </div>
-                <div className="font-bold text-[13px] text-foreground">
-                  {item.value}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Principal Investigator */}
-          <div>
-            <div className="font-bold text-[13px] text-foreground mb-2">
-              Principal Investigator
+          {!reviewAction && (
+            <div>
+              <div className="font-bold text-[13px] text-foreground mb-2">
+                Principal Investigator
+              </div>
+              <div className="p-3 rounded-xl bg-muted grid grid-cols-3 gap-2">
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Name</div>
+                  <div className="font-semibold text-[13px] text-foreground">
+                    {proposal.user?.name ?? "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Email</div>
+                  <div className="font-semibold text-[13px] text-foreground truncate">
+                    {proposal.user?.email ?? "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Department</div>
+                  <div className="font-semibold text-[13px] text-foreground">
+                    {proposal.user?.department ?? "—"}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="p-3 rounded-xl bg-muted grid grid-cols-3 gap-2">
-              <div>
-                <div className="text-[11px] text-muted-foreground">Name</div>
-                <div className="font-semibold text-[13px] text-foreground">
-                  {proposal.user?.name ?? "—"}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] text-muted-foreground">Email</div>
-                <div className="font-semibold text-[13px] text-foreground truncate">
-                  {proposal.user?.email ?? "—"}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] text-muted-foreground">
-                  Department
-                </div>
-                <div className="font-semibold text-[13px] text-foreground">
-                  {proposal.user?.department ?? "—"}
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Co-PIs */}
-          {proposal.coPIs && proposal.coPIs.length > 0 && (
+          {!reviewAction && proposal.coPIs && proposal.coPIs.length > 0 && (
             <div>
               <div className="font-bold text-[13px] text-foreground mb-2">
                 Co-Principal Investigators ({proposal.coPIs.length})
@@ -181,17 +365,13 @@ function ProposalDetailModal({
                     className="p-3 rounded-xl bg-muted grid grid-cols-3 gap-2"
                   >
                     <div>
-                      <div className="text-[11px] text-muted-foreground">
-                        Name
-                      </div>
+                      <div className="text-[11px] text-muted-foreground">Name</div>
                       <div className="font-semibold text-[13px] text-foreground">
                         {coPi.name}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[11px] text-muted-foreground">
-                        Email
-                      </div>
+                      <div className="text-[11px] text-muted-foreground">Email</div>
                       <div className="font-semibold text-[13px] text-foreground truncate">
                         {coPi.email}
                       </div>
@@ -211,37 +391,136 @@ function ProposalDetailModal({
           )}
 
           {/* Collaborators */}
-          {proposal.collaborators && proposal.collaborators.length > 0 && (
-            <div>
-              <div className="font-bold text-[13px] text-foreground mb-2">
-                Collaborators ({proposal.collaborators.length})
+          {!reviewAction &&
+            proposal.collaborators &&
+            proposal.collaborators.length > 0 && (
+              <div>
+                <div className="font-bold text-[13px] text-foreground mb-2">
+                  Collaborators ({proposal.collaborators.length})
+                </div>
+                <div className="space-y-2">
+                  {proposal.collaborators.map((c) => (
+                    <div
+                      key={c.id}
+                      className="p-3 rounded-xl bg-muted flex items-center gap-3"
+                    >
+                      <div className="flex-1">
+                        <div className="font-semibold text-[13px] text-foreground">
+                          {c.guest.name}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {c.guest.email}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[11px] text-muted-foreground">Role</div>
+                        <div className="text-[12px] text-foreground font-medium">
+                          {c.roleDescription}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2">
-                {proposal.collaborators.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-3 rounded-xl bg-muted flex items-center gap-3"
-                  >
-                    <div className="flex-1">
-                      <div className="font-semibold text-[13px] text-foreground">
-                        {c.guest.name}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {c.guest.email}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[11px] text-muted-foreground">
-                        Role
-                      </div>
-                      <div className="text-[12px] text-foreground font-medium">
-                        {c.roleDescription}
-                      </div>
-                    </div>
+            )}
+
+          {/* Existing reviews */}
+          {!reviewAction && (proposal.reviews?.length ?? 0) > 0 && (
+            <ReviewsList reviews={proposal.reviews!} />
+          )}
+
+          {/* ── Review action form ─────────────────────────────────────────── */}
+
+          {reviewAction ? (
+            <div className="space-y-4">
+              {/* Error from mutations */}
+              <div className="p-3 rounded-xl bg-muted border-l-4 border-primary">
+                <div className="text-[11px] text-muted-foreground mb-0.5">
+                  Proposal
+                </div>
+                <div className="font-semibold text-[13px] text-foreground">
+                  {proposal.title}
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-xs text-foreground mb-1.5">
+                  {ACTION_CONFIG[reviewAction].commentLabel}{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={5}
+                  value={comment}
+                  onChange={(e) => {
+                    setComment(e.target.value);
+                    setCommentError("");
+                  }}
+                  placeholder={ACTION_CONFIG[reviewAction].placeholder}
+                  className="w-full px-3 py-2 rounded-xl outline-none resize-none bg-muted text-[13px] text-foreground"
+                  style={{
+                    border: `1px solid ${commentError ? "#EF4444" : "var(--border)"}`,
+                  }}
+                />
+                {commentError && (
+                  <div className="flex items-center gap-1 mt-1 text-[11px] text-red-500">
+                    <AlertCircle size={11} />
+                    {commentError}
                   </div>
-                ))}
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setReviewAction(null);
+                    setComment("");
+                    setCommentError("");
+                  }}
+                  disabled={submitting}
+                  className="btn-secondary flex-1 py-2.5"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitReview}
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90 disabled:opacity-60"
+                  style={{ background: ACTION_CONFIG[reviewAction].color }}
+                >
+                  {submitting ?
+                    "Submitting…"
+                  : ACTION_CONFIG[reviewAction].btnLabel}
+                </button>
               </div>
             </div>
+          ) : (
+            canReview && (
+              <div className="pt-2 border-t border-border">
+                <div className="text-[11px] text-muted-foreground mb-3 font-semibold uppercase tracking-wide">
+                  Director Actions
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => startReview("approve")}
+                    className="flex-1 py-2.5 rounded-xl bg-green-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => startReview("revision")}
+                    className="flex-1 py-2.5 rounded-xl bg-purple-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity"
+                  >
+                    Request Revision
+                  </button>
+                  <button
+                    onClick={() => startReview("reject")}
+                    className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            )
           )}
         </div>
       )}
@@ -252,7 +531,7 @@ function ProposalDetailModal({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function DirectorProposalsPage() {
-  const { proposals, loading, error } = useAllSubmittedProposals();
+  const { proposals, loading, error, refetch } = useAllSubmittedProposals();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -265,7 +544,7 @@ export function DirectorProposalsPage() {
       const q = search.toLowerCase();
       const matchSearch =
         !q ||
-        p.title.toLowerCase().includes(q) ||
+        (p.title ?? "").toLowerCase().includes(q) ||
         p.user?.name?.toLowerCase().includes(q) ||
         (p.fundingCall?.theme ?? "").toLowerCase().includes(q);
       const matchStatus =
@@ -290,11 +569,18 @@ export function DirectorProposalsPage() {
     (p) => toDisplayStatus(p.status) === "Approved",
   ).length;
 
+  const handleReviewSuccess = (updated: ProposalRecord) => {
+    // Update the selected proposal in-place; the refetch triggered by the
+    // mutation's refetchQueries will sync the rest of the list.
+    setSelected(updated);
+    refetch();
+  };
+
   return (
     <div>
       <PageHeader
-        title="Submitted Proposals"
-        subtitle="Global research activity — read only"
+        title="Proposals"
+        subtitle="Review and manage submitted proposals"
       />
 
       {/* Stats row */}
@@ -343,7 +629,7 @@ export function DirectorProposalsPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search by title, PI name, or funding call..."
+            placeholder="Search by title, PI name, or funding call…"
             className="bg-transparent outline-none flex-1 text-[13px] text-foreground"
           />
           {search && (
@@ -438,7 +724,17 @@ export function DirectorProposalsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge status={toDisplayStatus(p.status)} size="sm" />
+                      <div className="flex items-center gap-1.5">
+                        <Badge status={toDisplayStatus(p.status)} size="sm" />
+                        {(p.reviews?.length ?? 0) > 0 && (
+                          <span
+                            className="text-[10px] font-mono text-muted-foreground"
+                            title={`${p.reviews!.length} review(s)`}
+                          >
+                            ×{p.reviews!.length}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-[13px] text-foreground whitespace-nowrap">
@@ -463,7 +759,7 @@ export function DirectorProposalsPage() {
                         onClick={() => setSelected(p)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors whitespace-nowrap"
                       >
-                        View Details
+                        {REVIEWABLE_STATUSES.has(p.status) ? "Review" : "View Details"}
                       </button>
                     </td>
                   </tr>
@@ -553,7 +849,7 @@ export function DirectorProposalsPage() {
                   onClick={() => setSelected(p)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors"
                 >
-                  View Details
+                  {REVIEWABLE_STATUSES.has(p.status) ? "Review" : "View Details"}
                 </button>
               </div>
             </div>
@@ -568,10 +864,11 @@ export function DirectorProposalsPage() {
         />
       </div>
 
-      {/* Detail modal */}
+      {/* Detail + Review modal */}
       <ProposalDetailModal
         proposal={selected}
         onClose={() => setSelected(null)}
+        onReviewSuccess={handleReviewSuccess}
       />
     </div>
   );

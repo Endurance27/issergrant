@@ -39,6 +39,26 @@ const PROPOSAL_FIELDS = gql`
       createdAt
       updatedAt
     }
+    reviews {
+      id
+      proposalId
+      director {
+        id
+        name
+        email
+      }
+      decision
+      comment
+      createdAt
+      updatedAt
+    }
+    reviewHistory {
+      action
+      comment
+      reviewer
+      reviewerRole
+      date
+    }
   }
 `
 
@@ -63,6 +83,50 @@ export const SUBMIT_PROPOSAL_MUTATION = gql`
   ${PROPOSAL_FIELDS}
   mutation SubmitProposal($id: String!) {
     submitProposal(id: $id) {
+      success
+      message
+      errors
+      proposal {
+        ...ProposalFields
+      }
+    }
+  }
+`
+
+// ── Director review mutations ─────────────────────────────────────────────────
+
+export const APPROVE_PROPOSAL_MUTATION = gql`
+  ${PROPOSAL_FIELDS}
+  mutation ApproveProposal($input: ApproveProposalInput!) {
+    approveProposal(input: $input) {
+      success
+      message
+      errors
+      proposal {
+        ...ProposalFields
+      }
+    }
+  }
+`
+
+export const REJECT_PROPOSAL_MUTATION = gql`
+  ${PROPOSAL_FIELDS}
+  mutation RejectProposal($input: RejectProposalInput!) {
+    rejectProposal(input: $input) {
+      success
+      message
+      errors
+      proposal {
+        ...ProposalFields
+      }
+    }
+  }
+`
+
+export const REQUEST_REVISION_MUTATION = gql`
+  ${PROPOSAL_FIELDS}
+  mutation RequestRevision($input: RequestRevisionInput!) {
+    requestRevision(input: $input) {
       success
       message
       errors

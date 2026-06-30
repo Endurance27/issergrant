@@ -26,6 +26,24 @@ export interface ProposalCollaborator {
   guest: { id: string; name: string; email: string; department: string }
 }
 
+export interface ProposalReview {
+  id: string
+  proposalId: string
+  director: { id: string; name: string; email: string }
+  decision: 'approved' | 'rejected' | 'revised'
+  comment: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProposalReviewEntry {
+  action: string
+  comment: string
+  reviewer: string
+  reviewerRole: string
+  date: string
+}
+
 export interface ProposalFundingCall {
   id: string
   funder: string
@@ -60,6 +78,10 @@ export interface ProposalRecord {
   /** Zero or more Co-Principal Investigators. */
   coPIs?: ProposalPI[]
   collaborators?: ProposalCollaborator[]
+  /** Director reviews recorded against this proposal. */
+  reviews?: ProposalReview[]
+  /** Full audit trail of status transitions. */
+  reviewHistory?: ProposalReviewEntry[]
 }
 
 // Backend: proposalsByResearcher(researcherId: ID!, limit?, offset?, status?): ProposalConnection!

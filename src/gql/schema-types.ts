@@ -1831,6 +1831,7 @@ export type Mutation = {
   requestDisbursement: AwardPayload;
   requestProposalReview: ProposalPayload;
   requestReportRevision: ReportPayload;
+  requestRevision: ProposalPayload;
   researcherApproveProposal: ProposalPayload;
   researcherBulkApproveProposals: Array<Proposal>;
   researcherBulkRejectProposals: Array<Proposal>;
@@ -2416,6 +2417,11 @@ export type MutationRequestProposalReviewArgs = {
 export type MutationRequestReportRevisionArgs = {
   comment: Scalars['String']['input'];
   id: Scalars['String']['input'];
+};
+
+
+export type MutationRequestRevisionArgs = {
+  input: RequestRevisionInput;
 };
 
 
@@ -3049,6 +3055,7 @@ export type Proposal = {
   id: Scalars['ID']['output'];
   requestedAmount?: Maybe<Scalars['Float']['output']>;
   reviewHistory?: Maybe<Array<ReviewEntry>>;
+  reviews?: Maybe<Array<ProposalReview>>;
   status: ProposalStatus;
   submittedAt?: Maybe<Scalars['String']['output']>;
   title?: Maybe<Scalars['String']['output']>;
@@ -3124,12 +3131,12 @@ export type ProposalPayload = {
 
 export type ProposalReview = {
   __typename?: 'ProposalReview';
-  comment?: Maybe<Scalars['String']['output']>;
+  comment: Scalars['String']['output'];
   createdAt: Scalars['String']['output'];
+  decision: ReviewDecision;
+  director: User;
   id: Scalars['ID']['output'];
   proposalId: Scalars['ID']['output'];
-  reviewer: User;
-  status: Scalars['String']['output'];
   updatedAt: Scalars['String']['output'];
 };
 
@@ -3175,6 +3182,7 @@ export type ProposalStatus =
   | 'draft'
   | 'funded'
   | 'rejected'
+  | 'revised'
   | 'submitted'
   | 'under_review';
 
@@ -3339,6 +3347,7 @@ export type Query = {
   proposal?: Maybe<Proposal>;
   proposalCollaborators: Array<Collaborator>;
   proposalDraft?: Maybe<Proposal>;
+  proposalReviews: Array<ProposalReview>;
   proposalStats: ProposalStats;
   proposals: ProposalConnection;
   proposalsByResearcher: ProposalConnection;
@@ -4041,6 +4050,11 @@ export type QueryProposalDraftArgs = {
 };
 
 
+export type QueryProposalReviewsArgs = {
+  proposalId: Scalars['ID']['input'];
+};
+
+
 export type QueryProposalsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
@@ -4332,6 +4346,11 @@ export type RequestDisbursementInput = {
   description: Scalars['String']['input'];
 };
 
+export type RequestRevisionInput = {
+  comment: Scalars['String']['input'];
+  id: Scalars['ID']['input'];
+};
+
 export type ResearcherAnalytics = {
   __typename?: 'ResearcherAnalytics';
   activeResearchers: Scalars['Int']['output'];
@@ -4380,6 +4399,11 @@ export type ResetPasswordContent = {
   newPassword: Scalars['String']['input'];
   token: Scalars['String']['input'];
 };
+
+export type ReviewDecision =
+  | 'approved'
+  | 'rejected'
+  | 'revised';
 
 export type ReviewEntry = {
   __typename?: 'ReviewEntry';

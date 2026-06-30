@@ -18,7 +18,7 @@ import type { NavState } from "../../App";
 function useAdminNav() {
   const navigate = useNavigate();
   return (page: string, state?: NavState) =>
-    navigate('/admin/' + page, state ? { state } : undefined);
+    navigate("/admin/" + page, state ? { state } : undefined);
 }
 
 export function AdminDashboardPage() {
@@ -28,18 +28,18 @@ export function AdminDashboardPage() {
 
 export function AdminGrantCallsPage() {
   const nav = useAdminNav();
-  return <GrantCalls role="Admin" onNavigate={nav} />;
+  return <GrantCalls role="admin" onNavigate={nav} />;
 }
 
 export function AdminProposalsPage() {
   const location = useLocation();
   const navState = (location.state as NavState | null) ?? null;
-  return <Proposals role="Admin" navState={navState} />;
+  return <Proposals role="admin" navState={navState} />;
 }
 
 export function AdminAwardsPage() {
   const nav = useAdminNav();
-  return <Awards role="Admin" onNavigate={nav} />;
+  return <Awards role="admin" onNavigate={nav} />;
 }
 
 export function AdminMilestonesPage() {
@@ -47,7 +47,7 @@ export function AdminMilestonesPage() {
 }
 
 export function AdminFinancialPage() {
-  return <Financial role="Admin" />;
+  return <Financial role="admin" />;
 }
 
 export function AdminReportsPage() {
@@ -76,5 +76,7 @@ export function AdminCalendarPage() {
 
 export function AdminSettingsPage() {
   const { darkMode, toggleDark } = useAuthContext();
-  return <Settings role="Admin" darkMode={darkMode} onToggleDark={toggleDark} />;
+  return (
+    <Settings role="Admin" darkMode={darkMode} onToggleDark={toggleDark} />
+  );
 }

@@ -199,9 +199,9 @@ export function LoginPage() {
           <h1 className="font-black text-[34px] text-white leading-snug mb-3">
             Manage your
             <br />
-            research grants
+            Research Grants
             <br />
-            <span style={{ color: "#B79A64" }}>with precision.</span>
+            <span style={{ color: "#B79A64" }}>with Precision</span>
           </h1>
           <p
             className="text-[14px] leading-relaxed max-w-[360px]"
@@ -214,7 +214,7 @@ export function LoginPage() {
 
         {/* Floating preview cards */}
         <div className="relative flex-1 my-8 min-h-[220px]">
-          <div
+          {/* <div
             className="card-a drift-in-1 absolute"
             style={{
               ...GLASS,
@@ -257,9 +257,9 @@ export function LoginPage() {
                 Funded
               </span>
             </div>
-          </div>
+          </div> */}
 
-          <div
+          {/* <div
             className="card-b drift-in-2 absolute"
             style={{
               ...GLASS,
@@ -306,9 +306,9 @@ export function LoginPage() {
                 GHS 292k
               </span>
             </div>
-          </div>
+          </div> */}
 
-          <div
+          {/* <div
             className="card-c drift-in-3 absolute"
             style={{
               ...GLASS,
@@ -350,19 +350,19 @@ export function LoginPage() {
                 3 days remaining
               </span>
             </div>
-          </div>
+          </div> */}
 
           <div
-            className="card-d drift-in-4 absolute"
-            style={{
-              ...GLASS,
-              bottom: 10,
-              right: 10,
-              padding: "12px 16px",
-              width: 160,
-            }}
+          // className="card-d drift-in-4 absolute"
+          // style={{
+          //   ...GLASS,
+          //   bottom: 10,
+          //   right: 10,
+          //   padding: "12px 16px",
+          //   width: 160,
+          // }}
           >
-            <div className="flex items-center gap-2 mb-1">
+            {/* <div className="flex items-center gap-2 mb-1">
               <Award size={13} style={{ color: "#F0C674" }} />
               <span className="text-[10px] font-semibold" style={GLASS_SUB}>
                 Approval Rate
@@ -373,8 +373,8 @@ export function LoginPage() {
               style={{ color: "#F0C674" }}
             >
               94%
-            </div>
-            <div className="flex items-center gap-1 mt-1.5">
+            </div> */}
+            {/* <div className="flex items-center gap-1 mt-1.5">
               <svg width="40" height="16" viewBox="0 0 40 16">
                 <polyline
                   points="0,14 8,10 16,12 24,6 32,8 40,2"
@@ -388,12 +388,12 @@ export function LoginPage() {
               <span className="text-[9px]" style={{ color: "#4ADE80" }}>
                 ↑ 4% this year
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
 
         {/* Stats */}
-        <div className="relative space-y-2">
+        {/* <div className="relative space-y-2">
           {[
             { stat: "247", label: "Research Projects Funded" },
             { stat: "GHS 12.4M", label: "Total Grants Awarded" },
@@ -421,7 +421,7 @@ export function LoginPage() {
               </span>
             </div>
           ))}
-        </div>
+        </div> */}
       </div>
 
       {/* ── Right panel (form) ──────────────────────────────────────────── */}
@@ -432,11 +432,11 @@ export function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h2 className="font-extrabold text-[26px] text-foreground leading-snug mb-1.5">
+            <h2 className="font-extrabold text-[26px] text-foreground leading-snug mb-1.5 text-center">
               Sign in to your account
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Use your institutional email to access the portal
+            <p className="text-sm text-muted-foreground text-center">
+              Use your email and password to access the portal
             </p>
           </div>
 
@@ -463,7 +463,7 @@ export function LoginPage() {
                 value={formik.values.email}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                placeholder="you@institution.edu"
+                placeholder="demo@ug.edu.gh"
                 className="w-full px-4 py-3 rounded-xl outline-none transition-all bg-card text-sm text-foreground border border-border focus:border-primary/50"
               />
               {formik.touched.email && formik.errors.email && (
@@ -556,8 +556,7 @@ export function LoginPage() {
                       Reset Password
                     </h3>
                     <p className="text-[13px] text-muted-foreground mb-4">
-                      Enter your institutional email and we'll send a reset
-                      link.
+                      Enter your email and we'll send a reset link.
                     </p>
                     <input
                       type="email"

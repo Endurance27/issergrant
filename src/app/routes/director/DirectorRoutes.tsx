@@ -18,9 +18,8 @@ import type { NavState } from "../../App";
 function useDirectorNav() {
   const navigate = useNavigate();
   return (page: string, state?: NavState) =>
-    navigate('/director/' + page, state ? { state } : undefined);
+    navigate("/director/" + page, state ? { state } : undefined);
 }
-
 
 export function DirectorDashboardPage() {
   const nav = useDirectorNav();
@@ -34,7 +33,7 @@ export function DirectorDashboard() {
 
 export function DirectorGrantCallsPage() {
   const nav = useDirectorNav();
-  return <GrantCalls role="Director" onNavigate={nav} />;
+  return <GrantCalls role="director" onNavigate={nav} />;
 }
 
 export function DirectorProposalsPage() {
@@ -43,11 +42,11 @@ export function DirectorProposalsPage() {
 
 export function DirectorAwardsPage() {
   const nav = useDirectorNav();
-  return <Awards role="Director" onNavigate={nav} />;
+  return <Awards role="director" onNavigate={nav} />;
 }
 
 export function DirectorFinancialPage() {
-  return <Financial role="Director" />;
+  return <Financial role="director" />;
 }
 
 export function DirectorReportsPage() {
@@ -76,7 +75,9 @@ export function DirectorAuditPage() {
 
 export function DirectorSettingsPage() {
   const { darkMode, toggleDark } = useAuthContext();
-  return <Settings role="Director" darkMode={darkMode} onToggleDark={toggleDark} />;
+  return (
+    <Settings role="Director" darkMode={darkMode} onToggleDark={toggleDark} />
+  );
 }
 
 export function DirectorGuestsPage() {

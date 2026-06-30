@@ -74,6 +74,7 @@ export type ProposalStatus =
   | 'draft'
   | 'funded'
   | 'rejected'
+  | 'revised'
   | 'submitted'
   | 'under_review';
 

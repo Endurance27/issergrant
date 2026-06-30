@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { CreateProposalForm } from "../proposals/CreateProposalForm";
 import { EditProposalForm } from "../proposals/EditProposalForm";
 import {
@@ -14,7 +14,6 @@ import {
   Award,
   ChevronUp,
   ChevronDown,
-  Trash2,
   Pencil,
   Users,
 } from "lucide-react";
@@ -27,58 +26,22 @@ import { Pagination } from "../ui/Pagination";
 import { usePagination } from "../../../hooks/usePagination";
 import { useSortable } from "../../../hooks/useSortable";
 import { useAppContext } from "../../context/AppContext";
-import { supabase } from "../../../lib/supabase";
-import type {
-  Role,
-  Proposal,
-  StatusBadge,
-  Award as AwardType,
-} from "../../data/mockData";
+import type { Award as AwardType } from "../../data/mockData";
 import type { NavState } from "../../App";
 import { Account_Type } from "@/gql/schema-types";
-import type { ProposalPI, ProposalRecord } from "../../../types/proposal.types";
+import type { ProposalRecord } from "../../../types/proposal.types";
 import { useAuthStore } from "../../../store/auth.store";
 import { useProposalsByResearcher } from "../../../hooks/useProposalsByResearcher";
+import { useAllSubmittedProposals } from "../../../hooks/useDirectorProposals";
+import {
+  useApproveProposal,
+  useRejectProposal,
+  useRequestRevision,
+} from "../../../hooks/useProposalReview";
 import { toDisplayStatus } from "../../utils/proposalStatus";
 import { fmtDateTime } from "../../utils/formatters";
 
 const fmtCurrency = (n: number = 0) => `GHS ${n.toLocaleString() || "0.00"}`;
-
-function toLocalProposal(p: ProposalRecord): ProposalWithHistory {
-  return {
-    id: p.id,
-    title: p.title,
-    researcher: p.user?.name ?? "",
-    researcherId: 0,
-    grantCallId: p.fundingCall?.id ?? "",
-    grantCallTitle: p.fundingCall?.theme ?? "",
-    submitted: p.submittedAt ?? "",
-    status: toDisplayStatus(p.status),
-    requestedAmount: p.requestedAmount,
-    department: p.user?.department ?? "",
-    abstract: p.abstract,
-    coPIs: p.coPIs,
-    source: "graphql",
-    raw: p,
-  };
-}
-
-interface ReviewEntry {
-  action: "Approved" | "Rejected" | "Revised";
-  comment: string;
-  reviewer: string;
-  date: string;
-}
-
-type ProposalWithHistory = Proposal & {
-  reviewHistory?: ReviewEntry[];
-  /** Zero or more Co-Principal Investigators (only populated for proposals created via the real backend). */
-  coPIs?: ProposalPI[];
-  /** Marks rows backed by a real GraphQL record — only these can be edited. */
-  source?: "graphql";
-  /** The full backend record, kept around so the edit form has everything it needs. */
-  raw?: ProposalRecord;
-};
 
 interface ProposalsProps {
   role: Account_Type;
@@ -114,82 +77,91 @@ const TH = ({
   </th>
 );
 
+const REVIEW_COLORS = {
+  Approved: "#22C55E",
+  Rejected: "#EF4444",
+  Revised: "#A855F7",
+} as const;
+
+const REVIEW_LABELS = {
+  Approved: "Approve Proposal",
+  Rejected: "Reject Proposal",
+  Revised: "Request Revision",
+} as const;
+
 export function Proposals({ role, navState }: ProposalsProps) {
-  const { addAward, addNotification, addAuditLog } = useAppContext();
-  const [proposals, setProposals] = useState<ProposalWithHistory[]>([]);
+  const { addAward, addNotification } = useAppContext();
 
   const isResearcher = role === "researcher";
   const currentUser = useAuthStore((s) => s.user);
-  const { proposals: myProposals } = useProposalsByResearcher(
-    isResearcher ? (currentUser?.UserId ?? "") : "",
-  );
 
-  // Researchers see their own proposals, looked up by their userId — kept in
-  // sync with the GraphQL backend rather than the (legacy) Supabase table below.
-  useEffect(() => {
-    if (isResearcher) {
-      setProposals(myProposals.map(toLocalProposal));
-    }
-  }, [isResearcher, myProposals]);
+  // ── Data hooks ─────────────────────────────────────────────────────────────
+  const {
+    proposals: researcherProposals,
+    loading: researcherLoading,
+    error: researcherError,
+    refetch: refetchResearcher,
+  } = useProposalsByResearcher(isResearcher ? (currentUser?.UserId ?? "") : "");
 
-  useEffect(() => {
-    if (isResearcher) return;
-    // Fetch proposals from Supabase
-    const fetchProposals = async () => {
-      const { data, error } = await supabase
-        .from("proposals")
-        .select("*")
-        .order("submitted", { ascending: false });
-      if (!error && data && data.length > 0) {
-        setProposals(data as ProposalWithHistory[]);
-      }
-    };
-    fetchProposals();
-  }, [isResearcher]);
+  const {
+    proposals: allProposals,
+    loading: adminLoading,
+    error: adminError,
+  } = useAllSubmittedProposals();
 
+  // Admin review mutations (always called to satisfy rules-of-hooks)
+  const { approveProposal, loading: approveLoading } = useApproveProposal();
+  const { rejectProposal, loading: rejectLoading } = useRejectProposal();
+  const { requestRevision, loading: revisionLoading } = useRequestRevision();
+  const reviewSubmitting = approveLoading || rejectLoading || revisionLoading;
+
+  const proposals = isResearcher ? researcherProposals : allProposals;
+  const loading = isResearcher ? researcherLoading : adminLoading;
+  const error = isResearcher ? researcherError : adminError;
+
+  // ── UI state ───────────────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [selected, setSelected] = useState<ProposalWithHistory | null>(null);
+  const [selected, setSelected] = useState<ProposalRecord | null>(null);
   const [showNew, setShowNew] = useState(navState?.grantCallId ? true : false);
-  const [editingProposal, setEditingProposal] =
-    useState<ProposalWithHistory | null>(null);
+  const [editingProposal, setEditingProposal] = useState<ProposalRecord | null>(null);
 
   const [reviewAction, setReviewAction] = useState<{
-    proposal: ProposalWithHistory;
+    proposal: ProposalRecord;
     type: "Approved" | "Rejected" | "Revised";
   } | null>(null);
   const [reviewComment, setReviewComment] = useState("");
   const [commentError, setCommentError] = useState("");
-  const [showAwardModal, setShowAwardModal] =
-    useState<ProposalWithHistory | null>(null);
+
+  const [showAwardModal, setShowAwardModal] = useState<ProposalRecord | null>(null);
   const [awardAmount, setAwardAmount] = useState("");
   const [awardStart, setAwardStart] = useState("");
   const [awardEnd, setAwardEnd] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   const { toast } = useToast();
 
-  const myId = role === "Researcher" ? 2 : null;
-  const visibleProposals =
-    myId ? proposals.filter((p) => p.researcherId === myId) : proposals;
-
+  // ── Filtering & sorting ────────────────────────────────────────────────────
   const filtered = useMemo(
     () =>
-      visibleProposals.filter((p) => {
+      proposals.filter((p) => {
+        const q = search.toLowerCase();
         const matchSearch =
-          p.title.toLowerCase().includes(search.toLowerCase()) ||
-          p.researcher.toLowerCase().includes(search.toLowerCase());
-        const matchStatus = statusFilter === "All" || p.status === statusFilter;
+          !q ||
+          (p.title ?? "").toLowerCase().includes(q) ||
+          (p.user?.name ?? "").toLowerCase().includes(q);
+        const matchStatus =
+          statusFilter === "All" || toDisplayStatus(p.status) === statusFilter;
         return matchSearch && matchStatus;
       }),
-    [visibleProposals, search, statusFilter],
+    [proposals, search, statusFilter],
   );
 
-  const { sorted, sortKey, dir, toggle } = useSortable(
+  const { sorted, dir, toggle } = useSortable(
     filtered as unknown as Record<string, unknown>[],
-    "submitted" as any,
+    "submittedAt" as any,
   );
   const { paginated, page, totalPages, setPage } = usePagination(
-    sorted as unknown as ProposalWithHistory[],
+    sorted as unknown as ProposalRecord[],
     8,
   );
 
@@ -202,19 +174,10 @@ export function Proposals({ role, navState }: ProposalsProps) {
     "Rejected",
     "Revised",
   ];
-  const actionColors = {
-    Approved: "#22C55E",
-    Rejected: "#EF4444",
-    Revised: "#A855F7",
-  };
-  const actionLabels = {
-    Approved: "Approve Proposal",
-    Rejected: "Reject Proposal",
-    Revised: "Request Revision",
-  };
 
+  // ── Admin review ───────────────────────────────────────────────────────────
   const openReview = (
-    proposal: ProposalWithHistory,
+    proposal: ProposalRecord,
     type: "Approved" | "Rejected" | "Revised",
   ) => {
     setReviewAction({ proposal, type });
@@ -222,107 +185,46 @@ export function Proposals({ role, navState }: ProposalsProps) {
     setCommentError("");
   };
 
-  const submitReview = () => {
+  const submitReview = async () => {
     if (!reviewComment.trim()) {
       setCommentError("A comment is required.");
       return;
     }
     if (!reviewAction) return;
-    const statusMap: Record<string, StatusBadge> = {
-      Approved: "Approved",
-      Rejected: "Rejected",
-      Revised: "Revised",
-    };
-    const entry: ReviewEntry = {
-      action: reviewAction.type,
-      comment: reviewComment.trim(),
-      reviewer: role,
-      date: new Date().toISOString().slice(0, 10),
-    };
-    const updated = proposals.map((p) =>
-      p.id === reviewAction.proposal.id ?
-        {
-          ...p,
-          status: statusMap[reviewAction.type],
-          reviewHistory: [...(p.reviewHistory || []), entry],
-        }
-      : p,
-    );
-    setProposals(updated);
-    if (selected?.id === reviewAction.proposal.id) {
-      setSelected((prev) =>
-        prev ?
-          {
-            ...prev,
-            status: statusMap[reviewAction.type],
-            reviewHistory: [...(prev.reviewHistory || []), entry],
-          }
-        : prev,
-      );
+
+    let result = null;
+    const id = reviewAction.proposal.id;
+
+    if (reviewAction.type === "Approved") {
+      result = await approveProposal({ id, comment: reviewComment.trim() });
+    } else if (reviewAction.type === "Rejected") {
+      result = await rejectProposal({ id, reason: reviewComment.trim() });
+    } else {
+      result = await requestRevision({ id, comment: reviewComment.trim() });
     }
-    // Persist status update to Supabase
-    supabase
-      .from("proposals")
-      .update({ status: statusMap[reviewAction.type] })
-      .eq("id", reviewAction.proposal.id)
-      .then(() => {});
-    // Auto-notification
-    const notifMsg =
-      reviewAction.type === "Approved" ?
-        `Your proposal "${reviewAction.proposal.title}" has been approved!`
-      : reviewAction.type === "Rejected" ?
-        `Your proposal "${reviewAction.proposal.title}" was not approved.`
-      : `Revision requested for "${reviewAction.proposal.title}".`;
-    addNotification({
-      title: `Proposal ${reviewAction.type}`,
-      message: notifMsg,
-      time: "Just now",
-      type: reviewAction.type === "Approved" ? "approval" : "rejection",
-    });
 
-    toast(`Proposal ${reviewAction.type.toLowerCase()}`);
-    setReviewAction(null);
-    setReviewComment("");
+    if (result?.success) {
+      addNotification({
+        title: `Proposal ${reviewAction.type}`,
+        message:
+          reviewAction.type === "Approved" ?
+            `Proposal "${reviewAction.proposal.title}" has been approved.`
+          : reviewAction.type === "Rejected" ?
+            `Proposal "${reviewAction.proposal.title}" was rejected.`
+          : `Revision requested for "${reviewAction.proposal.title}".`,
+        time: "Just now",
+        type: reviewAction.type === "Approved" ? "approval" : "rejection",
+      });
+      toast(`Proposal ${reviewAction.type.toLowerCase()}`);
+      setReviewAction(null);
+      setReviewComment("");
+      setSelected(null);
+    } else if (result) {
+      setCommentError(result.message ?? "Review failed.");
+    }
   };
 
-  const handleBulkApprove = () => {
-    setProposals((p) =>
-      p.map((q) =>
-        (
-          selectedIds.has(q.id) &&
-          (q.status === "Under Review" || q.status === "Submitted")
-        ) ?
-          { ...q, status: "Approved" }
-        : q,
-      ),
-    );
-    toast(`${selectedIds.size} proposals approved`);
-    setSelectedIds(new Set());
-  };
-
-  const handleBulkReject = () => {
-    setProposals((p) =>
-      p.map((q) =>
-        (
-          selectedIds.has(q.id) &&
-          (q.status === "Under Review" || q.status === "Submitted")
-        ) ?
-          { ...q, status: "Rejected" }
-        : q,
-      ),
-    );
-    toast(`${selectedIds.size} proposals rejected`, "warning");
-    setSelectedIds(new Set());
-  };
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const s = new Set(prev);
-      s.has(id) ? s.delete(id) : s.add(id);
-      return s;
-    });
-  };
-
+  // ── Award creation ─────────────────────────────────────────────────────────
   const createAward = () => {
     if (!showAwardModal || !awardAmount || !awardStart || !awardEnd) {
       toast("Fill in all award fields", "error");
@@ -332,8 +234,8 @@ export function Proposals({ role, navState }: ProposalsProps) {
     const award: AwardType = {
       id: `AW-${Date.now()}`,
       proposalId: showAwardModal.id,
-      title: showAwardModal.title,
-      researcher: showAwardModal.researcher,
+      title: showAwardModal.title ?? "",
+      researcher: showAwardModal.user?.name ?? "",
       awardedAmount: amt,
       awardDate: new Date().toISOString().slice(0, 10),
       startDate: awardStart,
@@ -345,11 +247,10 @@ export function Proposals({ role, navState }: ProposalsProps) {
     addAward(award);
     addNotification({
       title: "Award Created",
-      message: `Award for "${showAwardModal.title}" has been created (${fmtCurrency(amt ?? 0)}).`,
+      message: `Award for "${showAwardModal.title}" created (${fmtCurrency(amt)}).`,
       time: "Just now",
       type: "approval",
     });
-
     toast("Award created successfully");
     setShowAwardModal(null);
     setAwardAmount("");
@@ -357,13 +258,15 @@ export function Proposals({ role, navState }: ProposalsProps) {
     setAwardEnd("");
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div>
       <PageHeader
         title="Proposals"
-        subtitle={`${proposals.filter((p) => p.status === "Under Review").length} proposals pending review`}
+        subtitle={`${proposals.filter((p) => toDisplayStatus(p.status) === "Under Review").length} proposals pending review`}
         action={
-          role === "researcher" ?
+          isResearcher ?
             <button
               onClick={() => setShowNew(true)}
               data-testid="new-proposal-button"
@@ -375,28 +278,43 @@ export function Proposals({ role, navState }: ProposalsProps) {
         }
       />
 
+      {/* Error state */}
+      {error && (
+        <div className="rounded-xl bg-red-50 border border-red-200 p-4 mb-5 text-sm text-red-700">
+          Failed to load proposals: {error.message}
+        </div>
+      )}
+
       {/* Stats bar */}
       <div className="flex flex-wrap gap-3 mb-5">
         {[
           { label: "Total", count: proposals.length, color: "var(--primary)" },
           {
             label: "Under Review",
-            count: proposals.filter((p) => p.status === "Under Review").length,
+            count: proposals.filter(
+              (p) => toDisplayStatus(p.status) === "Under Review",
+            ).length,
             color: "#F97316",
           },
           {
             label: "Approved",
-            count: proposals.filter((p) => p.status === "Approved").length,
+            count: proposals.filter(
+              (p) => toDisplayStatus(p.status) === "Approved",
+            ).length,
             color: "#22C55E",
           },
           {
             label: "Rejected",
-            count: proposals.filter((p) => p.status === "Rejected").length,
+            count: proposals.filter(
+              (p) => toDisplayStatus(p.status) === "Rejected",
+            ).length,
             color: "#EF4444",
           },
           {
             label: "Revised",
-            count: proposals.filter((p) => p.status === "Revised").length,
+            count: proposals.filter(
+              (p) => toDisplayStatus(p.status) === "Revised",
+            ).length,
             color: "#A855F7",
           },
         ].map((item) => (
@@ -410,7 +328,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
             />
             <span className="text-xs text-muted-foreground">{item.label}</span>
             <span className="font-mono font-bold text-[13px] text-foreground">
-              {item.count}
+              {loading ? "—" : item.count}
             </span>
           </div>
         ))}
@@ -446,103 +364,43 @@ export function Proposals({ role, navState }: ProposalsProps) {
         </div>
       </div>
 
-      {/* Bulk action bar */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 px-4 py-3 mb-3 rounded-xl bg-secondary border border-primary/20 animate-in slide-in-from-top-2 duration-200">
-          <span className="text-sm font-semibold text-primary">
-            {selectedIds.size} selected
-          </span>
-          <div className="flex gap-2 ml-auto">
-            <button
-              onClick={handleBulkApprove}
-              className="px-3 py-1.5 rounded-xl bg-green-500 text-white text-xs font-semibold hover:opacity-90"
-            >
-              Approve All
-            </button>
-            <button
-              onClick={handleBulkReject}
-              className="btn-destructive text-xs px-3 py-1.5"
-            >
-              Reject All
-            </button>
-            <button
-              onClick={() => setSelectedIds(new Set())}
-              className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
-            >
-              <Trash2 size={11} /> Clear
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Desktop table */}
       <div className="hidden md:block rounded-2xl overflow-hidden border border-border">
         <ScrollTable>
           <table className="w-full">
             <thead>
               <tr className="bg-muted border-b border-border">
-                {role === "admin" && (
-                  <th className="px-4 py-3 w-8">
-                    <input
-                      type="checkbox"
-                      className="rounded"
-                      onChange={(e) =>
-                        setSelectedIds(
-                          e.target.checked ?
-                            new Set(paginated.map((p) => p.id))
-                          : new Set(),
-                        )
-                      }
-                      checked={
-                        selectedIds.size === paginated.length &&
-                        paginated.length > 0
-                      }
-                    />
-                  </th>
-                )}
                 <TH
                   label="ID"
                   sortKey="id"
-                  active={sortKey === "id"}
+                  active={false}
                   dir={dir}
                   onToggle={() => toggle("id")}
                 />
                 <TH
                   label="Title"
                   sortKey="title"
-                  active={sortKey === "title"}
+                  active={false}
                   dir={dir}
                   onToggle={() => toggle("title")}
                 />
-                <TH
-                  label="Researcher"
-                  sortKey="researcher"
-                  active={sortKey === "researcher"}
-                  dir={dir}
-                  onToggle={() => toggle("researcher")}
-                />
+                <TH label="Researcher" />
                 <TH label="Grant Call" />
                 <TH
                   label="Amount"
                   sortKey="requestedAmount"
-                  active={sortKey === "requestedAmount"}
+                  active={false}
                   dir={dir}
                   onToggle={() => toggle("requestedAmount")}
                 />
                 <TH
                   label="Submitted At"
-                  sortKey="submitted"
-                  active={sortKey === "submitted"}
+                  sortKey="submittedAt"
+                  active={false}
                   dir={dir}
-                  onToggle={() => toggle("submitted")}
+                  onToggle={() => toggle("submittedAt")}
                 />
-                <TH
-                  label="Status"
-                  sortKey="status"
-                  active={sortKey === "status"}
-                  dir={dir}
-                  onToggle={() => toggle("status")}
-                />
+                <TH label="Status" />
                 <TH label="" />
               </tr>
             </thead>
@@ -552,17 +410,6 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   key={p.id}
                   className="bg-card hover:bg-muted transition-colors"
                 >
-                  {role === "admin" && (
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        className="rounded"
-                        checked={selectedIds.has(p.id)}
-                        onChange={() => toggleSelect(p.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </td>
-                  )}
                   <td className="px-4 py-3">
                     <span className="font-mono text-[11px] text-muted-foreground">
                       {p.id}
@@ -573,12 +420,12 @@ export function Proposals({ role, navState }: ProposalsProps) {
                       {p.title}
                     </div>
                     <div className="text-[11px] text-muted-foreground">
-                      {p.department}
+                      {p.user?.department ?? ""}
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="text-xs text-foreground">
-                      {p.researcher}
+                      {p.user?.name ?? "—"}
                     </span>
                     {(p.coPIs?.length ?? 0) > 0 && (
                       <div
@@ -594,53 +441,54 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   </td>
                   <td className="px-4 py-3 max-w-[160px]">
                     <span className="text-xs text-muted-foreground truncate block">
-                      {p.grantCallTitle}
+                      {p.fundingCall?.theme ?? "—"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-mono font-semibold text-xs text-foreground whitespace-nowrap">
-                      {fmtCurrency(p.requestedAmount ?? 0.0)}
+                      {fmtCurrency(p.requestedAmount ?? 0)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                      {p.source === "graphql" ?
-                        fmtDateTime(p.submitted)
-                      : p.submitted}
+                      {fmtDateTime(p.submittedAt)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <Badge status={p.status} size="sm" />
-                      {(p.reviewHistory?.length ?? 0) > 0 && (
-                        <MessageSquare
-                          size={12}
-                          className="text-muted-foreground"
-                        />
+                      <Badge status={toDisplayStatus(p.status)} size="sm" />
+                      {(p.reviews?.length ?? 0) > 0 && (
+                        <span title={`${p.reviews!.length} review(s)`}>
+                          <MessageSquare size={12} className="text-muted-foreground" />
+                        </span>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      {role === "Researcher" && p.status === "Draft" ?
-                        <button
-                          onClick={() => setSelected(p)}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-colors"
-                          title="Continue editing"
-                        >
-                          <Eye size={12} /> Continue Editing
-                        </button>
-                      : <button
-                          onClick={() => setSelected(p)}
-                          className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted"
-                          title="View details"
-                        >
-                          <Eye size={14} />
-                        </button>
-                      }
+                      <button
+                        onClick={() => setSelected(p)}
+                        className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted"
+                        title="View details"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      {isResearcher &&
+                        (p.status === "under_review" ||
+                          p.status === "draft" ||
+                          p.status === "revised") && (
+                          <button
+                            onClick={() => setEditingProposal(p)}
+                            className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted hover:text-primary"
+                            title="Edit proposal"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
                       {role === "admin" &&
-                        (p.status === "Under Review" ||
-                          p.status === "Revised") && (
+                        (p.status === "submitted" ||
+                          p.status === "under_review" ||
+                          p.status === "revised") && (
                           <>
                             <button
                               onClick={() => openReview(p, "Approved")}
@@ -665,7 +513,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                             </button>
                           </>
                         )}
-                      {role === "admin" && p.status === "Approved" && (
+                      {role === "admin" && p.status === "approved" && (
                         <button
                           onClick={() => setShowAwardModal(p)}
                           className="flex items-center justify-center rounded-md p-1.5 transition-colors text-yellow-600 hover:bg-yellow-50"
@@ -685,18 +533,13 @@ export function Proposals({ role, navState }: ProposalsProps) {
         {paginated.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <FileText
-                size={24}
-                className="opacity-40 text-muted-foreground"
-              />
+              <FileText size={24} className="opacity-40 text-muted-foreground" />
             </div>
             <div className="font-bold text-sm text-foreground">
               No proposals found
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {search ?
-                `No results for "${search}"`
-              : "Try changing your filters"}
+              {search ? `No results for "${search}"` : "Try changing your filters"}
             </div>
           </div>
         )}
@@ -715,18 +558,13 @@ export function Proposals({ role, navState }: ProposalsProps) {
         {paginated.length === 0 ?
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <FileText
-                size={24}
-                className="opacity-40 text-muted-foreground"
-              />
+              <FileText size={24} className="opacity-40 text-muted-foreground" />
             </div>
             <div className="font-bold text-sm text-foreground">
               No proposals found
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {search ?
-                `No results for "${search}"`
-              : "Try changing your filters"}
+              {search ? `No results for "${search}"` : "Try changing your filters"}
             </div>
           </div>
         : paginated.map((p) => (
@@ -734,35 +572,31 @@ export function Proposals({ role, navState }: ProposalsProps) {
               key={p.id}
               className="rounded-2xl bg-card border border-border p-4 space-y-2.5"
             >
-              {/* Top row: ID + status */}
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                   {p.id}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  {(p.reviewHistory?.length ?? 0) > 0 && (
-                    <MessageSquare
-                      size={12}
-                      className="text-muted-foreground"
-                    />
+                  {(p.reviews?.length ?? 0) > 0 && (
+                    <MessageSquare size={12} className="text-muted-foreground" />
                   )}
-                  <Badge status={p.status} size="sm" />
+                  <Badge status={toDisplayStatus(p.status)} size="sm" />
                 </div>
               </div>
-              {/* Title + department */}
               <div>
                 <div className="font-bold text-[13px] text-foreground leading-snug">
                   {p.title}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  {p.department}
+                  {p.user?.department ?? ""}
                 </div>
               </div>
-              {/* Researcher + amount */}
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-foreground">{p.researcher}</span>
+                <span className="text-xs text-foreground">
+                  {p.user?.name ?? "—"}
+                </span>
                 <span className="font-mono font-semibold text-xs text-foreground">
-                  {fmtCurrency(p.requestedAmount ?? 0.0)}
+                  {fmtCurrency(p.requestedAmount ?? 0)}
                 </span>
               </div>
               {(p.coPIs?.length ?? 0) > 0 && (
@@ -774,12 +608,9 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   {p.coPIs!.map((c) => c.name).join(", ")}
                 </div>
               )}
-              {/* Date + actions */}
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
                 <span className="font-mono text-[11px] text-muted-foreground">
-                  {p.source === "graphql" ?
-                    fmtDateTime(p.submitted)
-                  : p.submitted}
+                  {fmtDateTime(p.submittedAt)}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -789,10 +620,10 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   >
                     <Eye size={14} />
                   </button>
-                  {p.source === "graphql" &&
-                    (p.status === "Under Review" ||
-                      p.status === "Draft" ||
-                      p.status === "Revised") && (
+                  {isResearcher &&
+                    (p.status === "under_review" ||
+                      p.status === "draft" ||
+                      p.status === "revised") && (
                       <button
                         onClick={() => setEditingProposal(p)}
                         className="flex items-center justify-center rounded-md p-1.5 transition-colors text-muted-foreground hover:bg-muted hover:text-primary"
@@ -802,7 +633,9 @@ export function Proposals({ role, navState }: ProposalsProps) {
                       </button>
                     )}
                   {role === "admin" &&
-                    (p.status === "Under Review" || p.status === "Revised") && (
+                    (p.status === "submitted" ||
+                      p.status === "under_review" ||
+                      p.status === "revised") && (
                       <>
                         <button
                           onClick={() => openReview(p, "Approved")}
@@ -827,7 +660,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                         </button>
                       </>
                     )}
-                  {role === "admin" && p.status === "Approved" && (
+                  {role === "admin" && p.status === "approved" && (
                     <button
                       onClick={() => setShowAwardModal(p)}
                       className="flex items-center justify-center rounded-md p-1.5 transition-colors text-yellow-600 hover:bg-yellow-50"
@@ -858,12 +691,12 @@ export function Proposals({ role, navState }: ProposalsProps) {
         width={640}
       >
         {selected && (
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[78vh] overflow-y-auto pr-1">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[11px] text-muted-foreground">
                 {selected.id}
               </span>
-              <Badge status={selected.status} />
+              <Badge status={toDisplayStatus(selected.status)} />
             </div>
             <h2 className="font-extrabold text-[17px] text-foreground leading-snug">
               {selected.title}
@@ -878,21 +711,27 @@ export function Proposals({ role, navState }: ProposalsProps) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Principal Investigator", value: selected.researcher },
-                { label: "Department", value: selected.department },
-                { label: "Grant Call", value: selected.grantCallTitle },
+                {
+                  label: "Principal Investigator",
+                  value: selected.user?.name ?? "—",
+                },
+                {
+                  label: "Department",
+                  value: selected.user?.department ?? "—",
+                },
+                {
+                  label: "Grant Call",
+                  value: selected.fundingCall?.theme ?? "—",
+                },
                 {
                   label: "Requested Amount",
                   value: fmtCurrency(selected.requestedAmount),
                 },
                 {
                   label: "Submitted At",
-                  value:
-                    selected.source === "graphql" ?
-                      fmtDateTime(selected.submitted)
-                    : selected.submitted,
+                  value: fmtDateTime(selected.submittedAt),
                 },
-                { label: "Status", value: selected.status },
+                { label: "Status", value: toDisplayStatus(selected.status) },
               ].map((item) => (
                 <div key={item.label} className="p-3 rounded-xl bg-muted">
                   <div className="text-[11px] text-muted-foreground mb-0.5">
@@ -921,69 +760,76 @@ export function Proposals({ role, navState }: ProposalsProps) {
                 </div>
               : <p className="text-[12px] text-muted-foreground">None</p>}
             </div>
-            {(selected.reviewHistory?.length ?? 0) > 0 && (
+
+            {/* Director reviews */}
+            {(selected.reviews?.length ?? 0) > 0 && (
               <div>
                 <div className="font-bold text-[13px] text-foreground mb-2">
-                  Review History
+                  Director Reviews ({selected.reviews!.length})
                 </div>
                 <div className="space-y-3">
-                  {selected.reviewHistory!.map((entry, idx) => (
-                    <div key={idx} className="flex gap-3">
-                      <div
-                        className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 mt-0.5"
-                        style={{
-                          background:
-                            (actionColors as any)[entry.action] + "18",
-                        }}
-                      >
-                        {entry.action === "Approved" ?
-                          <CheckCircle2 size={13} className="text-green-500" />
-                        : entry.action === "Rejected" ?
-                          <XCircle size={13} className="text-red-500" />
-                        : <RotateCcw size={13} className="text-purple-500" />}
-                      </div>
-                      <div className="flex-1 p-3 rounded-xl bg-muted">
-                        <div className="flex items-center justify-between mb-1">
-                          <span
-                            className="font-bold text-xs"
-                            style={{
-                              color: (actionColors as any)[entry.action],
-                            }}
-                          >
-                            {entry.action}
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-muted-foreground">
-                              {entry.reviewer}
-                            </span>
-                            <Clock
-                              size={11}
-                              className="text-muted-foreground"
-                            />
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                              {entry.date}
-                            </span>
-                          </div>
+                  {selected.reviews!.map((r) => {
+                    const colors: Record<string, string> = {
+                      approved: "#22C55E",
+                      rejected: "#EF4444",
+                      revised: "#A855F7",
+                    };
+                    const labels: Record<string, string> = {
+                      approved: "Approved",
+                      rejected: "Rejected",
+                      revised: "Revision Requested",
+                    };
+                    const color = colors[r.decision] ?? "#6B7280";
+                    return (
+                      <div key={r.id} className="flex gap-3">
+                        <div
+                          className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 mt-0.5"
+                          style={{ background: color + "18" }}
+                        >
+                          {r.decision === "approved" ?
+                            <CheckCircle2 size={13} className="text-green-500" />
+                          : r.decision === "rejected" ?
+                            <XCircle size={13} className="text-red-500" />
+                          : <RotateCcw size={13} className="text-purple-500" />}
                         </div>
-                        <p className="text-xs text-foreground leading-relaxed">
-                          {entry.comment}
-                        </p>
+                        <div className="flex-1 p-3 rounded-xl bg-muted">
+                          <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                            <span className="font-bold text-xs" style={{ color }}>
+                              {labels[r.decision] ?? r.decision}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] text-muted-foreground">
+                                {r.director.name}
+                              </span>
+                              <Clock size={11} className="text-muted-foreground" />
+                              <span className="font-mono text-[11px] text-muted-foreground">
+                                {fmtDateTime(r.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-foreground leading-relaxed">
+                            {r.comment}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
+
+            {/* Admin review action buttons */}
             {role === "admin" &&
-              (selected.status === "Under Review" ||
-                selected.status === "Revised") && (
+              (selected.status === "submitted" ||
+                selected.status === "under_review" ||
+                selected.status === "revised") && (
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => {
                       openReview(selected, "Approved");
                       setSelected(null);
                     }}
-                    className="flex-1 py-2.5 rounded-xl bg-green-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity"
+                    className="flex-1 py-2.5 rounded-xl bg-green-500 text-white font-bold text-[13px] hover:opacity-90"
                   >
                     Approve
                   </button>
@@ -992,7 +838,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                       openReview(selected, "Revised");
                       setSelected(null);
                     }}
-                    className="flex-1 py-2.5 rounded-xl bg-purple-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity"
+                    className="flex-1 py-2.5 rounded-xl bg-purple-500 text-white font-bold text-[13px] hover:opacity-90"
                   >
                     Request Revision
                   </button>
@@ -1001,13 +847,14 @@ export function Proposals({ role, navState }: ProposalsProps) {
                       openReview(selected, "Rejected");
                       setSelected(null);
                     }}
-                    className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-[13px] hover:opacity-90 transition-opacity"
+                    className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-[13px] hover:opacity-90"
                   >
                     Reject
                   </button>
                 </div>
               )}
-            {role === "admin" && selected.status === "Approved" && (
+
+            {role === "admin" && selected.status === "approved" && (
               <button
                 onClick={() => {
                   setShowAwardModal(selected);
@@ -1018,10 +865,11 @@ export function Proposals({ role, navState }: ProposalsProps) {
                 <Award size={15} /> Create Award from This Proposal
               </button>
             )}
-            {selected.source === "graphql" &&
-              (selected.status === "Under Review" ||
-                selected.status === "Draft" ||
-                selected.status === "Revised") && (
+
+            {isResearcher &&
+              (selected.status === "under_review" ||
+                selected.status === "draft" ||
+                selected.status === "revised") && (
                 <button
                   onClick={() => {
                     setEditingProposal(selected);
@@ -1051,7 +899,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
               <div className="flex items-center gap-3 mb-4">
                 <div
                   className="flex items-center justify-center w-10 h-10 rounded-full"
-                  style={{ background: actionColors[reviewAction.type] + "18" }}
+                  style={{ background: REVIEW_COLORS[reviewAction.type] + "18" }}
                 >
                   {reviewAction.type === "Approved" ?
                     <CheckCircle2 size={20} className="text-green-500" />
@@ -1061,7 +909,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
                 </div>
                 <div>
                   <div className="font-bold text-[15px] text-foreground">
-                    {actionLabels[reviewAction.type]}
+                    {REVIEW_LABELS[reviewAction.type]}
                   </div>
                   <div className="text-xs text-muted-foreground truncate max-w-[280px]">
                     {reviewAction.proposal.title}
@@ -1092,26 +940,26 @@ export function Proposals({ role, navState }: ProposalsProps) {
                   }}
                 />
                 {commentError && (
-                  <div className="text-[11px] text-red-500 mt-1">
-                    {commentError}
-                  </div>
+                  <div className="text-[11px] text-red-500 mt-1">{commentError}</div>
                 )}
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setReviewAction(null)}
+                  disabled={reviewSubmitting}
                   className="btn-secondary flex-1 py-2.5"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={submitReview}
-                  className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90"
-                  style={{
-                    background: actionColors[reviewAction.type] as string,
-                  }}
+                  disabled={reviewSubmitting}
+                  className="flex-1 py-2.5 rounded-xl text-white font-bold text-[13px] hover:opacity-90 disabled:opacity-60"
+                  style={{ background: REVIEW_COLORS[reviewAction.type] }}
                 >
-                  {actionLabels[reviewAction.type]}
+                  {reviewSubmitting ?
+                    "Submitting…"
+                  : REVIEW_LABELS[reviewAction.type]}
                 </button>
               </div>
             </div>
@@ -1129,14 +977,12 @@ export function Proposals({ role, navState }: ProposalsProps) {
         {showAwardModal && (
           <div className="space-y-4">
             <div className="p-3 rounded-xl bg-secondary border-l-4 border-primary">
-              <div className="text-[11px] text-muted-foreground mb-0.5">
-                Proposal
-              </div>
+              <div className="text-[11px] text-muted-foreground mb-0.5">Proposal</div>
               <div className="font-bold text-[13px] text-foreground">
                 {showAwardModal.title}
               </div>
               <div className="text-xs text-muted-foreground">
-                {showAwardModal.researcher}
+                {showAwardModal.user?.name ?? "—"}
               </div>
             </div>
             <div>
@@ -1193,7 +1039,7 @@ export function Proposals({ role, navState }: ProposalsProps) {
         )}
       </Modal>
 
-      {/* New proposal modal — GraphQL-backed for Researchers / Assistant Researchers */}
+      {/* New proposal modal */}
       <Modal
         open={showNew}
         onClose={() => setShowNew(false)}
@@ -1203,44 +1049,29 @@ export function Proposals({ role, navState }: ProposalsProps) {
         <div className="max-h-[75vh] overflow-y-auto pr-1">
           <CreateProposalForm
             defaultFundingCallId={navState?.grantCallId ?? ""}
-            onSuccess={(created) => {
-              // Merge the returned record into the local proposals list
-              setProposals((prev) => [toLocalProposal(created), ...prev]);
+            onSuccess={() => {
               setShowNew(false);
+              refetchResearcher();
             }}
             onCancel={() => setShowNew(false)}
           />
         </div>
       </Modal>
 
-      {/* Edit proposal modal — only available for proposals backed by a real record */}
+      {/* Edit proposal modal */}
       <Modal
         open={!!editingProposal}
         onClose={() => setEditingProposal(null)}
         title="Edit Proposal"
         width={620}
       >
-        {editingProposal?.raw && (
+        {editingProposal && (
           <div className="max-h-[75vh] overflow-y-auto pr-1">
             <EditProposalForm
-              proposal={editingProposal.raw}
-              onSuccess={(updated) => {
-                setProposals((prev) =>
-                  prev.map((p) =>
-                    p.id === updated.id ?
-                      {
-                        ...p,
-                        title: updated.title,
-                        abstract: updated.abstract,
-                        department: updated.user?.department ?? "",
-                        requestedAmount: updated.requestedAmount,
-                        coPIs: updated.coPIs,
-                        raw: updated,
-                      }
-                    : p,
-                  ),
-                );
+              proposal={editingProposal}
+              onSuccess={() => {
                 setEditingProposal(null);
+                refetchResearcher();
               }}
               onCancel={() => setEditingProposal(null)}
             />
